@@ -1,5 +1,6 @@
-import java.lang.Math;
+// Partial Differentiation in Java
 
+import java.lang.Math;
 
 public class PartialDifferentiation {
 

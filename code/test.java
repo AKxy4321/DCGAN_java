@@ -1,3 +1,5 @@
+// Test of Forward and Backward prop
+
 import java.util.Arrays;
 import java.util.Random;
 

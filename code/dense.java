@@ -1,3 +1,5 @@
+// Dense Layer Implementation in Java
+
 import java.util.Random;
 
 public class DenseLayer {
