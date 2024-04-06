@@ -128,7 +128,6 @@ public class ConvolutionalLayer {
 
 
 
-
     public double computeLoss(double[][] output, double[][] target) {
         // Compute Mean Squared Error (MSE)
         double sumSquaredError = 0;
@@ -184,13 +183,14 @@ public class ConvolutionalLayer {
         // Training loop
         int i;
         for (i = 0; i < iterations; i++) {
-            // Compute output gradient (using random gradient for demonstration)
+            // Compute output gradient based on mean squared error loss
             double[][] outputGradient = new double[numFilters][output[0].length];
             for (int k = 0; k < numFilters; k++) {
                 for (int j = 0; j < output[0].length; j++) {
-                    outputGradient[k][j] = rand.nextDouble(); // Random gradient values
+                    outputGradient[k][j] = 2 * (output[k][j] - target[k][j]) / (output[0].length); // Gradient of MSE loss
                 }
             }
+
             // Backward pass
             double[][][] inputGradient = convLayer.backward(input, outputGradient, learningRate);
 
