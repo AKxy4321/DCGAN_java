@@ -74,6 +74,16 @@ public class DenseLayer {
         return inputGradient;
     }
 
+    public double computeLoss(double[] output, double[] target) {
+        // Compute Mean Squared Error (MSE)
+        double sumSquaredError = 0;
+        for (int i = 0; i < output.length; i++) {
+            double error = output[i] - target[i];
+            sumSquaredError += error * error;
+        }
+        return sumSquaredError / output.length;
+    }
+
     public static void main(String[] args) {
         // Example usage
         int inputSize = 2;
@@ -81,6 +91,10 @@ public class DenseLayer {
         int outputSize = 2;
         double learningRate = 0.01;
         int iterations = 1000;
+        // basically some value close to 0, cause exact zero change is hard to achieve
+        double minLossChange = 1e-6; // Minimum change in loss to continue training
+
+        double prevLoss = Double.MAX_VALUE;
 
         // Create layers
         DenseLayer layer1 = new DenseLayer(inputSize, hiddenSize);
@@ -88,23 +102,47 @@ public class DenseLayer {
 
         // Example input
         double[] input = {1.0, 2.0};
-        
+
         // Forward pass
         double[] hiddenOutput = layer1.forward(input);
         double[] finalOutput = layer2.forward(hiddenOutput);
 
-        // Backward pass
-        // Assume some target values for demonstration
+        // Compute initial loss
         double[] target = {0.5, 0.7};
-        double[] outputGradient = new double[finalOutput.length];
-        for (int i = 0; i < finalOutput.length; i++) {
-            outputGradient[i] = finalOutput[i] - target[i];
-        }
-        double[] hiddenGradient = layer2.backward(hiddenOutput, outputGradient, learningRate);
-        layer1.backward(input, hiddenGradient, learningRate);
+        double loss = layer2.computeLoss(finalOutput, target);
+        System.out.println("Initial Loss: " + loss);
 
-        // Print final output
+        // Training loop
+        int i;
+        for (i = 0; i < iterations; i++) {
+            // Backward pass
+            double[] outputGradient = new double[finalOutput.length];
+            for (int j = 0; j < finalOutput.length; j++) {
+                outputGradient[j] = finalOutput[j] - target[j];
+            }
+            double[] hiddenGradient = layer2.backward(hiddenOutput, outputGradient, learningRate);
+            layer1.backward(input, hiddenGradient, learningRate);
+
+            // Forward pass after training
+            hiddenOutput = layer1.forward(input);
+            finalOutput = layer2.forward(hiddenOutput);
+
+            // Compute loss
+            double newLoss = layer2.computeLoss(finalOutput, target);
+
+            // Check for convergence
+            if (prevLoss - newLoss < minLossChange || newLoss >= prevLoss) {
+                break; // Stop training if loss doesn't decrease significantly or starts increasing
+            }
+
+            prevLoss = newLoss;
+        }
+
+        // Print final output and loss
         System.out.println("Final output:");
         System.out.println(Arrays.toString(finalOutput));
+        System.out.println("Final Loss: " + prevLoss);
+        System.out.println("Stopped at iteration: " + i);
     }
+
 }
