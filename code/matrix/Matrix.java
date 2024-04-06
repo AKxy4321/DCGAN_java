@@ -163,78 +163,161 @@ public class Matrix {
         return result;
     }    
 
-    public static void main(String[] args) {
-        Matrix matrix = new Matrix(2, 2);
-        matrix.set(0, 0, 1);
-        matrix.set(0, 1, 2);
-        matrix.set(1, 0, 3);
-        matrix.set(1, 1, 4);
-
-        System.out.println("Original Matrix:");
-        System.out.println(matrix);
-
-        System.out.println("Matrix multiplied by 2:");
-        System.out.println(matrix.multiply(2));
-
-        System.out.println("Squared Matrix:");
-        System.out.println(matrix.square());
-
-        System.out.println("Matrix raised to the power of 3:");
-        System.out.println(matrix.power(2));
-
-        System.out.println("Matrix square root:");
-        System.out.println(matrix.root(2));
-
-        System.out.println("Matrix of zeros (2x2):");
-        System.out.println(Matrix.zeros(2, 2));
-
-        System.out.println("Matrix of ones (3x3):");
-        System.out.println(Matrix.ones(3, 3));
-
-        System.out.println("Average of matrix elements:");
-        System.out.println(matrix.average());
-
-            // Create two matrices
-        Matrix matrix1 = new Matrix(2, 2);
-        matrix1.set(0, 0, 1);
-        matrix1.set(0, 1, 2);
-        matrix1.set(1, 0, 3);
-        matrix1.set(1, 1, 4);
-
-        Matrix matrix2 = new Matrix(2, 2);
-        matrix2.set(0, 0, 5);
-        matrix2.set(0, 1, 6);
-        matrix2.set(1, 0, 7);
-        matrix2.set(1, 1, 8);
-
-        // Display original matrices
-        System.out.println("Matrix 1:");
-        System.out.println(matrix1);
-        System.out.println("Matrix 2:");
-        System.out.println(matrix2);
-
-        // Perform matrix addition
-        System.out.println("Matrix Addition:");
-        System.out.println(matrix1.add(matrix2));
-
-        // Perform matrix subtraction
-        System.out.println("Matrix Subtraction:");
-        System.out.println(matrix1.subtract(matrix2));
-
-        Matrix matrix3 = new Matrix(2, 3);
-        matrix3.set(0, 0, 1);
-        matrix3.set(0, 1, 2);
-        matrix3.set(0, 2, 3);
-        matrix3.set(1, 0, 4);
-        matrix3.set(1, 1, 5);
-        matrix3.set(1, 2, 6);
-
-        // Display original matrix
-        System.out.println("Original Matrix:");
-        System.out.println(matrix3);
-
-        // Transpose the matrix
-        System.out.println("Transposed Matrix:");
-        System.out.println(matrix3.transpose());
+    public double binaryCrossEntropy(Matrix y, Matrix yhat) {
+        if (y.getRows() != yhat.getRows() || y.getCols() != yhat.getCols()) {
+            throw new IllegalArgumentException("Matrices must have the same dimensions for binary cross-entropy loss.");
         }
+    
+        double sum = 0;
+        for (int i = 0; i < y.getRows(); i++) {
+            for (int j = 0; j < y.getCols(); j++) {
+                double yi = y.get(i, j);
+                double yhati = yhat.get(i, j);
+                sum += yi * Math.log(yhati) + (1 - yi) * Math.log(1 - yhati); //y log yhat + (1 - y) log(1-yhat)
+            }
+        }
+        return -sum / (y.getRows() * y.getCols());
+    }
+    
+    public Matrix tanh() {
+        Matrix result = new Matrix(this.rows, this.cols);
+        for (int i = 0; i < this.rows; i++) {
+            for (int j = 0; j < this.cols; j++) {
+                result.set(i, j, Math.tanh(this.data[i][j]));
+            }
+        }
+        return result;
+    }
+    
+    public Matrix relu() {
+        Matrix result = new Matrix(this.rows, this.cols);
+        for (int i = 0; i < this.rows; i++) {
+            for (int j = 0; j < this.cols; j++) {
+                result.set(i, j, Math.max(0, this.data[i][j]));
+            }
+        }
+        return result;
+    }
+    
+    public Matrix sigmoid() {
+        Matrix result = new Matrix(this.rows, this.cols);
+        for (int i = 0; i < this.rows; i++) {
+            for (int j = 0; j < this.cols; j++) {
+                double expValue = Math.exp(-this.data[i][j]);
+                result.set(i, j, 1 / (1 + expValue));
+            }
+        }
+        return result;
+    }
+    
+    
+    public static void main(String[] args) {
+        // Matrix matrix = new Matrix(2, 2);
+        // matrix.set(0, 0, 1);
+        // matrix.set(0, 1, 2);
+        // matrix.set(1, 0, 3);
+        // matrix.set(1, 1, 4);
+
+        // System.out.println("Original Matrix:");
+        // System.out.println(matrix);
+
+        // System.out.println("Matrix multiplied by 2:");
+        // System.out.println(matrix.multiply(2));
+
+        // System.out.println("Squared Matrix:");
+        // System.out.println(matrix.square());
+
+        // System.out.println("Matrix raised to the power of 3:");
+        // System.out.println(matrix.power(2));
+
+        // System.out.println("Matrix square root:");
+        // System.out.println(matrix.root(2));
+
+        // System.out.println("Matrix of zeros (2x2):");
+        // System.out.println(Matrix.zeros(2, 2));
+
+        // System.out.println("Matrix of ones (3x3):");
+        // System.out.println(Matrix.ones(3, 3));
+
+        // System.out.println("Average of matrix elements:");
+        // System.out.println(matrix.average());
+
+        //     // Create two matrices
+        // Matrix matrix1 = new Matrix(2, 2);
+        // matrix1.set(0, 0, 1);
+        // matrix1.set(0, 1, 2);
+        // matrix1.set(1, 0, 3);
+        // matrix1.set(1, 1, 4);
+
+        // Matrix matrix2 = new Matrix(2, 2);
+        // matrix2.set(0, 0, 5);
+        // matrix2.set(0, 1, 6);
+        // matrix2.set(1, 0, 7);
+        // matrix2.set(1, 1, 8);
+
+        // // Display original matrices
+        // System.out.println("Matrix 1:");
+        // System.out.println(matrix1);
+        // System.out.println("Matrix 2:");
+        // System.out.println(matrix2);
+
+        // // Perform matrix addition
+        // System.out.println("Matrix Addition:");
+        // System.out.println(matrix1.add(matrix2));
+
+        // // Perform matrix subtraction
+        // System.out.println("Matrix Subtraction:");
+        // System.out.println(matrix1.subtract(matrix2));
+
+        // Matrix matrix3 = new Matrix(2, 3);
+        // matrix3.set(0, 0, 1);
+        // matrix3.set(0, 1, 2);
+        // matrix3.set(0, 2, 3);
+        // matrix3.set(1, 0, 4);
+        // matrix3.set(1, 1, 5);
+        // matrix3.set(1, 2, 6);
+
+        // // Display original matrix
+        // System.out.println("Original Matrix:");
+        // System.out.println(matrix3);
+
+        // // Transpose the matrix
+        // System.out.println("Transposed Matrix:");
+        // System.out.println(matrix3.transpose());
+        // Matrix y = new Matrix(1, 2);
+        // y.set(0, 0, 1);
+        // y.set(0, 1, 0);
+
+        // // Create predicted values matrix yhat
+        // Matrix yhat = new Matrix(1, 2);
+        // yhat.set(0, 0, 0.9);
+        // yhat.set(0, 1, 0.1);
+
+        // // Compute binary cross-entropy loss
+        // Matrix matrix = new Matrix(1,2);
+        // double loss = matrix.binaryCrossEntropy(y, yhat);
+
+        // System.out.println("Binary Cross-Entropy Loss: " + loss);
+        // }
+
+        // Create a matrix
+        // Matrix matrix = new Matrix(2, 2);
+        // matrix.set(0, 0, -1);
+        // matrix.set(0, 1, 2);
+        // matrix.set(1, 0, 3);
+        // matrix.set(1, 1, -4);
+    
+        // // Compute tanh activation
+        // System.out.println("tanh Activation:");
+        // System.out.println(matrix.tanh());
+    
+        // // Compute ReLU activation
+        // System.out.println("ReLU Activation:");
+        // System.out.println(matrix.relu());
+    
+        // // Compute sigmoid activation
+        // System.out.println("Sigmoid Activation:");
+        // System.out.println(matrix.sigmoid());
+    }
+        
 }
