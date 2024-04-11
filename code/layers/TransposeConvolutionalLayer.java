@@ -1,3 +1,5 @@
+package layers;
+
 import java.util.Arrays;
 import java.util.Random;
 
@@ -223,10 +225,11 @@ public class TransposeConvolutionalLayer {
             double[][][] inputGradient = transConvLayer.backward(input, outputGradient, learningRate);
 
             // Forward pass after training (optional)
-             output = transConvLayer.forward(input); // Uncomment if you want to see output after each iteration
+            output = transConvLayer.forward(input); // Uncomment if you want to see output after each iteration
 
             // Compute loss
             double newLoss = transConvLayer.computeLoss(output, target);
+            System.out.println(newLoss);
 
             // Check for convergence
             if (Math.abs(prevLoss - newLoss) < minLossChange) {

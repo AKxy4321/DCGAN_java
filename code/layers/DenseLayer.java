@@ -1,4 +1,4 @@
-// Dense Layer Implementation in Java
+package layers;
 
 import java.util.Random;
 

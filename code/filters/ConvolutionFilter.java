@@ -1,5 +1,7 @@
-import java.util.Random;
-import static xavier_initialization.xavierInitialization;
+package filters;
+
+import static filters.XavierInitialization.xavierInitialization;
+
 public class ConvolutionFilter {
     private double[][][] weights;
     private double bias;

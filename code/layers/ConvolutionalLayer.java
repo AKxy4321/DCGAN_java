@@ -1,3 +1,5 @@
+package layers;
+
 import java.util.Arrays;
 import java.util.Random;
 
@@ -125,7 +127,6 @@ public class ConvolutionalLayer {
 
         return inputGradient;
     }
-
 
 
     public double computeLoss(double[][] output, double[][] target) {

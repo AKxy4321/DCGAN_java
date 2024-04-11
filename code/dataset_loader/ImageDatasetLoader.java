@@ -1,4 +1,4 @@
-package Ziroh;
+package dataset_loader;
 
 import java.io.File;
 import java.io.IOException;
@@ -69,23 +69,5 @@ public class ImageDatasetLoader {
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error loading dataset: {0}", e.getMessage());
         }
-    }
-}
-
-class ImageClass {
-    private String className;
-    private BufferedImage image;
-
-    public ImageClass(String className, BufferedImage image) {
-        this.className = className;
-        this.image = image;
-    }
-
-    public String getClassName() {
-        return className;
-    }
-
-    public BufferedImage getImage() {
-        return image;
     }
 }

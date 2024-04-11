@@ -1,4 +1,4 @@
-package Ziroh;
+package matrix;
 
 import java.util.Arrays;
 
