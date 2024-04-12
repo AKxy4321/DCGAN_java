@@ -72,9 +72,9 @@ public class CNN {
         MaxPool pool=new MaxPool();
         SoftMax softmax=new SoftMax(12 * 12 * 64, 10, 64, 12);
 
+        int[] index = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
         float[][] out_l = new float[1][10];
         for (int i = 0; i < training_size; i++) {
-            int[] index = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
             BufferedImage bi = mnist_load_index(label_counter, index[label_counter]);
             int correct_label = label_counter;
             if (label_counter == 9) {
@@ -110,7 +110,6 @@ public class CNN {
             }
         }
         System.out.println("average accuracy:- "+acc_sum/training_size+"%");
-        System.out.println(Arrays.deepToString(softmax.weights) + Arrays.deepToString(softmax.bias));
         saveWeights(conv.get_Filters(), softmax.weights, softmax.bias);
     }
 

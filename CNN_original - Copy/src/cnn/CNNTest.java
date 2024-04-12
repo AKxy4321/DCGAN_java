@@ -53,10 +53,10 @@ public class CNNTest {
         ReLU relu = new ReLU();
         MaxPool pool = new MaxPool();
         SoftMax softmax = new SoftMax(weights, bias);
+        int[] index = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
         for (int i = 0; i < testing_size; i++) {
             float[][] out_l = new float[1][10];
-            int[] index = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
             BufferedImage bi = mnist_load_index(label_counter, index[label_counter]);
             int correct_label = label_counter;
             if(label_counter==9){
@@ -107,7 +107,7 @@ public class CNNTest {
     }
 
     public static void main(String[] args) throws IOException {
-        test(1000);
+        test(2000);
     }
 }
 
