@@ -1,4 +1,7 @@
-package Ziroh;
+package dataset_loader;
+
+import dataset_loader.ImageClass;
+import dataset_loader.ImageDatasetLoader;
 
 import javax.swing.*;
 import java.awt.*;
