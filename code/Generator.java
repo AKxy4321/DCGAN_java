@@ -60,7 +60,7 @@ public class Generator {
         BufferedImage bufferedImage = new BufferedImage(IMAGE_SIZE, IMAGE_SIZE, BufferedImage.TYPE_BYTE_GRAY);
         for (int y = 0; y < IMAGE_SIZE; y++) {
             for (int x = 0; x < IMAGE_SIZE; x++) {
-                int grayValue = (int) (image[y][x] * 255.0); // Convert normalized value back to grayscale
+                int grayValue = (int) (image[y + x] * 255.0); // Convert normalized value back to grayscale
                 grayValue = Math.min(255, Math.max(0, grayValue)); // Ensure grayValue is within [0, 255]
                 int rgb = (grayValue << 16) | (grayValue << 8) | grayValue; // Grayscale to RGB
                 bufferedImage.setRGB(x, y, rgb);
