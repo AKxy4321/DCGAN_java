@@ -8,7 +8,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.util.Arrays;
 import java.util.Random;
 
 public class CNNTest {
@@ -46,18 +45,15 @@ public class CNNTest {
             filters = (float[][][]) inputStream.readObject();
             weights = (float[][]) inputStream.readObject();
             bias = (float[][]) inputStream.readObject();
-//            System.out.println(Arrays.deepToString(filters));
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
 
-        // Create CNN with loaded weights
         Convolution conv = new Convolution(filters, 1);
         ReLU relu = new ReLU();
         MaxPool pool = new MaxPool();
         SoftMax softmax = new SoftMax(weights, bias);
 
-        // Perform inference and evaluate model
         for (int i = 0; i < testing_size; i++) {
             float[][] out_l = new float[1][10];
             int[] index = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -87,7 +83,6 @@ public class CNNTest {
             }
         }
 
-        // Calculate accuracy
         float accuracy = (float) correct_predictions_batch / total_predictions_batch * 100;
         System.out.println("Accuracy on test set: " + accuracy + "%");
     }

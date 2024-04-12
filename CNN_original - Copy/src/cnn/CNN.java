@@ -4,6 +4,7 @@ import UTIL.Mat;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Random;
 import javax.imageio.ImageIO;
 import java.io.FileOutputStream;
@@ -109,7 +110,7 @@ public class CNN {
             }
         }
         System.out.println("average accuracy:- "+acc_sum/training_size+"%");
-
+        System.out.println(Arrays.deepToString(softmax.weights) + Arrays.deepToString(softmax.bias));
         saveWeights(conv.get_Filters(), softmax.weights, softmax.bias);
     }
 
