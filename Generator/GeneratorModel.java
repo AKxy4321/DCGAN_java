@@ -98,7 +98,7 @@ public class GeneratorModel {
             for (int x = 0; x < 28; x++) {
                 int index = (y * 28) + x;
                 float value = output[index]; // Assuming all channels have the same value
-                int rgb = (int) ((value + 1) * 127.5f); // Scale to 0-255 range
+                int rgb = (int) ((value + 1) * 255.0f); // Scale to 0-255 range
                 rgb = (rgb << 16) | (rgb << 8) | rgb;
                 image.setRGB(x, y, rgb);
             }
@@ -118,7 +118,7 @@ public class GeneratorModel {
         float[] weights = new float[size];
         Random random = new Random();
         for (int i = 0; i < size; i++) {
-            weights[i] = (float) random.nextGaussian() * 0.15f; // Initialize with random values from normal distribution
+            weights[i] = (float) random.nextGaussian() * 0.14f; // Initialize with random values from normal distribution
         }
         return weights;
     }
