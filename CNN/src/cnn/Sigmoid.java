@@ -52,6 +52,7 @@ public class Sigmoid {
             weights = Mat.mm_add(Mat.m_scale(d_L_d_w, -learning_rate), weights);
             bias = Mat.mm_add(Mat.m_scale(d_L_d_t, -learning_rate), bias);
         }
+        assert d_L_d_inputs != null;
         return Mat.reshape(Mat.m_transpose(d_L_d_inputs), filters, side, side);
     }
 
