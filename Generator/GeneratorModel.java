@@ -15,6 +15,7 @@ public class GeneratorModel {
     private final float[] weights2; // Conv2DTranspose layer weights (hidden -> 7x7x128)
     private final float[] weights3; // Conv2DTranspose layer weights (128 -> 14x14x64)
     private final float[] weights4; // Conv2DTranspose layer weights (64 -> 28x28x1)
+    private final float learningRate = 0.001f;
 
     public GeneratorModel(float[] weights1, float[] weights2, float[] weights3, float[] weights4) {
         this.weights1 = weights1;
@@ -22,6 +23,51 @@ public class GeneratorModel {
         this.weights3 = weights3;
         this.weights4 = weights4;
     }
+
+//    public float computeGeneratorLoss(float[] input) {
+//        float[] fakeImage = generate(input); // Generate fake image
+//        float[] fakeOutput = getDiscriminatorOutput(fakeImage); // Get discriminator's output for fake image
+//        return binaryCrossEntropyLoss(fakeOutput); // Compute binary cross-entropy loss
+//    }
+
+    private float binaryCrossEntropyLoss(float[] predictions) {
+        // Assuming predictions contain the discriminator's output for fake images
+        float loss = 0.0f;
+        for (float prediction : predictions) {
+            // Assuming the expected label for fake images is 1 (indicating real)
+            // You may need to adjust this based on your specific implementation
+            loss += (float) -Math.log(prediction); // Compute negative log likelihood
+        }
+        // Normalize the loss by the number of predictions
+        return loss / predictions.length;
+    }
+
+    private float[] computeLossGradient(float[] predictions) {
+        // Assuming predictions contain the discriminator's output for fake images
+        float[] gradients = new float[predictions.length];
+        for (int i = 0; i < predictions.length; i++) {
+            // Assuming the expected label for fake images is 1 (indicating real)
+            // You may need to adjust this based on your specific implementation
+            gradients[i] = -1 / predictions[i]; // Gradient of negative log likelihood
+        }
+        return gradients;
+    }
+
+    private void updateWeights(float[] input, float[] gradients) {
+        for (int i = 0; i < weights1.length; i++) {
+            weights1[i] -= learningRate * gradients[i] * input[i % input.length]; // Update weights1
+        }
+        for (int i = 0; i < weights2.length; i++) {
+            weights2[i] -= learningRate * gradients[i] * input[i % input.length]; // Update weights2
+        }
+        for (int i = 0; i < weights3.length; i++) {
+            weights3[i] -= learningRate * gradients[i] * input[i % input.length]; // Update weights3
+        }
+        for (int i = 0; i < weights4.length; i++) {
+            weights4[i] -= learningRate * gradients[i] * input[i % input.length]; // Update weights4
+        }
+    }
+
 
     public float[] generate(float[] input) {
         float[] hidden = dense(input);
@@ -43,13 +89,8 @@ public class GeneratorModel {
         return hidden;
     }
 
-//    private float leakyReLU(float x) {
-//        return Math.max(0.1f * x, x); // LeakyReLU with slope 0.1
-//    }
-
     private float leakyReLU(float x) {
-        // Removed Leaky ReLU for pure noise generation
-        return x;
+        return Math.max(0.1f * x, x); // LeakyReLU with slope 0.1
     }
 
     private float[] conv2dTranspose(float[] input, float[] weights, int outputWidth, int outputHeight, int numFilters) {
