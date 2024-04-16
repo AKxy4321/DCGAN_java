@@ -90,8 +90,12 @@ public class GeneratorModel {
     }
 
     private float leakyReLU(float x) {
-        return Math.max(0.1f * x, x); // LeakyReLU with slope 0.1
+        return Math.max(0.01f * x, x); // LeakyReLU with slope 0.01
     }
+
+//    private float leakyReLU(float x) {
+//        return x;
+//    }
 
     private float[] conv2dTranspose(float[] input, float[] weights, int outputWidth, int outputHeight, int numFilters) {
         int numInputs = input.length / (outputWidth * outputHeight);
