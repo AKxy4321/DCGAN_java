@@ -80,8 +80,12 @@ public class Discriminator {
         return flattened;
     }
 
+    float[][] fakeImage;
+    public void takeFakeImage(float[][] img) {
+        this.fakeImage = img;
+    }
 
-    public static void train(int training_size) throws IOException {
+    public void train(int training_size) throws IOException {
         int label_counter = 0;
         float ce_loss=0;
         int correct_predictions_batch = 0;
@@ -114,10 +118,10 @@ public class Discriminator {
 
             index[label_counter]++;
 
-            float[][] pxl = img_to_mat(bi);
+            float [][] realImage = img_to_mat(bi);
 
             //Forward propagation
-            float[][][] output = conv1.forward(pxl);
+            float[][][] output = conv1.forward(realImage);
             output = relu1.forward(output);
             output = pool1.forward(output);
 

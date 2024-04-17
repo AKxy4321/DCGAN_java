@@ -168,7 +168,7 @@ public class GeneratorModel {
         return weights;
     }
 
-    private static float[] generateGaussianNoise() {
+    public static float[] generateGaussianNoise() {
         float[] noise = new float[GeneratorModel.INPUT_SIZE];
         Random random = new Random();
         for (int i = 0; i < GeneratorModel.INPUT_SIZE; i++) {
