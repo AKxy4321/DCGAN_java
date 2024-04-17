@@ -1,3 +1,4 @@
+<<<<<<< HEAD:misc/GAN/src/DCGAN.java
 import java.util.Random;
 import java.util.Arrays;
 import java.awt.image.BufferedImage;
@@ -6,6 +7,15 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 import java.util.ArrayList;
 import java.util.List;
+=======
+import java.util.*;
+import java.awt.image.BufferedImage;
+import java.io.*;
+
+import java.io.File;
+import javax.imageio.ImageIO;
+
+>>>>>>> 15b5cc1c4f1214daa98dcef0ccf9d8bf8d4875d8:DCGAN.java
 
 public class DCGAN {
     public static final int IMAGE_SIZE = 28;
@@ -142,7 +152,7 @@ public class DCGAN {
         // Save generated images
         System.out.println("Generated images at epoch " + epoch + ":");
         for (int i = 0; i < NUM_EXAMPLES_TO_GENERATE; i++) {
-            System.out.println(Arrays.deepToString(generatedImages[i]));
+            System.out.println(Arrays.toString(generatedImages[i]));
         }
     }
 
@@ -255,7 +265,7 @@ class Generator {
 
 
 class Discriminator {
-    private double[][][] convWeights;
+    private double[][][][] convWeights;
     private double[] convBiases;
     private double[] denseWeights;
     private double denseBias;
@@ -298,7 +308,7 @@ class Discriminator {
         }
     }
 
-    public double[] forward(double[][][] images) {
+    public double[] forward(double[][][][] images) {
         // Forward pass implementation
         int batchSize = images.length;
         int imageSize = images[0].length;
@@ -340,7 +350,7 @@ class Discriminator {
         return output;
     }
 
-    public double[][] backward(double loss, double[][][] realImages, double[][] generatedImages, double[][] convOutput, double[][][][] images) {
+    public double[][][] backward(double loss, double[][][] realImages, double[][] generatedImages, double[][] convOutput, double[][][][] images) {
         int batchSize = realImages.length;
         int imageSize = realImages[0].length;
         int imageChannels = realImages[0][0].length;
@@ -349,14 +359,14 @@ class Discriminator {
         int convOutputSize = ((imageSize - filterSize + 1) / 2) * ((imageSize - filterSize + 1) / 2) * numFilters;
 
         // Initialize gradients for weights and biases
-        double[][][] dConvWeights = new double[filterSize][filterSize][imageChannels][numFilters];
+        double[][][][] dConvWeights = new double[filterSize][filterSize][imageChannels][numFilters];
         double[] dConvBiases = new double[numFilters];
         double[] dDenseWeights = new double[convOutputSize];
         double dDenseBias = 0;
 
         // Backpropagate through dense layer
         for (int b = 0; b < batchSize; b++) {
-            double dOut = loss * (realImages[b][0][0] - generatedImages[b][0][0]); // Assuming loss is binary cross-entropy for single output
+            double dOut = loss * (realImages[b][0][0] - generatedImages[b][0]); // Assuming loss is binary cross-entropy for single output
             dDenseBias += dOut;
             for (int i = 0; i < convOutputSize; i++) {
                 dDenseWeights[i] += dOut * convOutput[b][i] * (1 - convOutput[b][i]); // Update with sigmoid derivative
@@ -404,4 +414,8 @@ class Discriminator {
     private double sigmoid(double x) {
         return 1 / (1 + Math.exp(-x));
     }
+<<<<<<< HEAD:misc/GAN/src/DCGAN.java
 }
+=======
+}
+>>>>>>> 15b5cc1c4f1214daa98dcef0ccf9d8bf8d4875d8:DCGAN.java
