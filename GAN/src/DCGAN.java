@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.Arrays;
 import java.awt.image.BufferedImage;
@@ -23,9 +25,9 @@ public class DCGAN {
     private Random random = new Random();
 
     public DCGAN() {
-        generator = new Generator(NOISE_DIM, IMAGE_SIZE, IMAGE_CHANNELS);
+        generator = new Generator(NOISE_DIM, IMAGE_SIZE, IMAGE_CHANNELS, IMAGE_SIZE, IMAGE_CHANNELS, NOISE_DIM);
         discriminator = new Discriminator(IMAGE_SIZE, IMAGE_CHANNELS);
-    }   
+    }
 
     public void train() throws IOException {
         int label_counter = 0;
@@ -34,12 +36,12 @@ public class DCGAN {
 
             List<BufferedImage> realImages = new ArrayList<>();
             for (int i = 0; i < BUFFER_SIZE; i++) {
-                BufferedImage image = mnist_load_random(label_counter);  
+                BufferedImage image = mnist_load_random(label_counter);
                 realImages.add(image);
             }
-            if(label_counter==9){
-                label_counter=0;
-            }else{
+            if (label_counter == 9) {
+                label_counter = 0;
+            } else {
                 label_counter++;
             }
 
@@ -50,7 +52,8 @@ public class DCGAN {
                 trainStep(batch);
             }
 
-            System.out.println("Time for epoch " + (epoch + 1) + " is " + (System.currentTimeMillis() - startTime) / 1000.0 + " sec");
+            System.out.println("Time for epoch " + (epoch + 1) + " is "
+                    + (System.currentTimeMillis() - startTime) / 1000.0 + " sec");
             generateAndSaveImages(generator, epoch + 1);
         }
     }
@@ -66,7 +69,23 @@ public class DCGAN {
         // Forward pass
         double[][] generatedImages = generator.forward(noise);
         double[] realOutput = discriminator.forward(images);
-        double[] fakeOutput = discriminator.forward(generatedImages);
+
+        // Divide generated images into batches of 8
+        int batchSize = 8;
+        int numBatches = generatedImages.length / batchSize;
+
+        // Create 3D array to store batches
+        double[][][] images_array = new double[batchSize][IMAGE_SIZE][IMAGE_SIZE];
+
+        // Populate the imageBatches array
+        for (int image_idx = 0; image_idx < batchSize; image_idx++) {
+            for (int j = 0; j < IMAGE_SIZE; j++) {
+                for (int k = 0; k < IMAGE_SIZE; k++) {
+                    images_array[image_idx][j][k] = generatedImages[image_idx][j * IMAGE_SIZE + k];
+                }
+            }
+        }
+        double[] fakeOutput = discriminator.forward(images_array);
 
         // Compute loss
         double genLoss = generatorLoss(fakeOutput);
@@ -161,11 +180,18 @@ public class DCGAN {
 class Generator {
     private double[][] weights;
     private double[] biases;
+    private final int IMAGE_SIZE, IMAGE_CHANNELS, NOISE_DIM;
 
-    public Generator(int noiseDim, int imageSize, int imageChannels) {
+    public Generator(int noiseDim, int imageSize, int imageChannels, int IMAGE_SIZE, int IMAGE_CHANNELS,
+            int NOISE_DIM) {
         // Initialize weights and biases randomly
         weights = new double[noiseDim][imageSize * imageSize * imageChannels];
         biases = new double[imageSize * imageSize * imageChannels];
+
+        this.IMAGE_SIZE = IMAGE_SIZE;
+        this.IMAGE_CHANNELS = IMAGE_CHANNELS;
+        this.NOISE_DIM = NOISE_DIM;
+
         // Initialize weights and biases using Xavier initialization
         double scale = Math.sqrt(2.0 / (noiseDim + imageSize * imageSize * imageChannels));
         Random random = new Random();
@@ -180,6 +206,7 @@ class Generator {
     }
 
     public double[][] forward(double[][] noise) {
+
         // Forward pass implementation
         int batchSize = noise.length;
         int imageSize = IMAGE_SIZE;
@@ -237,9 +264,8 @@ class Generator {
     }
 }
 
-
 class Discriminator {
-    private double[][][] convWeights;
+    private double[][][][] convWeights;
     private double[] convBiases;
     private double[] denseWeights;
     private double denseBias;
@@ -251,7 +277,7 @@ class Discriminator {
         convWeights = new double[filterSize][filterSize][imageChannels][numFilters];
         convBiases = new double[numFilters];
         initializeConvWeights();
-        
+
         // Initialize dense layer weights and bias randomly
         int convOutputSize = ((imageSize - filterSize + 1) / 2) * ((imageSize - filterSize + 1) / 2) * numFilters;
         denseWeights = new double[convOutputSize];
@@ -301,11 +327,15 @@ class Discriminator {
                         for (int c = 0; c < imageChannels; c++) {
                             for (int fi = 0; fi < filterSize; fi++) {
                                 for (int fj = 0; fj < filterSize; fj++) {
+                                    // images = [batchSize][imageSize * imageSize * imageChannels]
                                     sum += images[b][i + fi][j + fj][c] * convWeights[fi][fj][c][f];
                                 }
                             }
                         }
-                        convOutput[b * convOutputSize + f * ((imageSize - filterSize + 1) / 2) * ((imageSize - filterSize + 1) / 2) + (i / 2) * ((imageSize - filterSize + 1) / 2) + (j / 2)] = Math.max(0.01f * (sum + convBiases[f]), sum + convBiases[f]);
+                        convOutput[b * convOutputSize
+                                + f * ((imageSize - filterSize + 1) / 2) * ((imageSize - filterSize + 1) / 2)
+                                + (i / 2) * ((imageSize - filterSize + 1) / 2) + (j / 2)] = Math
+                                        .max(0.01f * (sum + convBiases[f]), sum + convBiases[f]);
                     }
                 }
             }
@@ -324,23 +354,25 @@ class Discriminator {
         return output;
     }
 
-    public double[][] backward(double loss, double[][][] realImages, double[][] generatedImages, double[][] convOutput, double[][][][] images) {
+    public double[][] backward(double loss, double[][][] realImages, double[][] generatedImages, double[][] convOutput,
+            double[][][][] images) {
         int batchSize = realImages.length;
         int imageSize = realImages[0].length;
         int imageChannels = realImages[0][0].length;
         int filterSize = 5; // Filter size for convolutional layers
         int numFilters = 64; // Number of filters for each convolutional layer
         int convOutputSize = ((imageSize - filterSize + 1) / 2) * ((imageSize - filterSize + 1) / 2) * numFilters;
-        
+
         // Initialize gradients for weights and biases
-        double[][][] dConvWeights = new double[filterSize][filterSize][imageChannels][numFilters];
+        double[][][][] dConvWeights = new double[filterSize][filterSize][imageChannels][numFilters];
         double[] dConvBiases = new double[numFilters];
         double[] dDenseWeights = new double[convOutputSize];
         double dDenseBias = 0;
 
         // Backpropagate through dense layer
         for (int b = 0; b < batchSize; b++) {
-            double dOut = loss * (realImages[b][0][0] - generatedImages[b][0][0]); // Assuming loss is binary cross-entropy for single output
+            double dOut = loss * (realImages[b][0][0] - generatedImages[b][0]); // Assuming loss is binary cross-entropy
+                                                                                // for single output
             dDenseBias += dOut;
             for (int i = 0; i < convOutputSize; i++) {
                 dDenseWeights[i] += dOut * convOutput[b][i] * (1 - convOutput[b][i]); // Update with sigmoid derivative
@@ -360,29 +392,33 @@ class Discriminator {
             for (int f = 0; f < numFilters; f++) {
                 for (int i = 0; i < imageSize - filterSize + 1; i += 2) {
                     for (int j = 0; j < imageSize - filterSize + 1; j += 2) {
-                        double dSum = dConvOutput[b][f * ((imageSize - filterSize + 1) / 2) * ((imageSize - filterSize + 1) / 2) + (i / 2) * ((imageSize - filterSize + 1) / 2) + (j / 2)][0];
+                        double dSum = dConvOutput[b][f * ((imageSize - filterSize + 1) / 2)
+                                * ((imageSize - filterSize + 1) / 2) + (i / 2) * ((imageSize - filterSize + 1) / 2)
+                                + (j / 2)][0];
                         for (int c = 0; c < imageChannels; c++) {
-                                    dConvWeights[fi][fj][c][f] += dSum * images[b][i + fi][j + fj][c];
-                                }
-                            dConvBiases[f] += dSum;
+                            // new double[filterSize][filterSize][imageChannels][numFilters];
+                            dConvWeights[fi][fj][c][f] += dSum * images[b][i + fi][j + fj][c];
                         }
-                    }   
+                        dConvBiases[f] += dSum;
+                    }
                 }
             }
+        }
 
         // This function returns the gradients.
         // You can modify it to return what's needed.
-        // For example, you can return a list containing {dConvWeights, dConvBiases, dDenseWeights, dDenseBias}
-        return new double[][][]{dConvWeights, new double[][]{dConvBiases}, new double[][]{dDenseWeights}, new double[][]{{dDenseBias}}};
+        // For example, you can return a list containing {dConvWeights, dConvBiases,
+        // dDenseWeights, dDenseBias}
+        return new double[][][] { dConvWeights, new double[][] { dConvBiases }, new double[][] { dDenseWeights },
+                new double[][] { { dDenseBias } } };
     }
 
     // public void updateParameters(double[][] gradients) {
-    //     // Update parameters implementation
-    //     // Not implemented for simplicity (can be added if needed)
+    // // Update parameters implementation
+    // // Not implemented for simplicity (can be added if needed)
     // }
 
     private double sigmoid(double x) {
         return 1 / (1 + Math.exp(-x));
     }
 }
-
