@@ -94,6 +94,9 @@ public class Convolution {
             float[][] res = convolveSxS(image, filters[k]);
             result[k] = res;
         }
+        //Maybe changing this might work
+        // this.input = image; // Store input for backpropagation
+
         return result;
     }
 

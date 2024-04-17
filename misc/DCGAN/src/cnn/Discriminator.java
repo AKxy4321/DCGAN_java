@@ -4,6 +4,7 @@ import UTIL.Mat;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Random;
 import javax.imageio.ImageIO;
 import java.io.FileOutputStream;
@@ -43,7 +44,7 @@ public class Discriminator {
     }
 
     public static BufferedImage mnist_load_random(int label) throws IOException {
-        String mnist_path = "data\\mnist_png\\mnist_png\\training";
+        String mnist_path = "D:\\Projects\\ZirohLabs---DCGAN\\misc\\CNN\\data\\mnist_png\\mnist_png\\training";
         File dir = new File(mnist_path + "\\" + label);
         String[] files = dir.list();
         assert files != null;
@@ -53,7 +54,7 @@ public class Discriminator {
     }
 
     public static BufferedImage mnist_load_index(int label, int index) throws IOException {
-        String mnist_path = "data\\mnist_png\\mnist_png\\training";
+        String mnist_path = "D:\\Projects\\ZirohLabs---DCGAN\\misc\\CNN\\data\\mnist_png\\mnist_png\\training";
         File dir = new File(mnist_path + "\\" + label);
         String[] files = dir.list();
         assert files != null;
@@ -119,6 +120,7 @@ public class Discriminator {
             index[label_counter]++;
 
             float [][] realImage = img_to_mat(bi);
+            // System.out.println(Arrays.toString(realImage[0]));
 
             //Forward propagation
             float[][][] output = conv1.forward(realImage);
@@ -160,7 +162,7 @@ public class Discriminator {
         saveWeights(conv1.get_Filters(), conv2.get_Filters(), dense.weights, dense.bias ,sigmoid.weights, sigmoid.bias);
     }
 
-//    public static void main(String[] args) throws IOException {
-//        train(1000);
-//    }
+   public static void main(String[] args) throws IOException {
+       new Discriminator().train(1000);
+   }
 }
