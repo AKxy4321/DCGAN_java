@@ -50,10 +50,10 @@ public class Generator {
     }
 
     // Generator network forward pass
-    public double[] generateImage(double[] noise) {
-        double[] hiddenLayer = MatrixUtils.sigmoid(MatrixUtils.add(MatrixUtils.dot(noise, genWeights1), genBias1));
-        return MatrixUtils.sigmoid(MatrixUtils.add(MatrixUtils.dot(hiddenLayer, genWeights2), genBias2));
-    }
+//    public double[] generateImage(double[] noise) {
+//        double[] hiddenLayer = MatrixUtils.sigmoid(MatrixUtils.add(MatrixUtils.dot(noise, genWeights1), genBias1));
+//        return MatrixUtils.sigmoid(MatrixUtils.add(MatrixUtils.dot(hiddenLayer, genWeights2), genBias2));
+//    }
 
     // Save the generated image
     private void saveImage(double[] image, String outputDir, int index) {
@@ -98,8 +98,8 @@ public class Generator {
         int numImagesToGenerate = 1;
         for (int i = 0; i < numImagesToGenerate; i++) {
             double[] noise = generator.generateNoise(NOISE_SIZE);
-            double[] generatedImage = generator.generateImage(noise);
-            generator.saveImage(generatedImage, outputDir, i);
+//            double[] generatedImage = generator.generateImage(noise);
+//            generator.saveImage(generatedImage, outputDir, i);
         }
     }
 }

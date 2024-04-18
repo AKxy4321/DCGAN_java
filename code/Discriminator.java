@@ -24,10 +24,10 @@ public class Discriminator {
     }
 
     // Discriminator network forward pass
-    public double predictReal(double[] image) {
-        double[] hiddenLayer = MatrixUtils.sigmoid(MatrixUtils.add(MatrixUtils.dot(image, MatrixUtils.transpose(discWeights1)), discBias1));
-        return MatrixUtils.sigmoid(MatrixUtils.add(MatrixUtils.dot(hiddenLayer, MatrixUtils.transpose(discWeights2)), discBias2))[0];
-    }
+//    public double predictReal(double[] image) {
+//        double[] hiddenLayer = MatrixUtils.sigmoid(MatrixUtils.add(MatrixUtils.dot(image, MatrixUtils.transpose(discWeights1)), discBias1));
+//        return MatrixUtils.sigmoid(MatrixUtils.add(MatrixUtils.dot(hiddenLayer, MatrixUtils.transpose(discWeights2)), discBias2))[0];
+//    }
 
     // Update discriminator network parameters
     public void updateParameters(double[] image, double[] hiddenDelta, double[] outputDelta) {
