@@ -8,7 +8,93 @@ public class DCGAN_Implementation {
 
 class Generator_Implementation{}
 
-class Discriminator_Implementation{}
+class Discriminator_Implementation{
+    int batch_size;
+    double learning_rate;
+    public Discriminator_Implementation(int batch_size, double learning_rate) {
+        this.batch_size = batch_size;
+        this.learning_rate = learning_rate;
+        ConvolutionalLayer conv1 = new ConvolutionalLayer(1, 5, 64);
+        ConvolutionalLayer conv2 = new ConvolutionalLayer(1, 5, 128);
+        DenseLayer dense = new DenseLayer(20 * 20 * 128, 1);
+
+        double[][][] realImage = new double[0][][];
+        double[][][] fakeImage = new double[0][][];
+
+        // FORWARD - Real Image
+        double[][] real_output = conv1.forward(realImage);
+        real_output = conv1.forward(real_output);
+        double[] real_out_l = flatten(real_output);
+        real_out_l = dense.forward(real_out_l);
+
+        // BACKWARD
+        double[] real_gradient = computeGradientReal(real_out_l);
+
+        // FORWARD - Fake Image
+        double[][] fake_output = conv1.forward(fakeImage);
+        fake_output = conv1.forward(fake_output);
+        double[] fake_out_l = flatten(fake_output);
+        fake_out_l = dense.forward(fake_out_l);
+
+        // BACKWARD
+        double[] fake_gradient = computeGradientFake(fake_out_l);
+        dense.backward(fake_gradient, this.learning_rate);
+    }
+
+    public double[] flatten(double[][] input) {
+        int totalLength = 0;
+        for (double[] arr : input) {
+            totalLength += arr.length;
+        }
+        double[] output = new double[totalLength];
+        int k = 0;
+        for (int i = 0; i < input.length; i++) {
+            for (int j = 0; j < input[i].length; j++) {
+                output[k++] = input[i][j];
+            }
+        }
+        return output;
+    }
+
+//    public double disc_loss (double[] real_output, double[] fake_output) {
+//        double[] real_one = new double[real_output.length];
+//        double[] fake_zero = new double[fake_output.length];
+//
+//        for(int i = 0 ; i < real_output.length ; i++) {
+//            real_one[i] = 1;
+//            fake_zero[i] = 0;
+//        }
+//
+//        double real_loss = binary_cross_entropy(real_one, real_output);
+//        double fake_loss = binary_cross_entropy(fake_zero, fake_output);
+//
+//        return real_loss + fake_loss;
+//    }
+
+//    public double binary_cross_entropy(double[] y_true, double[] y_pred) {
+//        double sum = 0.0;
+//        for (int i = 0; i < y_true.length; i++) {
+//            sum += (-y_true[i] * Math.log(y_pred[i]) - (1 - y_true[i]) * Math.log(1 - y_pred[i]));
+//        }
+//        return sum / y_true.length;
+//    }
+
+    public double[] computeGradientReal(double[] real_output) {
+        double[] gradient = new double[real_output.length];
+        for (int i = 0; i < real_output.length; i++) {
+            gradient[i] = (-1 / real_output[i]) + ((0) / (1 - real_output[i]));
+        }
+        return gradient;
+    }
+
+    public double[] computeGradientFake(double[] fake_output) {
+        double[] gradient = new double[fake_output.length];
+        for (int i = 0; i < fake_output.length; i++) {
+            gradient[i] = (-0 / fake_output[i]) + ((1) / (1 - fake_output[i]));
+        }
+        return gradient;
+    }
+}
 
 class DenseLayer {
     private double[][] weights;
@@ -39,6 +125,9 @@ class DenseLayer {
                 sum += input[i] * weights[i][j];
             }
             output[j] = sum + biases[j];
+
+            // Apply Leaky ReLU activation
+            output[j] = output[j] >= 0 ? output[j] : 0.01 * output[j];
         }
         return output;
     }
@@ -163,13 +252,43 @@ class ConvolutionalLayer {
                             }
                         }
                     }
-                    output[k][h * outputWidth + w] = sum + biases[k];
+                    output[k][h * outputWidth + w] = leakyReLU(sum + biases[k]);
                 }
             }
         }
         return output;
     }
 
+    public double[][] forward(double[][] input) {
+        int inputHeight = input.length;
+        int inputWidth = input[0].length;
+        int numFilters = filters.length;
+        int filterSize = filters[0][0].length;
+        int outputHeight = inputHeight - filterSize + 1;
+        int outputWidth = inputWidth - filterSize + 1;
+
+        double[][] output = new double[numFilters][outputHeight * outputWidth];
+
+        // Convolution operation
+        for (int k = 0; k < numFilters; k++) {
+            for (int h = 0; h < outputHeight; h++) {
+                for (int w = 0; w < outputWidth; w++) {
+                    double sum = 0;
+                    for (int i = 0; i < filterSize; i++) {
+                        for (int j = 0; j < filterSize; j++) {
+                            sum += input[h + i][w + j] * filters[k][i][j];
+                        }
+                    }
+                    output[k][h * outputWidth + w] = leakyReLU(sum + biases[k]);
+                }
+            }
+        }
+        return output;
+    }
+
+    public double leakyReLU(double x){
+        return x >= 0 ? x : 0.01 * x;
+    }
 
     public double[][][] backward(double[][][] input, double[][] outputGradient, double learningRate) {
         int inputChannels = input.length;
@@ -389,11 +508,15 @@ class TransposeConvolutionalLayer {
                             }
                         }
                     }
-                    output[k][h][w] = sum + biases[k];
+                    output[k][h][w] = leakyReLU(sum + biases[k]);
                 }
             }
         }
         return output;
+    }
+
+    public double leakyReLU(double x){
+        return x >= 0 ? x : 0.01 * x;
     }
 
     public double[][][] backward(double[][][] input, double[][][] outputGradient, double learningRate) {
