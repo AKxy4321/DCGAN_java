@@ -1,9 +1,11 @@
+package code;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
+import java.nio.file.Paths;
 
 public class DCGAN_Implementation {
 
@@ -55,12 +57,12 @@ class Util{
     }
 
     public static BufferedImage mnist_load_index(int label, int index) throws IOException {
-        String mnist_path = "D:\\Projects\\ZirohLabs---DCGAN\\misc\\CNN\\data\\mnist_png\\mnist_png\\training";
-        File dir = new File(mnist_path + "\\" + label);
+        String mnistPath = Paths.get(".", "misc", "CNN", "data", "mnist_png", "mnist_png", "training").toString();
+        File dir = new File(mnistPath, String.valueOf(label));
         String[] files = dir.list();
         assert files != null;
-        String final_path = mnist_path + "\\" + label + "\\" + files[index];
-        return load_image(final_path);
+        String finalPath = mnistPath + File.separator + label + File.separator + files[index];
+        return load_image(finalPath);
     }
 }
 
