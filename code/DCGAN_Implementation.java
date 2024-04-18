@@ -140,12 +140,13 @@ class Discriminator_Implementation {
         int final_conv_width, final_conv_height = 0; // we initialize it a little bit later
 
         // FORWARD - Real Image
-        double[][] real_output = conv1.forward(realImage);
-        real_output = conv1.forward(real_output);
-        real_output = conv2.forward(real_output);
-        final_conv_height = real_output.length;
-        final_conv_width = real_output[0].length;
-        double[] real_out_l = flatten(real_output);
+        double[][] real_output1 = conv1.forward(realImage);
+//        real_output = conv1.forward(real_output);
+        double[][] real_output2 = conv2.forward(real_output1);
+        final_conv_height = real_output2.length;
+        final_conv_width = real_output2[0].length;
+        double[] real_out_l = flatten(real_output2);
+        System.out.printf("real_output2 w:%d h: %d\n", final_conv_width, final_conv_height);
         real_out_l = dense.forward(real_out_l);
 
         // BACKWARD
@@ -156,10 +157,10 @@ class Discriminator_Implementation {
         real_gradient = conv1.backward(realImage, real_gradient, this.learning_rate);
 
         // FORWARD - Fake Image
-        double[][] fake_output = conv1.forward(fakeImage);
-        fake_output = conv1.forward(fake_output);
-        fake_output = conv2.forward(fake_output);
-        double[] fake_out_l = flatten(fake_output);
+        double[][] fake_output1 = conv1.forward(fakeImage);
+//        fake_output = conv1.forward(fake_output);
+        double[][] fake_output2 = conv2.forward(fake_output1);
+        double[] fake_out_l = flatten(fake_output2);
         fake_out_l = dense.forward(fake_out_l);
 
         // BACKWARD
@@ -173,6 +174,7 @@ class Discriminator_Implementation {
     public double[][] unflatten(double[] out_l, int height, int width) {
         double[][] output = new double[height][width];
         int k = 0;
+        System.out.println(" "+height+" "+width+" "+out_l.length); //2058960 128
         for (int i = 0; i < height; i++) {
             for (int j = 0; j < width; j++) {
                 output[i][j] = out_l[k++];
