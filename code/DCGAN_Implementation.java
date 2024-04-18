@@ -174,7 +174,7 @@ class Discriminator_Implementation {
         double[][] output = new double[height][width];
         int k = 0;
         for (int i = 0; i < height; i++) {
-            for (int j = 0; j < width; i++) {
+            for (int j = 0; j < width; j++) {
                 output[i][j] = out_l[k++];
             }
         }
