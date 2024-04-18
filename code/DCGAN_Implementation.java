@@ -10,7 +10,7 @@ import java.nio.file.Paths;
 public class DCGAN_Implementation {
 
     public static void main(String[] args){
-        Discriminator_Implementation discriminator = new Discriminator_Implementation(64, 0.000001);
+        Discriminator_Implementation discriminator = new Discriminator_Implementation(64, 0.0001);
 
         //load the training images from mnist dataset as realImages
         double[][][] realImages = new double[64][28][28];
@@ -83,7 +83,7 @@ class Discriminator_Implementation {
         this.batch_size = batch_size;
         this.learning_rate = learning_rate;
 //        conv1 = new ConvolutionalLayer(1, 5, 64);
-        conv2 = new ConvolutionalLayer(1, 5, 128);
+        conv2 = new ConvolutionalLayer(5, 128);
         dense = new DenseLayer(24 * 24 * 128, 1);
     }
 
@@ -156,7 +156,7 @@ class Discriminator_Implementation {
         final_conv_height = real_output2.length;
         final_conv_width = real_output2[0].length;
         double[] real_out_l = flatten(real_output2);
-        System.out.printf("real_output2 w:%d h: %d\n", final_conv_width, final_conv_height);
+//        System.out.printf("real_output2 w:%d h: %d\n", final_conv_width, final_conv_height);
 //        System.out.printf("real_output1 w:%d h: %d\n", real_output1[0].length, real_output1.length);
         real_out_l = dense.forward(real_out_l);
 
@@ -164,14 +164,14 @@ class Discriminator_Implementation {
         double[] real_gradient_l = computeGradientReal(real_out_l);
         real_gradient_l = dense.backward(real_gradient_l, this.learning_rate);
 
-        System.out.printf("real_gradient_l.length : %d\n", real_gradient_l.length);
-        System.out.printf("dense.weights.length : %d dense.weights[0].length : %d\n", dense.weights.length, dense.weights[0].length);
+//        System.out.printf("real_gradient_l.length : %d\n", real_gradient_l.length);
+//        System.out.printf("dense.weights.length : %d dense.weights[0].length : %d\n", dense.weights.length, dense.weights[0].length);
 
         int size = (int) Math.sqrt(real_gradient_l.length/conv2.filters.length);
         double[][] real_gradient = unflatten(real_gradient_l, conv2.filters.length, size*size);
-        System.out.printf("real_gradient.length : %d real_gradient[0].length : %d\n", real_gradient.length, real_gradient[0].length);
+//        System.out.printf("real_gradient.length : %d real_gradient[0].length : %d\n", real_gradient.length, real_gradient[0].length);
         double[][] real_gradient2 = conv2.backward(realImage, real_gradient, this.learning_rate);
-        System.out.printf("real_gradient2.length : %d real_gradient2[0].length : %d\n", real_gradient2.length, real_gradient2[0].length);
+//        System.out.printf("real_gradient2.length : %d real_gradient2[0].length : %d\n", real_gradient2.length, real_gradient2[0].length);
 //        double[][] real_gradient1 = conv1.backward(realImage, real_gradient2, this.learning_rate);
 
         // FORWARD - Fake Image
@@ -375,7 +375,7 @@ class ConvolutionalLayer {
     private double[] biasesGradient;
     final public int numFilters;
 
-    public ConvolutionalLayer(int inputChannels, int filterSize, int numFilters) {
+    public ConvolutionalLayer(int filterSize, int numFilters) {
         // Initialize filters randomly
         Random rand = new Random();
         this.numFilters = numFilters;
@@ -510,7 +510,6 @@ class ConvolutionalLayer {
 
     public static void main(String[] args) {
         // Example usage
-        int inputChannels = 3; // Number of input channels (e.g., RGB)
         int filterSize = 3; // Size of each filter
         int numFilters = 2; // Number of filters
         int inputHeight = 5; // Height of input
@@ -522,7 +521,7 @@ class ConvolutionalLayer {
         double prevLoss = Double.MAX_VALUE;
 
         // Create convolutional layer
-        ConvolutionalLayer convLayer = new ConvolutionalLayer(inputChannels, filterSize, numFilters);
+        ConvolutionalLayer convLayer = new ConvolutionalLayer(filterSize, numFilters);
 
         // Example input (randomly generated)
         double[][] input = new double[inputHeight][inputWidth];
