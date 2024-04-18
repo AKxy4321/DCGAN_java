@@ -1,11 +1,72 @@
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Random;
 
 public class DCGAN_Implementation {
 
+    public static void main(String[] args){
+        Discriminator_Implementation discriminator = new Discriminator_Implementation(64, 0.01);
+
+        //load the training images from mnist dataset as realImages
+        double[][][] realImages = new double[64][28][28];
+        double[][][] fakeImages = new double[64][28][28];
+
+        for(int i=0;i<64;i++){
+            for(int j=0;j<28;j++){
+                for(int k=0;k<28;k++){
+                    fakeImages[i][j][k] = Math.random();
+                }
+            }
+
+            try {
+                BufferedImage img = Util.mnist_load_index(0,i);
+                realImages[i] = Util.img_to_mat(img);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        discriminator.train(realImages,fakeImages);
+    }
 }
 
+class Util{
+    public static BufferedImage load_image(String src) throws IOException {
+        return ImageIO.read(new File(src));
+    }
+
+    public static double[][] img_to_mat(BufferedImage imageToPixelate) {
+        int w = imageToPixelate.getWidth(), h = imageToPixelate.getHeight();
+        int[] pixels = imageToPixelate.getRGB(0, 0, w, h, null, 0, w);
+        double[][] dta = new double[w][h];
+
+        for (int pixel = 0, row = 0, col = 0; pixel < pixels.length; pixel++) {
+            dta[row][col] = (((int) pixels[pixel] >> 16 & 0xff)) / 255.0f;
+            col++;
+            if (col == w) {
+                col = 0;
+                row++;
+            }
+        }
+        return dta;
+    }
+
+    public static BufferedImage mnist_load_index(int label, int index) throws IOException {
+        String mnist_path = "D:\\Projects\\ZirohLabs---DCGAN\\misc\\CNN\\data\\mnist_png\\mnist_png\\training";
+        File dir = new File(mnist_path + "\\" + label);
+        String[] files = dir.list();
+        assert files != null;
+        String final_path = mnist_path + "\\" + label + "\\" + files[index];
+        return load_image(final_path);
+    }
+}
+
+
 class Generator_Implementation {
+
 }
 
 class Discriminator_Implementation {
@@ -30,6 +91,7 @@ class Discriminator_Implementation {
         int num_imgs = realImages.length;
 
         for (int img_idx = 0; img_idx < num_imgs; img_idx++) {
+            System.out.println("Training for image " + img_idx + " of " + num_imgs);
             double[][] realImage = realImages[img_idx];
             double[][] fakeImage = fakeImages[img_idx];
 
@@ -48,7 +110,7 @@ class Discriminator_Implementation {
     }
 
     public void train_for_one_real_one_fake(double[][] realImage, double[][] fakeImage) {
-        int max_iterations = 1000;
+        int max_iterations = 500;
         int iterations = 0;
         double convergence_threshold = 0.001;
         double previous_loss = Double.MAX_VALUE;
@@ -62,6 +124,7 @@ class Discriminator_Implementation {
             double[] fake_out_l = getOutput(fakeImage);
 
             current_loss = disc_loss(real_out_l, fake_out_l);
+            System.out.println("current loss : "+current_loss);
 
             if (Math.abs(current_loss - previous_loss) < convergence_threshold) {
                 break;
