@@ -147,12 +147,17 @@ class Discriminator_Implementation {
         final_conv_width = real_output2[0].length;
         double[] real_out_l = flatten(real_output2);
         System.out.printf("real_output2 w:%d h: %d\n", final_conv_width, final_conv_height);
+        System.out.printf("real_output1 w:%d h: %d\n", real_output1[0].length, real_output1.length);
         real_out_l = dense.forward(real_out_l);
 
         // BACKWARD
         double[] real_gradient_l = computeGradientReal(real_out_l);
         real_gradient_l = dense.backward(real_gradient_l, this.learning_rate);
-        double[][] real_gradient = unflatten(real_gradient_l, final_conv_height, final_conv_width);
+
+        System.out.printf("dense.weights.length : %d dense.weights[0].length : %d\n", dense.weights.length, dense.weights[0].length);
+
+        int size = (int) Math.sqrt(real_gradient_l.length/conv2.filters.length);
+        double[][] real_gradient = unflatten(real_gradient_l, size, size);
         real_gradient = conv2.backward(realImage, real_gradient, this.learning_rate);
         real_gradient = conv1.backward(realImage, real_gradient, this.learning_rate);
 
@@ -172,6 +177,7 @@ class Discriminator_Implementation {
     }
 
     public double[][] unflatten(double[] out_l, int height, int width) {
+
         double[][] output = new double[height][width];
         int k = 0;
         System.out.println(" "+height+" "+width+" "+out_l.length); //2058960 128
@@ -239,7 +245,7 @@ class Discriminator_Implementation {
 }
 
 class DenseLayer {
-    private double[][] weights;
+    double[][] weights;
     private double[] biases;
 
     public DenseLayer(int inputSize, int outputSize) {
@@ -346,14 +352,16 @@ class DenseLayer {
 }
 
 class ConvolutionalLayer {
-    private double[][][] filters;
+    double[][][] filters;
     private double[] biases;
     private double[][][] filtersGradient;
     private double[] biasesGradient;
+    final public int numFilters;
 
     public ConvolutionalLayer(int inputChannels, int filterSize, int numFilters) {
         // Initialize filters randomly
         Random rand = new Random();
+        this.numFilters = numFilters;
         filters = new double[numFilters][filterSize][filterSize];
         biases = new double[numFilters];
         filtersGradient = new double[numFilters][filterSize][filterSize];
@@ -492,16 +500,14 @@ class ConvolutionalLayer {
         double prevLoss = Double.MAX_VALUE;
 
         // Create convolutional layer
-        layers.ConvolutionalLayer convLayer = new layers.ConvolutionalLayer(inputChannels, filterSize, numFilters);
+        ConvolutionalLayer convLayer = new ConvolutionalLayer(inputChannels, filterSize, numFilters);
 
         // Example input (randomly generated)
-        double[][][] input = new double[inputChannels][inputHeight][inputWidth];
+        double[][] input = new double[inputHeight][inputWidth];
         Random rand = new Random();
-        for (int c = 0; c < inputChannels; c++) {
-            for (int i = 0; i < inputHeight; i++) {
-                for (int j = 0; j < inputWidth; j++) {
-                    input[c][i][j] = rand.nextDouble(); // Random input values
-                }
+        for (int i = 0; i < inputHeight; i++) {
+            for (int j = 0; j < inputWidth; j++) {
+                input[i][j] = rand.nextDouble(); // Random input values
             }
         }
 
@@ -526,12 +532,12 @@ class ConvolutionalLayer {
             for (int k = 0; k < numFilters; k++) {
                 for (int j = 0; j < output[0].length; j++) {
                     outputGradient[k][j] = 2 * (output[k][j] - target[k][j]) / (output[0].length); // Gradient of MSE
-                                                                                                   // loss
+                    // loss
                 }
             }
 
             // Backward pass
-            double[][][] inputGradient = convLayer.backward(input, outputGradient, learningRate);
+            double[][] inputGradient = convLayer.backward(input, outputGradient, learningRate);
 
             // Forward pass after training
             output = convLayer.forward(input);
