@@ -1,27 +1,81 @@
 import java.util.Arrays;
 import java.util.Random;
 
-
 public class DCGAN_Implementation {
 
 }
 
-class Generator_Implementation{}
+class Generator_Implementation {
+}
 
-class Discriminator_Implementation{
+class Discriminator_Implementation {
     int batch_size;
     double learning_rate;
+
+    ConvolutionalLayer conv1;
+    ConvolutionalLayer conv2;
+    DenseLayer dense;
+
     public Discriminator_Implementation(int batch_size, double learning_rate) {
         this.batch_size = batch_size;
         this.learning_rate = learning_rate;
-        ConvolutionalLayer conv1 = new ConvolutionalLayer(1, 5, 64);
-        ConvolutionalLayer conv2 = new ConvolutionalLayer(1, 5, 128);
-        DenseLayer dense = new DenseLayer(20 * 20 * 128, 1);
+        conv1 = new ConvolutionalLayer(1, 5, 64);
+        conv2 = new ConvolutionalLayer(1, 5, 128);
+        dense = new DenseLayer(20 * 20 * 128, 1);
+    }
 
-        double[][] realImage = new double[0][];
-        double[][] fakeImage = new double[0][];
+    public void train(double[][][] realImages, double[][][] fakeImages) {
+        // trains the discriminator on a batch of real and fake images using SGD
+        int h = realImages.length, w = realImages[0].length;
+        int num_imgs = realImages.length;
 
-        int final_conv_width, final_conv_height = 0;
+        for (int img_idx = 0; img_idx < num_imgs; img_idx++) {
+            double[][] realImage = realImages[img_idx];
+            double[][] fakeImage = fakeImages[img_idx];
+
+            train_for_one_real_one_fake(realImage, fakeImage);
+        }
+    }
+
+    public double[] getOutput(double[][] image){
+         // FORWARD - Real Image
+         double[][] conv1output = conv1.forward(image);
+         double[][] conv2output = conv2.forward(conv1output);
+         double[] flattened_conv2output = flatten(conv2output);
+         double[] output = dense.forward(flattened_conv2output);
+
+         return output;
+    }
+
+    public void train_for_one_real_one_fake(double[][] realImage, double[][] fakeImage) {
+        int max_iterations = 1000;
+        int iterations = 0;
+        double convergence_threshold = 0.001;
+        double previous_loss = Double.MAX_VALUE;
+        double current_loss = 0.0;
+
+        while (iterations < max_iterations) {
+            train_step_for_one_real_one_fake(realImage, fakeImage);
+
+            double[] real_out_l = getOutput(realImage);
+
+            double[] fake_out_l = getOutput(fakeImage);
+
+            current_loss = disc_loss(real_out_l, fake_out_l);
+
+            if (Math.abs(current_loss - previous_loss) < convergence_threshold) {
+                break;
+            }
+
+            previous_loss = current_loss;
+            iterations++;
+        }
+    }
+
+    public void train_step_for_one_real_one_fake(double[][] realImage, double[][] fakeImage) {
+
+        int final_conv_width, final_conv_height = 0; // we initialize it a little bit later
+
         // FORWARD - Real Image
         double[][] real_output = conv1.forward(realImage);
         real_output = conv1.forward(real_output);
@@ -56,8 +110,8 @@ class Discriminator_Implementation{
     public double[][] unflatten(double[] out_l, int height, int width) {
         double[][] output = new double[height][width];
         int k = 0;
-        for(int i = 0 ; i < height ; i++) {
-            for(int j = 0 ; j < width ; i++) {
+        for (int i = 0; i < height; i++) {
+            for (int j = 0; j < width; i++) {
                 output[i][j] = out_l[k++];
             }
         }
@@ -79,28 +133,28 @@ class Discriminator_Implementation{
         return output;
     }
 
-//    public double disc_loss (double[] real_output, double[] fake_output) {
-//        double[] real_one = new double[real_output.length];
-//        double[] fake_zero = new double[fake_output.length];
-//
-//        for(int i = 0 ; i < real_output.length ; i++) {
-//            real_one[i] = 1;
-//            fake_zero[i] = 0;
-//        }
-//
-//        double real_loss = binary_cross_entropy(real_one, real_output);
-//        double fake_loss = binary_cross_entropy(fake_zero, fake_output);
-//
-//        return real_loss + fake_loss;
-//    }
+    public double disc_loss(double[] real_output, double[] fake_output) {
+        double[] real_one = new double[real_output.length];
+        double[] fake_zero = new double[fake_output.length];
 
-//    public double binary_cross_entropy(double[] y_true, double[] y_pred) {
-//        double sum = 0.0;
-//        for (int i = 0; i < y_true.length; i++) {
-//            sum += (-y_true[i] * Math.log(y_pred[i]) - (1 - y_true[i]) * Math.log(1 - y_pred[i]));
-//        }
-//        return sum / y_true.length;
-//    }
+        for (int i = 0; i < real_output.length; i++) {
+            real_one[i] = 1;
+            fake_zero[i] = 0;
+        }
+
+        double real_loss = binary_cross_entropy(real_one, real_output);
+        double fake_loss = binary_cross_entropy(fake_zero, fake_output);
+
+        return real_loss + fake_loss;
+    }
+
+    public double binary_cross_entropy(double[] y_true, double[] y_pred) {
+        double sum = 0.0;
+        for (int i = 0; i < y_true.length; i++) {
+            sum += (-y_true[i] * Math.log(y_pred[i]) - (1 - y_true[i]) * Math.log(1 - y_pred[i]));
+        }
+        return sum / y_true.length;
+    }
 
     public double[] computeGradientReal(double[] real_output) {
         double[] gradient = new double[real_output.length];
@@ -183,10 +237,10 @@ class DenseLayer {
 
         // Generate random input data
         Random rand = new Random();
-        double[] input = {rand.nextDouble(), rand.nextDouble()}; // Random input
+        double[] input = { rand.nextDouble(), rand.nextDouble() }; // Random input
 
         // Generate random target output data
-        double[] targetOutput = {rand.nextDouble()}; // Random target output
+        double[] targetOutput = { rand.nextDouble() }; // Random target output
 
         // Training parameters
         double learningRate = 0.01;
@@ -202,7 +256,7 @@ class DenseLayer {
             double loss = Math.pow(output[0] - targetOutput[0], 2); // Squared error loss
 
             // Backward pass for second layer
-            double[] outputGradient = {2 * (output[0] - targetOutput[0])}; // Gradient of squared error loss
+            double[] outputGradient = { 2 * (output[0] - targetOutput[0]) }; // Gradient of squared error loss
             double[] hiddenGradient = layer2.backward(outputGradient, learningRate);
 
             // Backward pass for first layer
@@ -215,7 +269,7 @@ class DenseLayer {
         }
 
         // Test the trained network with new input
-        double[] testInput = {0.5, 0.8}; // New input
+        double[] testInput = { 0.5, 0.8 }; // New input
         double[] hiddenOutput = layer1.forward(testInput);
         double[] testOutput = layer2.forward(hiddenOutput);
 
@@ -224,9 +278,7 @@ class DenseLayer {
         System.out.println(testOutput[0]);
     }
 
-
 }
-
 
 class ConvolutionalLayer {
     private double[][][] filters;
@@ -279,7 +331,7 @@ class ConvolutionalLayer {
         return output;
     }
 
-    public double leakyReLU(double x){
+    public double leakyReLU(double x) {
         return x >= 0 ? x : 0.01 * x;
     }
 
@@ -293,53 +345,53 @@ class ConvolutionalLayer {
 
         // Reset gradients to zero
         for (int k = 0; k < numFilters; k++) {
-                biasesGradient[k] = 0;
-                for (int i = 0 ; i < filterSize ; i++) {
-                    for(int j = 0 ; j < filterSize ; j++) {
-                        filtersGradient[k][i][j] = 0;
-                    }
+            biasesGradient[k] = 0;
+            for (int i = 0; i < filterSize; i++) {
+                for (int j = 0; j < filterSize; j++) {
+                    filtersGradient[k][i][j] = 0;
                 }
             }
+        }
 
         // Compute gradients
         for (int k = 0; k < numFilters; k++) {
-                for (int i = 0; i < filterSize; i++) {
-                    for (int j = 0; j < filterSize; j++) {
-                        for (int h = 0; h < outputHeight; h++) {
-                            for (int w = 0; w < outputWidth; w++) {
-                                filtersGradient[k][i][j] += input[h + i][w + j] * outputGradient[k][h * outputWidth + w];
-                            }
+            for (int i = 0; i < filterSize; i++) {
+                for (int j = 0; j < filterSize; j++) {
+                    for (int h = 0; h < outputHeight; h++) {
+                        for (int w = 0; w < outputWidth; w++) {
+                            filtersGradient[k][i][j] += input[h + i][w + j] * outputGradient[k][h * outputWidth + w];
                         }
                     }
                 }
+            }
             for (int h = 0; h < outputHeight; h++) {
                 for (int w = 0; w < outputWidth; w++) {
                     biasesGradient[k] += outputGradient[k][h * outputWidth + w];
                 }
             }
-            }
+        }
 
         // Compute input gradients for the next layer
         double[][] inputGradient = new double[inputHeight][inputWidth];
-            for (int h = 0; h < inputHeight; h++) {
-                for (int w = 0; w < inputWidth; w++) {
-                    double sum = 0;
-                    for (int k = 0; k < numFilters; k++) {
-                        for (int i = 0; i < filterSize; i++) {
-                            for (int j = 0; j < filterSize; j++) {
-                                if (h - i >= 0 && h - i < outputHeight && w - j >= 0 && w - j < outputWidth) {
-                                    sum += filters[k][i][j] * outputGradient[k][((h - i) * outputWidth) + (w - j)];
-                                }
+        for (int h = 0; h < inputHeight; h++) {
+            for (int w = 0; w < inputWidth; w++) {
+                double sum = 0;
+                for (int k = 0; k < numFilters; k++) {
+                    for (int i = 0; i < filterSize; i++) {
+                        for (int j = 0; j < filterSize; j++) {
+                            if (h - i >= 0 && h - i < outputHeight && w - j >= 0 && w - j < outputWidth) {
+                                sum += filters[k][i][j] * outputGradient[k][((h - i) * outputWidth) + (w - j)];
                             }
                         }
                     }
-                    inputGradient[h][w] = sum;
                 }
+                inputGradient[h][w] = sum;
             }
+        }
         // Update filters and biases
         for (int k = 0; k < numFilters; k++) {
             for (int i = 0; i < filterSize; i++) {
-                for(int j = 0 ; j < filterSize; j++) {
+                for (int j = 0; j < filterSize; j++) {
                     filters[k][i][j] -= learningRate * filtersGradient[k][i][j];
                 }
             }
@@ -408,7 +460,8 @@ class ConvolutionalLayer {
             double[][] outputGradient = new double[numFilters][output[0].length];
             for (int k = 0; k < numFilters; k++) {
                 for (int j = 0; j < output[0].length; j++) {
-                    outputGradient[k][j] = 2 * (output[k][j] - target[k][j]) / (output[0].length); // Gradient of MSE loss
+                    outputGradient[k][j] = 2 * (output[k][j] - target[k][j]) / (output[0].length); // Gradient of MSE
+                                                                                                   // loss
                 }
             }
 
@@ -439,7 +492,6 @@ class ConvolutionalLayer {
     }
 }
 
-
 class TransposeConvolutionalLayer {
     private double[][][] filters;
     private double[] biases;
@@ -448,7 +500,8 @@ class TransposeConvolutionalLayer {
     private int stride; // Stride parameter for transposed convolution
 
     public TransposeConvolutionalLayer(int inputChannels, int filterSize, int numFilters, int stride) {
-        // Initialize filters randomly (consider using Xavier initialization for transposed convolution)
+        // Initialize filters randomly (consider using Xavier initialization for
+        // transposed convolution)
         Random rand = new Random();
         filters = new double[numFilters][inputChannels][filterSize];
         biases = new double[numFilters];
@@ -503,7 +556,7 @@ class TransposeConvolutionalLayer {
         return output;
     }
 
-    public double leakyReLU(double x){
+    public double leakyReLU(double x) {
         return x >= 0 ? x : 0.01 * x;
     }
 
@@ -537,7 +590,8 @@ class TransposeConvolutionalLayer {
                                 int inH = h - i * stride;
                                 int inW = w - j * stride;
                                 // Handle edge cases
-                                if (0 <= inH && inH < inputHeight - filterSize + 1 && 0 <= inW && inW < inputWidth - filterSize + 1) {
+                                if (0 <= inH && inH < inputHeight - filterSize + 1 && 0 <= inW
+                                        && inW < inputWidth - filterSize + 1) {
 
                                     filtersGradient[k][c][i] += outputGradient[k][h][w] * input[c][inH][inW];
                                 }
@@ -553,7 +607,8 @@ class TransposeConvolutionalLayer {
             }
         }
 
-        // Compute input gradients for the previous layer using transposed convolution principles
+        // Compute input gradients for the previous layer using transposed convolution
+        // principles
         double[][][] inputGradient = new double[inputChannels][inputHeight][inputWidth];
         for (int c = 0; c < inputChannels; c++) {
             for (int h = 0; h < inputHeight; h++) {
@@ -619,7 +674,8 @@ class TransposeConvolutionalLayer {
         double prevLoss = Double.MAX_VALUE;
 
         // Create transposed convolutional layer
-        layers.TransposeConvolutionalLayer transConvLayer = new layers.TransposeConvolutionalLayer(inputChannels, filterSize, numFilters, stride);
+        layers.TransposeConvolutionalLayer transConvLayer = new layers.TransposeConvolutionalLayer(inputChannels,
+                filterSize, numFilters, stride);
 
         // Example input (randomly generated)
         double[][][] input = new double[inputChannels][inputHeight][inputWidth];
@@ -657,7 +713,8 @@ class TransposeConvolutionalLayer {
             for (int k = 0; k < numFilters; k++) {
                 for (int h = 0; h < targetHeight; h++) {
                     for (int w = 0; w < targetWidth; w++) {
-                        outputGradient[k][h][w] = 2 * (output[k][h][w] - target[k][h][w]) / (target.length * target[0].length * target[0][0].length); // Gradient of MSE loss
+                        outputGradient[k][h][w] = 2 * (output[k][h][w] - target[k][h][w])
+                                / (target.length * target[0].length * target[0][0].length); // Gradient of MSE loss
                     }
                 }
             }
