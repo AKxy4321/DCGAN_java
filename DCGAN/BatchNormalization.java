@@ -186,4 +186,38 @@ public class BatchNormalization {
             beta[i] = 0.0;
         }
     }
+
+    public static void main(String[] args) {
+        // Demo input
+        double[][] input = {
+                {100000.0, 2.0, 3.0},
+                {4.0, 5.0, 6.0},
+                {7.0, 8.0, -900000.0}
+        };
+
+        // Create an instance of BatchNormalization
+        BatchNormalization batchNormalization = new BatchNormalization();
+
+        // Forward pass
+        double[][] normalizedOutput = batchNormalization.forward(input, true);
+        System.out.println("Normalized Output:");
+        printMatrix(normalizedOutput);
+
+        // Backward pass (Assuming some gradient values as demo)
+        double[][] gradients = {
+                {0.1, 0.2, 0.3},
+                {0.4, 0.5, 0.6},
+                {0.7, 0.8, 0.9}
+        };
+        double[][] dx = batchNormalization.backward(gradients);
+        System.out.println("\nBackward Output (dx):");
+        printMatrix(dx);
+    }
+
+    // Utility function to print a matrix
+    private static void printMatrix(double[][] matrix) {
+        for (double[] row : matrix) {
+            System.out.println(Arrays.toString(row));
+        }
+    }
 }
