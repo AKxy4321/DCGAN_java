@@ -4,16 +4,18 @@ import java.util.Random;
 
 class ConvolutionalLayer {
     float[][][] filters;
-    float[][] input;
     private float[] biases;
     private float[][][] filtersGradient;
     private float[] biasesGradient;
+    float[][] input;
     final public int numFilters;
+    final public int filterSize;
 
     public ConvolutionalLayer(int filterSize, int numFilters) {
         // Initialize filters randomly
         Random rand = new Random();
         this.numFilters = numFilters;
+        this.filterSize = filterSize;
         this.filters = new float[numFilters][filterSize][filterSize];
         biases = new float[numFilters];
         filtersGradient = new float[numFilters][filterSize][filterSize];
@@ -30,11 +32,12 @@ class ConvolutionalLayer {
     }
 
     public float[][] forward(float[][] input) {
+        //output_size = (input_size - filter_size) / stride + 1
         this.input = input;
         int inputHeight = input.length;
         int inputWidth = input[0].length;
-        int numFilters = this.filters.length;
-        int filterSize = this.filters[0][0].length;
+        int numFilters = this.numFilters;
+        int filterSize = this.filterSize;
         int outputHeight = inputHeight - filterSize + 1;
         int outputWidth = inputWidth - filterSize + 1;
 
@@ -62,6 +65,7 @@ class ConvolutionalLayer {
     }
 
     public float[][] backward(float[][] outputGradient, float learningRate) {
+        //output_size = (input_size - filter_size) / stride + 1
         float[][] input = this.input;
         int inputHeight = input.length;
         int inputWidth = input[0].length;

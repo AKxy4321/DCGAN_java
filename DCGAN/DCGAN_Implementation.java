@@ -33,19 +33,24 @@ public class DCGAN_Implementation {
             for (int z = 0; z < 100; z++) {
                 noise[z] = rand.nextFloat();
             }
+            System.out.println("Generator Forward");
             float[] out_l = generator.dense.forward_ReLU(noise);
             float[][][] output_l = generator.tconv1.unflattenArray(out_l, 256, 7, 7);
             float[][][] output1 = generator.tconv1.forward_ReLU(output_l);
             float[][][] output2 = generator.tconv2.forward_ReLU(output1);
             float[][][] fakeImage = generator.tconv3.forward_tanh(output2);
 
+            System.out.printf("fakeImage depth %d length %d width %d", fakeImage.length, fakeImage[0].length, fakeImage[0][0].length);
+
             //DISC FORWARD REAL
+            System.out.println("Discriminator Forward Real");
             float[][] real_output1 = discriminator.conv1.forward(realImages[i]);
             float[][] real_output2 = discriminator.conv2.forward(real_output1);
             float[] real_out_l = UTIL.flatten(real_output2);
             float[] real_output_l = discriminator.dense.forward_Sigmoid(real_out_l);
 
             //DISC FORWARD FAKE
+            System.out.println("Discriminator Forward Fake");
             float[][] fake_output1 = discriminator.conv1.forward(fakeImage[0]);
             float[][] fake_output2 = discriminator.conv2.forward(fake_output1);
             float[] fake_out_l = UTIL.flatten(fake_output2);
@@ -59,6 +64,7 @@ public class DCGAN_Implementation {
             System.out.println("Disc_Loss " + disc_loss);
 
             // GEN BACKWARD
+            System.out.println("Generator Backward");
             float[] fake_gradient_l = UTIL.flatten(fakeImage[0]);
             fake_gradient_l = UTIL.computeGradientFake(fake_gradient_l);
             float[][][] fake_back_gradient = new float[1][56][56];
@@ -67,9 +73,10 @@ public class DCGAN_Implementation {
             float[][][] gradient1 = generator.tconv2.backward(input_gradient, learning_rate);
             float[][][] gradient2 = generator.tconv1.backward(gradient1, learning_rate);
             float[] out = UTIL.flatten(gradient2);
-            generator.dense.backward(out, learning_rate);
+//            generator.dense.backward(out, learning_rate);
 
             // DISC REAL BACKWARD
+            System.out.println("Discriminator Backward Real");
             float[] real_gradient_l = UTIL.computeGradientReal(real_out_l);
             real_gradient_l = discriminator.dense.backward(real_gradient_l, learning_rate);
             int size = (int) Math.sqrt((float) real_gradient_l.length / discriminator.conv2.filters.length);
@@ -78,6 +85,7 @@ public class DCGAN_Implementation {
             discriminator.conv1.backward(real_gradient2, learning_rate);
 
             // DISC FAKE BACKWARD
+            System.out.println("Discriminator Backward Fake");
             float[] fake_gradient_l_1 = UTIL.computeGradientFake(fake_out_l);
             fake_gradient_l = discriminator.dense.backward(fake_gradient_l_1, learning_rate);
             float[][] fake_gradient = UTIL.unflatten(fake_gradient_l, discriminator.conv2.filters.length, size * size);
@@ -108,7 +116,6 @@ public class DCGAN_Implementation {
 
 class Discriminator_Implementation {
     //output_size = (input_size - filter_size) / stride + 1
-    float learning_rate;
 
     ConvolutionalLayer conv1;
     ConvolutionalLayer conv2;
@@ -124,7 +131,6 @@ class Discriminator_Implementation {
 class Generator_Implementation {
     //output_size = (input_size - 1) * stride + kernel_size - 2 * padding + output_padding + 1
     //output_size = (input_size - 1) * stride + kernel_size + 1 (assuming no padding)
-    float learning_rate;
     int dense_output_size;
 
     DenseLayer dense;
@@ -137,7 +143,7 @@ class Generator_Implementation {
 
         this.dense = new DenseLayer(100, this.dense_output_size);
         this.tconv1 = new TransposeConvolutionalLayer(256, 7, 128, 1);
-        this.tconv2 = new TransposeConvolutionalLayer(126, 14, 64, 1);
+        this.tconv2 = new TransposeConvolutionalLayer(128, 14, 64, 1);
         this.tconv3 = new TransposeConvolutionalLayer(64,28, 1, 1);
     }
 }

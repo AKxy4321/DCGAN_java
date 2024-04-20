@@ -8,12 +8,15 @@ public class TransposeConvolutionalLayer {
     private float[] biases;
     private float[][][] filtersGradient;
     private float[] biasesGradient;
-    private int stride; // Stride parameter for transposed convolution
+    private int stride;
     float[][][] input;
+    public int numFilters;
+    public int filterSize;
 
     public TransposeConvolutionalLayer(int inputChannels, int filterSize, int numFilters, int stride) {
-        // Initialize filters randomly (consider using Xavier initialization for transposed convolution)
         Random rand = new Random();
+        this.numFilters = numFilters;
+        this.filterSize = filterSize;
         this.filters = new float[numFilters][inputChannels][filterSize];
         this.biases = new float[numFilters];
         this.filtersGradient = new float[numFilters][inputChannels][filterSize];
@@ -21,7 +24,7 @@ public class TransposeConvolutionalLayer {
         for (int k = 0; k < numFilters; k++) {
             for (int c = 0; c < inputChannels; c++) {
                 for (int i = 0; i < filterSize; i++) {
-                    this.filters[k][c][i] = (float) rand.nextGaussian(); // Initialize filters with random values
+                    this.filters[k][c][i] = (float) rand.nextGaussian();
                 }
             }
             this.biases[k] = 0;
@@ -38,8 +41,8 @@ public class TransposeConvolutionalLayer {
         int filterSize = this.filters[0][0].length;
 
         // Calculate output dimensions based on transposed convolution formula
-        int outputHeight = this.stride * (inputHeight - 1) + filterSize;
-        int outputWidth = this.stride * (inputWidth - 1) + filterSize;
+        int outputHeight = this.stride * (inputHeight - 1) + filterSize + 1;
+        int outputWidth = this.stride * (inputWidth - 1) + filterSize + 1;
 
         float[][][] output = new float[numFilters][outputHeight][outputWidth];
 
@@ -48,15 +51,13 @@ public class TransposeConvolutionalLayer {
             for (int h = 0; h < outputHeight; h++) {
                 for (int w = 0; w < outputWidth; w++) {
                     float sum = 0;
-                    // Iterate through input with stride to perform upsampling
                     for (int c = 0; c < inputChannels; c++) {
                         for (int i = 0; i < filterSize; i++) {
                             for (int j = 0; j < filterSize; j++) {
                                 int inH = h - i * this.stride;
                                 int inW = w - j * this.stride;
-                                // Handle edge cases to avoid accessing outside input boundaries
-                                if (inH >= 0 && inH < inputHeight && inW >= 0 && inW < inputWidth) {
-                                    sum += input[c][inH][inW] * this.filters[k][c][i];
+                                if ((0 <= inH && inH < inputHeight - filterSize - 1) && (0 <= inW && inW < inputWidth - filterSize - 1)) {
+                                    sum += input[c][h][w] * this.filters[k][c][i];
                                 }
                             }
                         }
@@ -73,29 +74,24 @@ public class TransposeConvolutionalLayer {
         int inputChannels = input.length;
         int inputHeight = input[0].length;
         int inputWidth = input[0][0].length;
-        int numFilters = this.filters.length;
-        int filterSize = this.filters[0][0].length;
-
-        // Calculate output dimensions based on transposed convolution formula
-        int outputHeight = this.stride * (inputHeight - 1) + filterSize;
-        int outputWidth = this.stride * (inputWidth - 1) + filterSize;
+        int numFilters = this.numFilters;
+        int filterSize = this.filterSize;
+        int outputHeight = this.stride * (inputHeight - 1) + filterSize + 1;
+        int outputWidth = this.stride * (inputWidth - 1) + filterSize + 1;
 
         float[][][] output = new float[numFilters][outputHeight][outputWidth];
 
-        // Transposed convolution operation
         for (int k = 0; k < numFilters; k++) {
             for (int h = 0; h < outputHeight; h++) {
                 for (int w = 0; w < outputWidth; w++) {
                     float sum = 0;
-                    // Iterate through input with stride to perform upsampling
                     for (int c = 0; c < inputChannels; c++) {
                         for (int i = 0; i < filterSize; i++) {
                             for (int j = 0; j < filterSize; j++) {
                                 int inH = h - i * this.stride;
                                 int inW = w - j * this.stride;
-                                // Handle edge cases to avoid accessing outside input boundaries
-                                if (inH >= 0 && inH < inputHeight && inW >= 0 && inW < inputWidth) {
-                                    sum += input[c][inH][inW] * this.filters[k][c][i];
+                                if ((0 <= inH && inH < inputHeight - filterSize - 1) && (0 <= inW && inW < inputWidth - filterSize - 1)) {
+                                    sum += input[c][h][w] * this.filters[k][c][i];
                                 }
                             }
                         }
@@ -115,19 +111,18 @@ public class TransposeConvolutionalLayer {
         int numFilters = this.filters.length;
         int filterSize = this.filters[0][0].length;
 
-        // Calculate output dimensions from forward pass for reference
-        int outputHeight = this.stride * (inputHeight - 1) + filterSize;
-        int outputWidth = this.stride * (inputWidth - 1) + filterSize;
+        int outputHeight = this.stride * (inputHeight - 1) + filterSize + 1;
+        int outputWidth = this.stride * (inputWidth - 1) + filterSize + 1;
 
-        // Reset gradients to zero
         for (int k = 0; k < numFilters; k++) {
             for (int c = 0; c < inputChannels; c++) {
-                Arrays.fill(this.filtersGradient[k][c], 0);
+                for(int j = 0 ; j < filterSize ; j++) {
+                    this.filtersGradient[k][c][j] = 0;
+                }
             }
             this.biasesGradient[k] = 0;
         }
 
-        // Compute gradients for filters and biases
         for (int k = 0; k < numFilters; k++) {
             for (int c = 0; c < inputChannels; c++) {
                 for (int i = 0; i < filterSize; i++) {
@@ -138,8 +133,7 @@ public class TransposeConvolutionalLayer {
                                 int inH = h - i * this.stride;
                                 int inW = w - j * this.stride;
                                 // Handle edge cases
-                                if (0 <= inH && inH < inputHeight - filterSize + 1 && 0 <= inW && inW < inputWidth - filterSize + 1) {
-
+                                if ((0 <= inH && inH < inputHeight - filterSize - 1) && (0 <= inW && inW < inputWidth - filterSize - 1)) {
                                     this.filtersGradient[k][c][i] += outputGradient[k][h][w] * input[c][inH][inW];
                                 }
                             }
@@ -154,7 +148,6 @@ public class TransposeConvolutionalLayer {
             }
         }
 
-        // Compute input gradients for the previous layer using transposed convolution principles
         float[][][] inputGradient = new float[inputChannels][inputHeight][inputWidth];
         for (int c = 0; c < inputChannels; c++) {
             for (int h = 0; h < inputHeight; h++) {
@@ -165,7 +158,6 @@ public class TransposeConvolutionalLayer {
                             for (int j = 0; j < filterSize; j++) {
                                 int outH = h + i * this.stride;
                                 int outW = w + j * this.stride;
-                                // Handle edge cases
                                 if (outH >= 0 && outH < outputHeight && outW >= 0 && outW < outputWidth) {
                                     sum += this.filters[k][c][i] * outputGradient[k][outH][outW];
                                 }
@@ -177,7 +169,6 @@ public class TransposeConvolutionalLayer {
             }
         }
 
-        // Update filters and biases
         for (int k = 0; k < numFilters; k++) {
             for (int c = 0; c < inputChannels; c++) {
                 for (int i = 0; i < filterSize; i++) {
