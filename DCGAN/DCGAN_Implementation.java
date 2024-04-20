@@ -139,11 +139,11 @@ class Generator_Implementation {
     TransposeConvolutionalLayer tconv3;
 
     public Generator_Implementation() {
-        this.dense_output_size = 7 * 7 * 256;
+        this.dense_output_size = 7 * 7 * 128;
 
         this.dense = new DenseLayer(100, this.dense_output_size);
-        this.tconv1 = new TransposeConvolutionalLayer(256, 5, 128, 1); 
-        this.tconv2 = new TransposeConvolutionalLayer(64, 5, 64, 2);
+        this.tconv1 = new TransposeConvolutionalLayer(128, 7, 128, 1);
+        this.tconv2 = new TransposeConvolutionalLayer(64, 14, 64, 1);
     }
 }
 
