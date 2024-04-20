@@ -35,27 +35,34 @@ public class DCGAN_Implementation {
                 noise[z] = rand.nextFloat();
             }
             System.out.println("Generator Forward");
-            float[] out_l = generator.dense.forward_ReLU(noise);
-            float[][][] output_l = generator.tconv1.unflattenArray(out_l, 128, 7, 7);
+            float[] out_l = generator.dense.forward(noise);
+            float[] disc_leakyrelu_output1 = generator.leakyReLU1.forward(out_l);
+            float[][][] output_l = generator.tconv1.unflattenArray(disc_leakyrelu_output1, 128, 7, 7);
             float[][][] outputTconv1 = generator.tconv1.forward(output_l);
             float[][][] leakyReluOutput1 = generator.leakyReLU1.forward(outputTconv1);
-            float[][][] fakeImage = generator.tconv2.forward(leakyReluOutput1);
-
+            float[][][] outputTconv2 = generator.tconv2.forward(leakyReluOutput1);
+            float[][][] fakeImage = generator.tanh.forward(outputTconv2);
             System.out.printf("fakeImage depth %d length %d width %d\n", fakeImage.length, fakeImage[0].length, fakeImage[0][0].length);
 
             //DISC FORWARD REAL
             System.out.println("Discriminator Forward Real");
             float[][] real_output1 = discriminator.conv1.forward(realImages[i]);
-            float[][] real_output2 = discriminator.conv2.forward(real_output1);
-            float[] real_out_l = UTIL.flatten(real_output2);
-            float[] real_output_l = discriminator.dense.forward_Sigmoid(real_out_l);
+            float[][] real_output1_2 = discriminator.leakyReLULayer1.forward(real_output1);
+            float[][] real_output2 = discriminator.conv2.forward(real_output1_2);
+            float[][] real_output2_2 = discriminator.leakyReLULayer2.forward(real_output2);
+            float[] real_output2_2_flattened = UTIL.flatten(real_output2_2);
+            float[] real_output_dense = discriminator.dense.forward(real_output2_2_flattened);
+            float[] real_output_l = discriminator.sigmoidLayer.forward(real_output_dense);
 
             //DISC FORWARD FAKE
             System.out.println("Discriminator Forward Fake");
             float[][] fake_output1 = discriminator.conv1.forward(fakeImage[0]);
-            float[][] fake_output2 = discriminator.conv2.forward(fake_output1);
-            float[] fake_out_l = UTIL.flatten(fake_output2);
-            float[] fake_output_l = discriminator.dense.forward_Sigmoid(fake_out_l);
+            float[][] fake_output1_2 = discriminator.leakyReLULayer1.forward(fake_output1);
+            float[][] fake_output2 = discriminator.conv2.forward(fake_output1_2);
+            float[][] fake_output2_2 = discriminator.leakyReLULayer2.forward(fake_output2);
+            float[] fake_output2_2_flattened = UTIL.flatten(fake_output2_2);
+            float[] fake_out_dense = discriminator.dense.forward(fake_output2_2_flattened);
+            float[] fake_output_l = discriminator.sigmoidLayer.forward(fake_out_dense);
 
             // Calculate Loss
             float gen_loss = UTIL.gen_loss(fake_output_l);
@@ -66,33 +73,43 @@ public class DCGAN_Implementation {
 
             // GEN BACKWARD
             System.out.println("Generator Backward");
-            float[] fake_gradient_l = UTIL.flatten(fakeImage[0]);
-            fake_gradient_l = UTIL.computeGradientFake(fake_gradient_l);
+            float[] fake_gradient_dense = UTIL.flatten(fakeImage[0]);
+            fake_gradient_dense = UTIL.computeGradientFake(fake_gradient_dense);
             float[][][] fake_back_gradient = new float[1][28][28];
-            fake_back_gradient[0] = UTIL.unflatten(fake_gradient_l, 28, 28);
+            fake_back_gradient[0] = UTIL.unflatten(fake_gradient_dense, 28, 28);
+            
+            float[][][] gradient0_1 = generator.tanh.backward(fake_back_gradient);
             float[][][] gradient1 = generator.tconv2.backward(fake_back_gradient, learning_rate_gen);
-            float[][][] gradient1_2 = generator.leakyReLU1.backprop(gradient1);
+            float[][][] gradient1_2 = generator.leakyReLU2.backward(gradient1);
             float[][][] gradient2 = generator.tconv1.backward(gradient1_2, learning_rate_gen);
-            float[] out = UTIL.flatten(gradient2);
+            float[][][] gradient2_2 = generator.leakyReLU1.backward(gradient2);
+            float[] out = UTIL.flatten(gradient2_2);
             generator.dense.backward(out, learning_rate_gen);
 
             // DISC REAL BACKWARD
             System.out.println("Discriminator Backward Real");
-            float[] real_gradient_l = UTIL.computeGradientReal(real_out_l);
-            real_gradient_l = discriminator.dense.backward(real_gradient_l, learning_rate_disc);
-            System.out.printf("Real Gradient Length %d\n", real_gradient_l.length);
-            int size = (int) Math.sqrt((float) real_gradient_l.length / discriminator.conv2.filters.length);
-            float[][] real_gradient = UTIL.unflatten(real_gradient_l, discriminator.conv2.filters.length, size * size);
-            float[][] real_gradient2 = discriminator.conv2.backward(real_gradient, learning_rate_disc);
-            discriminator.conv1.backward(real_gradient2, learning_rate_disc);
+            float[] real_gradient_dense = UTIL.computeGradientReal(real_output_l);
+            float[] real_gradient_sigmoid = discriminator.sigmoidLayer.backward(real_gradient_dense);
+            
+            real_gradient_dense = discriminator.dense.backward(real_gradient_sigmoid, learning_rate_disc);
+            System.out.printf("Real Gradient Length %d\n", real_gradient_dense.length);
+            int size = (int) Math.sqrt((float) real_gradient_dense.length / discriminator.conv2.filters.length);
+            float[][] real_gradient_dense_unflattened = UTIL.unflatten(real_gradient_dense, discriminator.conv2.filters.length, size * size);
+            float[][] real_gradient_leakyrelu2 = discriminator.leakyReLULayer2.backward(real_gradient_dense_unflattened);
+            float[][] real_gradient_conv2 = discriminator.conv2.backward(real_gradient_leakyrelu2, learning_rate_disc);
+            float[][] real_gradient_leakyrelu1 = discriminator.leakyReLULayer1.backward(real_gradient_conv2);
+            float[][] real_gradient_conv1 = discriminator.conv1.backward(real_gradient_leakyrelu1, learning_rate_disc);
 
             // DISC FAKE BACKWARD
             System.out.println("Discriminator Backward Fake");
-            float[] fake_gradient_l_1 = UTIL.computeGradientFake(fake_out_l);
-            fake_gradient_l = discriminator.dense.backward(fake_gradient_l_1, learning_rate_disc);
-            float[][] fake_gradient = UTIL.unflatten(fake_gradient_l, discriminator.conv2.filters.length, size * size);
-            float[][] fake_gradient2 = discriminator.conv2.backward(fake_gradient, learning_rate_disc);
-            discriminator.conv1.backward(fake_gradient2, learning_rate_disc);
+            float[] fake_gradient_l_1 = UTIL.computeGradientFake(fake_output_l);
+            float[] fake_gradient_sigmoid = discriminator.sigmoidLayer.backward(fake_gradient_l_1);
+            fake_gradient_dense = discriminator.dense.backward(fake_gradient_sigmoid, learning_rate_disc);
+            float[][] fake_gradient_dense_unflattened = UTIL.unflatten(fake_gradient_dense, discriminator.conv2.filters.length, size * size);
+            float[][] fake_gradient_leakyrelu2 = discriminator.leakyReLULayer2.backward(fake_gradient_dense_unflattened);
+            float[][] fake_gradient_conv2 = discriminator.conv2.backward(fake_gradient_leakyrelu2, learning_rate_disc);
+            float[][] fake_gradient_leakyrelu1 = discriminator.leakyReLULayer1.backward(fake_gradient_conv2);
+            float[][] fake_gradient_conv1 = discriminator.conv1.backward(fake_gradient_leakyrelu1, learning_rate_disc);
 
             BufferedImage image = new BufferedImage(28, 28, BufferedImage.TYPE_INT_RGB);
             for (int y = 0; y < 28; y++) {
@@ -120,13 +137,19 @@ class Discriminator_Implementation {
     //output_size = (input_size - filter_size) / stride + 1
 
     ConvolutionalLayer conv1;
+    LeakyReLULayer leakyReLULayer1;
     ConvolutionalLayer conv2;
+    LeakyReLULayer leakyReLULayer2;
     DenseLayer dense;
+    SigmoidLayer sigmoidLayer;
 
     public Discriminator_Implementation() {
         this.conv1 = new ConvolutionalLayer(5, 64);
+        this.leakyReLULayer1 = new LeakyReLULayer();
         this.conv2 = new ConvolutionalLayer(5, 128);
+        this.leakyReLULayer2 = new LeakyReLULayer();
         this.dense = new DenseLayer(24 * 24 * 128, 1);
+        this.sigmoidLayer = new SigmoidLayer();
     }
 }
 
@@ -136,19 +159,21 @@ class Generator_Implementation {
     int dense_output_size;
 
     DenseLayer dense;
-    TransposeConvolutionalLayer tconv1;
     LeakyReLULayer leakyReLU1;
+    TransposeConvolutionalLayer tconv1;
+    LeakyReLULayer leakyReLU2;
     TransposeConvolutionalLayer tconv2;
-
+    TanhLayer tanh;
 
     public Generator_Implementation() {
         this.dense_output_size = 7 * 7 * 128;
 
         this.dense = new DenseLayer(100, this.dense_output_size);
-        this.tconv1 = new TransposeConvolutionalLayer(128, 7, 64, 1);
         this.leakyReLU1 = new LeakyReLULayer();
+        this.tconv1 = new TransposeConvolutionalLayer(128, 7, 64, 1);
+        this.leakyReLU2 = new LeakyReLULayer();
         this.tconv2 = new TransposeConvolutionalLayer(64, 16, 1, 1);
-
+        this.tanh = new TanhLayer();
     }
 }
 

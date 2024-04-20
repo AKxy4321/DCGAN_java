@@ -1,7 +1,6 @@
 package DCGAN;
 
-public class LeakyReLULayer {
-
+public class SigmoidLayer{
     public float[][][] input;
     public float[][][] output;
 
@@ -11,18 +10,8 @@ public class LeakyReLULayer {
     public float[] input1D;
     public float[] output1D;
 
-    float k;
-
-    public LeakyReLULayer() {
-        this.k = 0.01f; // default value
-    }
-
-    public LeakyReLULayer(float k) {
-        this.k = k;
-    }
-
-    public float apply_leaky_relu(float x) {
-        return x > 0 ? x : x * k;
+    public float apply_sigmoid(float x) {
+        return (float)(1/(1+Math.exp(-x)));
     }
 
     public float[][][] forward(float[][][] input) {
@@ -35,24 +24,13 @@ public class LeakyReLULayer {
         for (int d = 0; d < depth; d++) {
             for (int h = 0; h < height; h++) {
                 for (int w = 0; w < width; w++) {
-                    output[d][h][w] = apply_leaky_relu(input[d][h][w]);
+                    
+                    output[d][h][w] = apply_sigmoid(input[d][h][w]);
                 }
             }
         }
 
         return output;
-    }
-
-    public float[] forward(float[] input) {
-        this.input1D = input;
-        int depth = input.length;
-        output1D = new float[depth];
-
-        for (int d = 0; d < depth; d++) {
-            output1D[d] = apply_leaky_relu(input[d]);
-        }
-
-        return output1D;
     }
 
     public float[][] forward(float[][] input) {
@@ -63,10 +41,21 @@ public class LeakyReLULayer {
 
         for (int h = 0; h < height; h++) {
             for (int w = 0; w < width; w++) {
-                output2D[h][w] = apply_leaky_relu(input[h][w]);
+                output2D[h][w] = apply_sigmoid(input[h][w]);
             }
         }
         return output2D;
+    }
+
+    public float[] forward(float[] input) {
+        this.input1D = input;
+        int size = input.length;
+        output1D = new float[size];
+
+        for (int i = 0; i < size; i++) {
+            output1D[i] = apply_sigmoid(input[i]);
+        }
+        return output1D;
     }
 
     public float[][][] backward(float[][][] d_L_d_out) {
@@ -78,12 +67,10 @@ public class LeakyReLULayer {
         for (int d = 0; d < depth; d++) {
             for (int h = 0; h < height; h++) {
                 for (int w = 0; w < width; w++) {
-                    // If the input value was negative, the gradient is k;
-                    d_L_d_input[d][h][w] = output[d][h][w] > 0 ? d_L_d_out[d][h][w] : k * d_L_d_out[d][h][w];
+                    d_L_d_input[d][h][w] =  (1-output[d][h][w]*output[d][h][w]) * d_L_d_out[d][h][w];
                 }
             }
         }
-
         return d_L_d_input;
     }
 
@@ -94,32 +81,25 @@ public class LeakyReLULayer {
 
         for (int h = 0; h < height; h++) {
             for (int w = 0; w < width; w++) {
-                // If the input value was negative, the gradient is k;
-                // TODO: Check if this is correct
-                d_L_d_input[h][w] = output2D[h][w] > 0 ? d_L_d_out[h][w] : k * d_L_d_out[h][w];
+                d_L_d_input[h][w] = (1-output2D[h][w]*output2D[h][w]) *d_L_d_out[h][w];
             }
         }
-        /**
-         * correct algorithm is :
-         * for(int i=0; i<len(inputs); i++) {
-         * * if(output.getWeight(i) <= 0) {
-         * * * * input.setGradient(i, k*output.getGradient(i))); // threshold
-         * * } else {
-         * * * * input.setGradient(i, output.getGradient(i));
-         * * }
-         * }
-         */
         return d_L_d_input;
     }
 
     public float[] backward(float[] d_L_d_out) {
         float[] d_L_d_input = new float[d_L_d_out.length];
-        int height = d_L_d_out.length;
+        int size = d_L_d_out.length;
 
-        for (int h = 0; h < height; h++) {
-            d_L_d_input[h] = output1D[h] > 0 ? d_L_d_out[h] : k * d_L_d_out[h];
+        for (int i = 0; i < size; i++) {
+            d_L_d_input[i] = (1-output1D[i]*output1D[i]) * d_L_d_out[i];
         }
-
         return d_L_d_input;
     }
 }
+/**
+        for(int i=0; i<N; i++) {
+            double v2wi = output.getWeight(i);
+            input.setGradient(i, v2wi * (1.0 - v2wi) * output.getGradient(i));
+        }
+ */

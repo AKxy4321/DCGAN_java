@@ -23,7 +23,7 @@ public class DenseLayer {
         }
     }
 
-    public float[] forward_ReLU(float[] input) {
+    public float[] forward(float[] input) {
         this.input = input;
         // Perform matrix multiplication of input with weights and add biases
         float[] output = new float[weights[0].length];
@@ -32,24 +32,38 @@ public class DenseLayer {
             for (int i = 0; i < weights.length; i++) {
                 sum += input[i] * weights[i][j];
             }
-            output[j] = (float) Math.max(0.01 * sum + biases[j], sum + biases[j]);    //ReLU activation
+            output[j] = sum + biases[j];
         }
         return output;
     }
 
-    public float[] forward_Sigmoid(float[] input) {
-        this.input = input;
-        // Perform matrix multiplication of input with weights and add biases
-        float[] output = new float[weights[0].length];
-        for (int j = 0; j < weights[0].length; j++) {
-            float sum = 0;
-            for (int i = 0; i < weights.length; i++) {
-                sum += input[i] * weights[i][j];
-            }
-            output[j] = (float) (1 / (1 + Math.exp(-sum + biases[j]))); // Sigmoid activation
-        }
-        return output;
-    }
+    // public float[] forward_ReLU(float[] input) {
+    //     this.input = input;
+    //     // Perform matrix multiplication of input with weights and add biases
+    //     float[] output = new float[weights[0].length];
+    //     for (int j = 0; j < weights[0].length; j++) {
+    //         float sum = 0;
+    //         for (int i = 0; i < weights.length; i++) {
+    //             sum += input[i] * weights[i][j];
+    //         }
+    //         output[j] = (float) Math.max(0.01 * sum + biases[j], sum + biases[j]);    //ReLU activation
+    //     }
+    //     return output;
+    // }
+
+    // public float[] forward_Sigmoid(float[] input) {
+    //     this.input = input;
+    //     // Perform matrix multiplication of input with weights and add biases
+    //     float[] output = new float[weights[0].length];
+    //     for (int j = 0; j < weights[0].length; j++) {
+    //         float sum = 0;
+    //         for (int i = 0; i < weights.length; i++) {
+    //             sum += input[i] * weights[i][j];
+    //         }
+    //         output[j] = (float) (1 / (1 + Math.exp(-sum + biases[j]))); // Sigmoid activation
+    //     }
+    //     return output;
+    // }
 
     public float[] backward(float[] outputGradient, float learningRate) {
         // Update weights and biases
