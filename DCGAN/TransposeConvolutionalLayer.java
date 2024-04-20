@@ -13,16 +13,16 @@ public class TransposeConvolutionalLayer {
     public int numFilters;
     public int filterSize;
 
-    public TransposeConvolutionalLayer(int inputChannels, int filterSize, int numFilters, int stride) {
+    public TransposeConvolutionalLayer(int numFiltersPrev, int filterSize, int numFilters, int stride) {
         Random rand = new Random();
         this.numFilters = numFilters;
         this.filterSize = filterSize;
-        this.filters = new float[numFilters][inputChannels][filterSize];
+        this.filters = new float[numFilters][numFiltersPrev][filterSize];
         this.biases = new float[numFilters];
-        this.filtersGradient = new float[numFilters][inputChannels][filterSize];
+        this.filtersGradient = new float[numFilters][numFiltersPrev][filterSize];
         this.biasesGradient = new float[numFilters];
         for (int k = 0; k < numFilters; k++) {
-            for (int c = 0; c < inputChannels; c++) {
+            for (int c = 0; c < numFiltersPrev; c++) {
                 for (int i = 0; i < filterSize; i++) {
                     this.filters[k][c][i] = (float) rand.nextGaussian();
                 }

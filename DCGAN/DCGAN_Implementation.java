@@ -11,7 +11,8 @@ public class DCGAN_Implementation {
     public static void main(String[] args) throws IOException {
         int train_size = 100;
         int label = 0;
-        float learning_rate = 0.001F;
+        float learning_rate_gen = 0.01F;
+        float learning_rate_disc = 0.000001F;
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
         Generator_Implementation generator = new Generator_Implementation();
         UTIL UTIL = new UTIL();
@@ -35,10 +36,9 @@ public class DCGAN_Implementation {
             }
             System.out.println("Generator Forward");
             float[] out_l = generator.dense.forward_ReLU(noise);
-            float[][][] output_l = generator.tconv1.unflattenArray(out_l, 256, 7, 7);
+            float[][][] output_l = generator.tconv1.unflattenArray(out_l, 128, 7, 7);
             float[][][] output1 = generator.tconv1.forward_ReLU(output_l);
-            float[][][] output2 = generator.tconv2.forward_ReLU(output1);
-            float[][][] fakeImage = generator.tconv3.forward_tanh(output2);
+            float[][][] fakeImage = generator.tconv2.forward_tanh(output1);
 
             System.out.printf("fakeImage depth %d length %d width %d\n", fakeImage.length, fakeImage[0].length, fakeImage[0][0].length);
 
@@ -69,35 +69,34 @@ public class DCGAN_Implementation {
             fake_gradient_l = UTIL.computeGradientFake(fake_gradient_l);
             float[][][] fake_back_gradient = new float[1][28][28];
             fake_back_gradient[0] = UTIL.unflatten(fake_gradient_l, 28, 28);
-            float[][][] input_gradient = generator.tconv3.backward(fake_back_gradient, learning_rate);
-            float[][][] gradient1 = generator.tconv2.backward(input_gradient, learning_rate);
-            float[][][] gradient2 = generator.tconv1.backward(gradient1, learning_rate);
+            float[][][] gradient1 = generator.tconv2.backward(fake_back_gradient, learning_rate_gen);
+            float[][][] gradient2 = generator.tconv1.backward(gradient1, learning_rate_gen);
             float[] out = UTIL.flatten(gradient2);
-            generator.dense.backward(out, learning_rate);
+            generator.dense.backward(out, learning_rate_gen);
 
             // DISC REAL BACKWARD
             System.out.println("Discriminator Backward Real");
             float[] real_gradient_l = UTIL.computeGradientReal(real_out_l);
-            real_gradient_l = discriminator.dense.backward(real_gradient_l, learning_rate);
+            real_gradient_l = discriminator.dense.backward(real_gradient_l, learning_rate_disc);
             System.out.printf("Real Gradient Length %d\n", real_gradient_l.length);
             int size = (int) Math.sqrt((float) real_gradient_l.length / discriminator.conv2.filters.length);
             float[][] real_gradient = UTIL.unflatten(real_gradient_l, discriminator.conv2.filters.length, size * size);
-            float[][] real_gradient2 = discriminator.conv2.backward(real_gradient, learning_rate);
-            discriminator.conv1.backward(real_gradient2, learning_rate);
+            float[][] real_gradient2 = discriminator.conv2.backward(real_gradient, learning_rate_disc);
+            discriminator.conv1.backward(real_gradient2, learning_rate_disc);
 
             // DISC FAKE BACKWARD
             System.out.println("Discriminator Backward Fake");
             float[] fake_gradient_l_1 = UTIL.computeGradientFake(fake_out_l);
-            fake_gradient_l = discriminator.dense.backward(fake_gradient_l_1, learning_rate);
+            fake_gradient_l = discriminator.dense.backward(fake_gradient_l_1, learning_rate_disc);
             float[][] fake_gradient = UTIL.unflatten(fake_gradient_l, discriminator.conv2.filters.length, size * size);
-            float[][] fake_gradient2 = discriminator.conv2.backward(fake_gradient, learning_rate);
-            discriminator.conv1.backward(fake_gradient2, learning_rate);
+            float[][] fake_gradient2 = discriminator.conv2.backward(fake_gradient, learning_rate_disc);
+            discriminator.conv1.backward(fake_gradient2, learning_rate_disc);
 
             BufferedImage image = new BufferedImage(28, 28, BufferedImage.TYPE_INT_RGB);
             for (int y = 0; y < 28; y++) {
                 for (int x = 0; x < 28; x++) {
                     float value = fakeImage[0][y][x];
-                    int rgb = (int) ((value + 1) * 127.5f);
+                    int rgb = (int) ((value + 1) * 255.0f);
                     rgb = (rgb << 16) | (rgb << 8) | rgb;
                     image.setRGB(x, y, rgb);
                 }
@@ -143,9 +142,8 @@ class Generator_Implementation {
         this.dense_output_size = 7 * 7 * 256;
 
         this.dense = new DenseLayer(100, this.dense_output_size);
-        this.tconv1 = new TransposeConvolutionalLayer(256, 5, 128, 1);  //
-        this.tconv2 = new TransposeConvolutionalLayer(128, 7, 64, 1);
-        this.tconv3 = new TransposeConvolutionalLayer(64,9, 1, 1);
+        this.tconv1 = new TransposeConvolutionalLayer(256, 5, 128, 1); 
+        this.tconv2 = new TransposeConvolutionalLayer(64, 5, 64, 2);
     }
 }
 
