@@ -129,8 +129,8 @@ class Discriminator_Implementation {
 }
 
 class Generator_Implementation {
-    //output_size = (input_size - 1) * stride + kernel_size - 2 * padding + output_padding + 1
-    //output_size = (input_size - 1) * stride + kernel_size + 1 (assuming no padding)
+    //output_size = (input_size - 1) * stride + kernel_size - 2 * padding + output_padding
+    //output_size = (input_size - 1) * stride + kernel_size (assuming no padding)
     int dense_output_size;
 
     DenseLayer dense;
@@ -143,7 +143,7 @@ class Generator_Implementation {
 
         this.dense = new DenseLayer(100, this.dense_output_size);
         this.tconv1 = new TransposeConvolutionalLayer(128, 7, 64, 1);
-        this.tconv2 = new TransposeConvolutionalLayer(64, 14, 1, 1);
+        this.tconv2 = new TransposeConvolutionalLayer(64, 16, 1, 1);
     }
 }
 

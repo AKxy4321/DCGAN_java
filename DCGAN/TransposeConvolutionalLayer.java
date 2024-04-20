@@ -41,8 +41,8 @@ public class TransposeConvolutionalLayer {
         int filterSize = this.filters[0][0].length;
 
         // Calculate output dimensions based on transposed convolution formula
-        int outputHeight = this.stride * (inputHeight - 1) + filterSize + 1;
-        int outputWidth = this.stride * (inputWidth - 1) + filterSize + 1;
+        int outputHeight = this.stride * (inputHeight - 1) + filterSize;
+        int outputWidth = this.stride * (inputWidth - 1) + filterSize;
 
         float[][][] output = new float[numFilters][outputHeight][outputWidth];
 
@@ -76,8 +76,8 @@ public class TransposeConvolutionalLayer {
         int inputWidth = input[0][0].length;
         int numFilters = this.numFilters;
         int filterSize = this.filterSize;
-        int outputHeight = this.stride * (inputHeight - 1) + filterSize + 1;
-        int outputWidth = this.stride * (inputWidth - 1) + filterSize + 1;
+        int outputHeight = this.stride * (inputHeight - 1) + filterSize;
+        int outputWidth = this.stride * (inputWidth - 1) + filterSize;
 
         float[][][] output = new float[numFilters][outputHeight][outputWidth];
 
@@ -111,8 +111,8 @@ public class TransposeConvolutionalLayer {
         int numFilters = this.filters.length;
         int filterSize = this.filters[0][0].length;
 
-        int outputHeight = this.stride * (inputHeight - 1) + filterSize + 1;
-        int outputWidth = this.stride * (inputWidth - 1) + filterSize + 1;
+        int outputHeight = this.stride * (inputHeight - 1) + filterSize;
+        int outputWidth = this.stride * (inputWidth - 1) + filterSize;
         System.out.printf("Input Depth %d Height %d Width %d\n", inputChannels, inputHeight, inputWidth);
         for (int k = 0; k < numFilters; k++) {
             for (int c = 0; c < inputChannels; c++) {
