@@ -62,6 +62,7 @@ public class DCGAN_Implementation {
             System.out.println("Generator Forward");
             double[] gen_dense_output = generator.dense.forward(noise);
             logger.log(Level.INFO, "gen_dense_output : " + Arrays.toString(gen_dense_output));
+            double[] gen_batch1_output = generator.batch1.forward(gen_dense_output);
             double[][][] gen_dense_output_unflattened = generator.tconv1.unflattenArray(gen_dense_output, 128, 7, 7);
 
             logger.log(Level.INFO, "gen_dense_output_unflattened : " + Arrays.deepToString(gen_dense_output_unflattened));
@@ -192,8 +193,10 @@ class Generator_Implementation {
     int dense_output_size;
 
     DenseLayer dense;
+    BatchNormalization batch1;
     LeakyReLULayer leakyReLU1;
     TransposeConvolutionalLayer tconv1;
+    BatchNormalization batch2;
     LeakyReLULayer leakyReLU2;
     TransposeConvolutionalLayer tconv2;
     TanhLayer tanh;
@@ -202,8 +205,10 @@ class Generator_Implementation {
         this.dense_output_size = 7 * 7 * 128;
 
         this.dense = new DenseLayer(100, this.dense_output_size);
+        this.batch1 = new BatchNormalization();
         this.leakyReLU1 = new LeakyReLULayer();
         this.tconv1 = new TransposeConvolutionalLayer(128, 7, 64, 1);
+        this.batch2 = new BatchNormalization();
         this.leakyReLU2 = new LeakyReLULayer();
         this.tconv2 = new TransposeConvolutionalLayer(64, 16, 1, 1);
         this.tanh = new TanhLayer();
