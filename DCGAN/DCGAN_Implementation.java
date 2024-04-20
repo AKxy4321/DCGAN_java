@@ -142,8 +142,8 @@ class Generator_Implementation {
         this.dense_output_size = 7 * 7 * 128;
 
         this.dense = new DenseLayer(100, this.dense_output_size);
-        this.tconv1 = new TransposeConvolutionalLayer(128, 7, 128, 1);
-        this.tconv2 = new TransposeConvolutionalLayer(64, 14, 64, 1);
+        this.tconv1 = new TransposeConvolutionalLayer(128, 7, 64, 1);
+        this.tconv2 = new TransposeConvolutionalLayer(64, 14, 1, 1);
     }
 }
 
