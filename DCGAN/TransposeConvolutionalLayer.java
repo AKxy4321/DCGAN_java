@@ -113,7 +113,7 @@ public class TransposeConvolutionalLayer {
 
         int outputHeight = this.stride * (inputHeight - 1) + filterSize + 1;
         int outputWidth = this.stride * (inputWidth - 1) + filterSize + 1;
-
+        System.out.printf("Input Depth %d Height %d Width %d\n", inputChannels, inputHeight, inputWidth);
         for (int k = 0; k < numFilters; k++) {
             for (int c = 0; c < inputChannels; c++) {
                 for(int j = 0 ; j < filterSize ; j++) {

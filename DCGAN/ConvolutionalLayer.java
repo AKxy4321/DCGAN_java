@@ -84,13 +84,19 @@ class ConvolutionalLayer {
             }
         }
 
+        System.out.printf("Output Gradient Depth %d Length %d", outputGradient.length, outputGradient[0].length);
         // Compute gradients
         for (int k = 0; k < numFilters; k++) {
             for (int i = 0; i < filterSize; i++) {
                 for (int j = 0; j < filterSize; j++) {
                     for (int h = 0; h < outputHeight; h++) {
                         for (int w = 0; w < outputWidth; w++) {
-                            this.filtersGradient[k][i][j] += input[h + i][w + j] * outputGradient[k][h * outputWidth + w];
+                            int inputH = h + i;
+                            int inputW = w + j;
+                            if ((inputH >= 0 && inputH < inputHeight) && (inputW >= 0 && inputW < inputWidth)) {
+//                                System.out.println(h * outputWidth + w);
+                                this.filtersGradient[k][i][j] += input[inputH][inputW] * outputGradient[k][h * outputWidth + w];
+                            }
                         }
                     }
                 }

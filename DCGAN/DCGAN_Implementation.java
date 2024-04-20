@@ -9,7 +9,7 @@ import java.util.Random;
 
 public class DCGAN_Implementation {
     public static void main(String[] args) throws IOException {
-        int train_size = 2;
+        int train_size = 1;
         int label = 0;
         float learning_rate = 0.0001F;
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
@@ -40,7 +40,7 @@ public class DCGAN_Implementation {
             float[][][] output2 = generator.tconv2.forward_ReLU(output1);
             float[][][] fakeImage = generator.tconv3.forward_tanh(output2);
 
-            System.out.printf("fakeImage depth %d length %d width %d", fakeImage.length, fakeImage[0].length, fakeImage[0][0].length);
+            System.out.printf("fakeImage depth %d length %d width %d\n", fakeImage.length, fakeImage[0].length, fakeImage[0][0].length);
 
             //DISC FORWARD REAL
             System.out.println("Discriminator Forward Real");
@@ -73,12 +73,13 @@ public class DCGAN_Implementation {
             float[][][] gradient1 = generator.tconv2.backward(input_gradient, learning_rate);
             float[][][] gradient2 = generator.tconv1.backward(gradient1, learning_rate);
             float[] out = UTIL.flatten(gradient2);
-//            generator.dense.backward(out, learning_rate);
+            generator.dense.gen_backward(out, learning_rate);
 
             // DISC REAL BACKWARD
             System.out.println("Discriminator Backward Real");
             float[] real_gradient_l = UTIL.computeGradientReal(real_out_l);
-            real_gradient_l = discriminator.dense.backward(real_gradient_l, learning_rate);
+//            real_gradient_l = discriminator.dense.backward(real_gradient_l, learning_rate);
+            System.out.printf("Real Gradient Length %d\n", real_gradient_l.length);
             int size = (int) Math.sqrt((float) real_gradient_l.length / discriminator.conv2.filters.length);
             float[][] real_gradient = UTIL.unflatten(real_gradient_l, discriminator.conv2.filters.length, size * size);
             float[][] real_gradient2 = discriminator.conv2.backward(real_gradient, learning_rate);
@@ -87,7 +88,7 @@ public class DCGAN_Implementation {
             // DISC FAKE BACKWARD
             System.out.println("Discriminator Backward Fake");
             float[] fake_gradient_l_1 = UTIL.computeGradientFake(fake_out_l);
-            fake_gradient_l = discriminator.dense.backward(fake_gradient_l_1, learning_rate);
+//            fake_gradient_l = discriminator.dense.backward(fake_gradient_l_1, learning_rate);
             float[][] fake_gradient = UTIL.unflatten(fake_gradient_l, discriminator.conv2.filters.length, size * size);
             float[][] fake_gradient2 = discriminator.conv2.backward(fake_gradient, learning_rate);
             discriminator.conv1.backward(fake_gradient2, learning_rate);
@@ -240,13 +241,16 @@ class UTIL {
     }
 
     public float[] flatten(float[][][] input) {
+        int actualDepth = input.length;
         int actualHeight = input[0].length;
         int actualWidth = input[0][0].length;
-        int k = 0;
-        float[] flatten_output = new float[actualHeight * actualWidth];
-        for(int i = 0 ; i < actualHeight ; i++) {
-            for(int j = 0 ; j < actualWidth ; j++) {
-                flatten_output[k++] = input[0][i][j];
+        int m = 0;
+        float[] flatten_output = new float[actualDepth * actualHeight * actualWidth];
+        for (float[][] floats : input) {
+            for (int i = 0; i < actualHeight; i++) {
+                for (int j = 0; j < actualWidth; j++) {
+                    flatten_output[m++] = floats[i][j];
+                }
             }
         }
         return flatten_output;

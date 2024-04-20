@@ -51,8 +51,10 @@ public class DenseLayer {
         return output;
     }
 
-    public float[] backward(float[] outputGradient, float learningRate) {
+    public float[] gen_backward(float[] outputGradient, float learningRate) {
         // Update weights and biases
+        System.out.printf("Output Gradient Length %d\n", outputGradient.length);
+        System.out.printf("Input Size %d Output Size %d\n", weights.length, weights[0].length);
         float[] inputGradient = new float[weights.length];
         for (int i = 0; i < weights.length; i++) {
             float sum = 0;
@@ -62,7 +64,7 @@ public class DenseLayer {
             }
             inputGradient[i] = sum;
         }
-        for (int j = 0; j < weights[0].length; j++) {
+        for (int j = 0; j < weights[1].length; j++) {
             biases[j] -= learningRate * outputGradient[j];
         }
         return inputGradient;
