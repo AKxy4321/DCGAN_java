@@ -1,8 +1,7 @@
 package DCGAN;
 
 public class LeakyReLULayer {
-    
-    
+
     public float[][][] input;
     public float[][][] output;
 
@@ -10,17 +9,16 @@ public class LeakyReLULayer {
     public float[][] output2D;
     float k;
 
-
-    public LeakyReLULayer(){
-        this.k = 0.01f;
+    public LeakyReLULayer() {
+        this.k = 0.01f; // default value
     }
 
-    public LeakyReLULayer(float k){
-        this.k =k;
+    public LeakyReLULayer(float k) {
+        this.k = k;
     }
 
-    public float apply_leaky_relu(float x){
-        return x *k;
+    public float apply_leaky_relu(float x) {
+        return x * k;
     }
 
     public float[][][] forward(float[][][] input) {
@@ -47,11 +45,11 @@ public class LeakyReLULayer {
         int width = input[0].length;
         output2D = new float[height][width];
 
-            for (int h = 0; h < height; h++) {
-                for (int w = 0; w < width; w++) {
-                    output2D[h][w] = apply_leaky_relu(input[h][w]);
-                }
+        for (int h = 0; h < height; h++) {
+            for (int w = 0; w < width; w++) {
+                output2D[h][w] = apply_leaky_relu(input[h][w]);
             }
+        }
         return output;
     }
 
@@ -64,8 +62,8 @@ public class LeakyReLULayer {
         for (int d = 0; d < depth; d++) {
             for (int h = 0; h < height; h++) {
                 for (int w = 0; w < width; w++) {
-                    // If the input value was negative, the gradient is k; 
-                    d_L_d_input[d][h][w] = input[d][h][w] > 0 ? d_L_d_out[d][h][w] : k*d_L_d_out[d][h][w];
+                    // If the input value was negative, the gradient is k;
+                    d_L_d_input[d][h][w] = input[d][h][w] > 0 ? d_L_d_out[d][h][w] : k * d_L_d_out[d][h][w];
                 }
             }
         }
@@ -77,12 +75,23 @@ public class LeakyReLULayer {
         int height = d_L_d_out.length;
         int width = d_L_d_out[0].length;
 
-            for (int h = 0; h < height; h++) {
-                for (int w = 0; w < width; w++) {
-                    // If the input value was negative, the gradient is k;
-                    d_L_d_input[h][w] = input2D[h][w] > 0 ? d_L_d_out[h][w] : k*d_L_d_out[h][w];
-                }
+        for (int h = 0; h < height; h++) {
+            for (int w = 0; w < width; w++) {
+                // If the input value was negative, the gradient is k;
+                // TODO: Check if this is correct
+                d_L_d_input[h][w] = input2D[h][w] > 0 ? d_L_d_out[h][w] : k * d_L_d_out[h][w];
             }
+        }
+        /**
+         * correct algorithm is :
+         * for(int i=0; i<len(inputs); i++) {
+         * * if(output.getWeight(i) <= 0) {
+         * * * * input.setGradient(i, k*output.getGradient(i))); // threshold
+         * * } else {
+         * * * *input.setGradient(i, output.getGradient(i));
+         * * }
+         * }
+         */
         return d_L_d_input;
     }
 

@@ -37,8 +37,9 @@ public class DCGAN_Implementation {
             System.out.println("Generator Forward");
             float[] out_l = generator.dense.forward_ReLU(noise);
             float[][][] output_l = generator.tconv1.unflattenArray(out_l, 128, 7, 7);
-            float[][][] output1 = generator.tconv1.forward_ReLU(output_l);
-            float[][][] fakeImage = generator.tconv2.forward_tanh(output1);
+            float[][][] outputTconv1 = generator.tconv1.forward(output_l);
+            float[][][] leakyReluOutput1 = generator.leakyReLU1.forward(outputTconv1);
+            float[][][] fakeImage = generator.tconv2.forward(leakyReluOutput1);
 
             System.out.printf("fakeImage depth %d length %d width %d\n", fakeImage.length, fakeImage[0].length, fakeImage[0][0].length);
 
@@ -70,7 +71,8 @@ public class DCGAN_Implementation {
             float[][][] fake_back_gradient = new float[1][28][28];
             fake_back_gradient[0] = UTIL.unflatten(fake_gradient_l, 28, 28);
             float[][][] gradient1 = generator.tconv2.backward(fake_back_gradient, learning_rate_gen);
-            float[][][] gradient2 = generator.tconv1.backward(gradient1, learning_rate_gen);
+            float[][][] gradient1_2 = generator.leakyReLU1.backprop(gradient1);
+            float[][][] gradient2 = generator.tconv1.backward(gradient1_2, learning_rate_gen);
             float[] out = UTIL.flatten(gradient2);
             generator.dense.backward(out, learning_rate_gen);
 
@@ -135,15 +137,18 @@ class Generator_Implementation {
 
     DenseLayer dense;
     TransposeConvolutionalLayer tconv1;
+    LeakyReLULayer leakyReLU1;
     TransposeConvolutionalLayer tconv2;
-    TransposeConvolutionalLayer tconv3;
+
 
     public Generator_Implementation() {
         this.dense_output_size = 7 * 7 * 128;
 
         this.dense = new DenseLayer(100, this.dense_output_size);
         this.tconv1 = new TransposeConvolutionalLayer(128, 7, 64, 1);
+        this.leakyReLU1 = new LeakyReLULayer();
         this.tconv2 = new TransposeConvolutionalLayer(64, 16, 1, 1);
+
     }
 }
 

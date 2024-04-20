@@ -172,7 +172,7 @@ public class TransposeConvolutionalLayer {
         int numFiltersPrev = 3;
         int filterSize = 2;
         int numFilters = 1;
-        int stride = 1;
+        int stride = 2;
         TransposeConvolutionalLayer layer = new TransposeConvolutionalLayer(numFiltersPrev, filterSize, numFilters,
                 stride);
 
