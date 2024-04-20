@@ -19,7 +19,7 @@ public class DCGAN_Implementation {
         logger.setLevel(Level.OFF);
         int train_size = 100;
         int label = 0;
-        double learning_rate_gen = 0.001F;
+        double learning_rate_gen = 0;//.001F;
         double learning_rate_disc = 0.0001F;
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
         Generator_Implementation generator = new Generator_Implementation();
@@ -52,7 +52,7 @@ public class DCGAN_Implementation {
             label++;
         }
 
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < train_size; i++) {
             // GEN FORWARD
             double[] noise = new double[100];
             Random rand = new Random();
@@ -61,14 +61,19 @@ public class DCGAN_Implementation {
             }
             System.out.println("Generator Forward");
             double[] gen_dense_output = generator.dense.forward(noise);
-            logger.log(Level.INFO, "gen_dense_output : " + Arrays.toString(gen_dense_output));
-            double[] gen_batch1_output = generator.batch1.forward(gen_dense_output);
-            double[][][] gen_dense_output_unflattened = generator.tconv1.unflattenArray(gen_dense_output, 128, 7, 7);
+            // logger.log(Level.INFO, "gen_dense_output : " + Arrays.toString(gen_dense_output));
+            double[] gen_batch1_output = generator.batch1.forward(gen_dense_output, true);
+            double[][][] gen_batch1_output_unflattened = UTIL.unflatten(gen_batch1_output, 128, 7, 7);
+            logger.log(Level.INFO, "gen_dense_output_unflattened : " + Arrays.deepToString(gen_batch1_output_unflattened));
 
-            logger.log(Level.INFO, "gen_dense_output_unflattened : " + Arrays.deepToString(gen_dense_output_unflattened));
-            double[][][] gen_leakyrelu_output1 = generator.leakyReLU1.forward(gen_dense_output_unflattened);
+            double[][][] gen_leakyrelu_output1 = generator.leakyReLU1.forward(gen_batch1_output_unflattened);
+
             double[][][] outputTconv1 = generator.tconv1.forward(gen_leakyrelu_output1);
-            double[][][] disc_leakyrelu_output2 = generator.leakyReLU2.forward(outputTconv1);
+
+            double[] gen_batch2_output = generator.batch2.forward(UTIL.flatten(outputTconv1), true);
+            double[][][] gen_batch2_output_unflattened = UTIL.unflatten(gen_batch2_output, outputTconv1.length, outputTconv1[0].length, outputTconv1[0][0].length);
+
+            double[][][] disc_leakyrelu_output2 = generator.leakyReLU2.forward(gen_batch2_output_unflattened);
             double[][][] outputTconv2 = generator.tconv2.forward(disc_leakyrelu_output2);
             double[][][] fakeImage = generator.tanh.forward(outputTconv2);
             System.out.printf("fakeImage depth %d length %d width %d\n", fakeImage.length, fakeImage[0].length, fakeImage[0][0].length);
@@ -105,18 +110,20 @@ public class DCGAN_Implementation {
 
             // GEN BACKWARD
             System.out.println("Generator Backward");
-            double[] fake_gradient_dense = UTIL.flatten(fakeImage[0]);
-            fake_gradient_dense = UTIL.computeGradientFake(fake_gradient_dense);
-            double[][][] fake_back_gradient = new double[1][28][28];
-            fake_back_gradient[0] = UTIL.unflatten(fake_gradient_dense, 28, 28);
-
+            double[] fake_gradient = UTIL.flatten(fakeImage[0]);
+            fake_gradient = UTIL.computeGradientFake(fake_gradient);
+            double[][][] fake_back_gradient = new double[][][]{UTIL.unflatten(fake_gradient, 28, 28)}; // we want a 3d array, with only 1 channel
             double[][][] gradient0_1 = generator.tanh.backward(fake_back_gradient);
-            double[][][] gradient1 = generator.tconv2.backward(fake_back_gradient, learning_rate_gen);
+            double[][][] gradient1 = generator.tconv2.backward(gradient0_1, learning_rate_gen);
             double[][][] gradient1_2 = generator.leakyReLU2.backward(gradient1);
-            double[][][] gradient2 = generator.tconv1.backward(gradient1_2, learning_rate_gen);
+            double[][][] gradient1_3 = UTIL.unflatten(
+                generator.batch2.backward(UTIL.flatten(gradient1_2), learning_rate_gen),
+                gradient1_2.length, gradient1_2[0].length, gradient1_2[0][0].length);
+            double[][][] gradient2 = generator.tconv1.backward(gradient1_3, learning_rate_gen);
             double[][][] gradient2_2 = generator.leakyReLU1.backward(gradient2);
             double[] out = UTIL.flatten(gradient2_2);
-            generator.dense.backward(out, learning_rate_gen);
+            double[] gradient3 = generator.batch1.backward(out, learning_rate_gen);
+            generator.dense.backward(gradient3, learning_rate_gen);
 
             // DISC REAL BACKWARD
             System.out.println("Discriminator Backward Real");
@@ -136,7 +143,7 @@ public class DCGAN_Implementation {
             System.out.println("Discriminator Backward Fake");
             double[] fake_gradient_l_1 = UTIL.computeGradientFake(fake_output_l);
             double[] fake_gradient_sigmoid = discriminator.sigmoidLayer.backward(fake_gradient_l_1);
-            fake_gradient_dense = discriminator.dense.backward(fake_gradient_sigmoid, learning_rate_disc);
+            double[] fake_gradient_dense = discriminator.dense.backward(fake_gradient_sigmoid, learning_rate_disc);
             double[][] fake_gradient_dense_unflattened = UTIL.unflatten(fake_gradient_dense, discriminator.conv2.filters.length, size * size);
             double[][] fake_gradient_leakyrelu2 = discriminator.leakyReLULayer2.backward(fake_gradient_dense_unflattened);
             double[][] fake_gradient_conv2 = discriminator.conv2.backward(fake_gradient_leakyrelu2, learning_rate_disc);
@@ -218,6 +225,19 @@ class Generator_Implementation {
 class UTIL {
     public static BufferedImage load_image(String src) throws IOException {
         return ImageIO.read(new File(src));
+    }
+
+    public double[][][] unflatten(double[] input, int numFilters, int outputHeight, int outputWidth) {
+        double[][][] output = new double[numFilters][outputHeight][outputWidth];
+        int index = 0;
+        for (int k = 0; k < numFilters; k++) {
+            for (int h = 0; h < outputHeight; h++) {
+                for (int w = 0; w < outputWidth; w++) {
+                    output[k][h][w] = input[index++];
+                }
+            }
+        }
+        return output;
     }
 
     public static double[][] img_to_mat(BufferedImage imageToPixelate) {

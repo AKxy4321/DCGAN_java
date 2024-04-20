@@ -47,7 +47,7 @@ public class BatchNormalization {
         return out;
     }
 
-    public double[] backward(double[] dout) {
+    public double[] backward(double[] dout, double learning_rate) {
         double[] dGamma = new double[gamma.length];
         double[] dBeta = new double[beta.length];
         double[] dxNormalized = new double[xNormalized.length];
@@ -73,8 +73,8 @@ public class BatchNormalization {
         }
 
         for (int i = 0; i < gamma.length; i++) {
-            gamma[i] -= dGamma[i];
-            beta[i] -= dBeta[i];
+            gamma[i] -= learning_rate * dGamma[i];
+            beta[i] -= learning_rate * dBeta[i];
         }
 
         return dx;
@@ -155,7 +155,7 @@ public class BatchNormalization {
 
         // Backward pass (Assuming some gradient values as demo)
         double[] gradients = {0.1, 0.2, 0.3};
-        double[] dx = batchNormalization.backward(gradients);
+        double[] dx = batchNormalization.backward(gradients, 0.1);
         System.out.println("\nBackward Output (dx):");
         System.out.println(Arrays.toString(dx));
     }
