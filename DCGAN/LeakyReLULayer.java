@@ -18,7 +18,7 @@ public class LeakyReLULayer {
     }
 
     public float apply_leaky_relu(float x) {
-        return x * k;
+        return x > 0? x: x * k;
     }
 
     public float[][][] forward(float[][][] input) {
