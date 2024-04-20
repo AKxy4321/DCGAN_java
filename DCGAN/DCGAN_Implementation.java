@@ -63,6 +63,7 @@ public class DCGAN_Implementation {
             double[] gen_dense_output = generator.dense.forward(noise);
             logger.log(Level.INFO, "gen_dense_output : " + Arrays.toString(gen_dense_output));
             double[][][] gen_dense_output_unflattened = generator.tconv1.unflattenArray(gen_dense_output, 128, 7, 7);
+
             logger.log(Level.INFO, "gen_dense_output_unflattened : " + Arrays.deepToString(gen_dense_output_unflattened));
             double[][][] gen_leakyrelu_output1 = generator.leakyReLU1.forward(gen_dense_output_unflattened);
             double[][][] outputTconv1 = generator.tconv1.forward(gen_leakyrelu_output1);
