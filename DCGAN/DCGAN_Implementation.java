@@ -5,14 +5,15 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Random;
 
 public class DCGAN_Implementation {
     public static void main(String[] args) throws IOException {
         int train_size = 100;
         int label = 0;
-        float learning_rate_gen = 0.01F;
-        float learning_rate_disc = 0.000001F;
+        float learning_rate_gen = 0.001F;
+        float learning_rate_disc = 0.0000001F;
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
         Generator_Implementation generator = new Generator_Implementation();
         UTIL UTIL = new UTIL();
@@ -24,6 +25,22 @@ public class DCGAN_Implementation {
             }
             BufferedImage img = DCGAN.UTIL.mnist_load_index(label, index[0]);
             realImages[i] = DCGAN.UTIL.img_to_mat(img);
+
+            // bring to range -1 to +1 from 0 to 1
+            for (int y = 0; y < 28; y++) {
+                for (int x = 0; x < 28; x++) {
+                    realImages[i][y][x] = (realImages[i][y][x] * 2) - 1;
+                }
+            }
+
+//            //pretty print realImages[i]
+//            for (int y = 0; y < 28; y++) {
+//                for (int x = 0; x < 28; x++) {
+//                    System.out.printf("%.2f ", realImages[i][y][x]);
+//                }
+//                System.out.println();
+//            }
+
             label++;
         }
 
@@ -36,11 +53,12 @@ public class DCGAN_Implementation {
             }
             System.out.println("Generator Forward");
             float[] out_l = generator.dense.forward(noise);
-            float[] disc_leakyrelu_output1 = generator.leakyReLU1.forward(out_l);
-            float[][][] output_l = generator.tconv1.unflattenArray(disc_leakyrelu_output1, 128, 7, 7);
-            float[][][] outputTconv1 = generator.tconv1.forward(output_l);
-            float[][][] leakyReluOutput1 = generator.leakyReLU1.forward(outputTconv1);
-            float[][][] outputTconv2 = generator.tconv2.forward(leakyReluOutput1);
+            float[][][] output_l = generator.tconv1.unflattenArray(out_l, 128, 7, 7);
+            float[][][] disc_leakyrelu_output1 = generator.leakyReLU1.forward(output_l);
+
+            float[][][] outputTconv1 = generator.tconv1.forward(disc_leakyrelu_output1);
+            float[][][] disc_leakyrelu_output2 = generator.leakyReLU2.forward(outputTconv1);
+            float[][][] outputTconv2 = generator.tconv2.forward(disc_leakyrelu_output2);
             float[][][] fakeImage = generator.tanh.forward(outputTconv2);
             System.out.printf("fakeImage depth %d length %d width %d\n", fakeImage.length, fakeImage[0].length, fakeImage[0][0].length);
 
@@ -63,6 +81,9 @@ public class DCGAN_Implementation {
             float[] fake_output2_2_flattened = UTIL.flatten(fake_output2_2);
             float[] fake_out_dense = discriminator.dense.forward(fake_output2_2_flattened);
             float[] fake_output_l = discriminator.sigmoidLayer.forward(fake_out_dense);
+
+            System.out.println("fake_output_l : "+ Arrays.toString(fake_output_l));
+            System.out.println("real_output_l : "+ Arrays.toString(real_output_l));
 
             // Calculate Loss
             float gen_loss = UTIL.gen_loss(fake_output_l);
