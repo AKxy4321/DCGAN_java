@@ -67,8 +67,8 @@ public class DCGAN_Implementation {
             System.out.println("Generator Backward");
             float[] fake_gradient_l = UTIL.flatten(fakeImage[0]);
             fake_gradient_l = UTIL.computeGradientFake(fake_gradient_l);
-            float[][][] fake_back_gradient = new float[1][56][56];
-            fake_back_gradient[0] = UTIL.unflatten(fake_gradient_l, 56, 56);
+            float[][][] fake_back_gradient = new float[1][28][28];
+            fake_back_gradient[0] = UTIL.unflatten(fake_gradient_l, 28, 28);
             float[][][] input_gradient = generator.tconv3.backward(fake_back_gradient, learning_rate);
             float[][][] gradient1 = generator.tconv2.backward(input_gradient, learning_rate);
             float[][][] gradient2 = generator.tconv1.backward(gradient1, learning_rate);
@@ -143,9 +143,9 @@ class Generator_Implementation {
         this.dense_output_size = 7 * 7 * 256;
 
         this.dense = new DenseLayer(100, this.dense_output_size);
-        this.tconv1 = new TransposeConvolutionalLayer(256, 7, 128, 1);
-        this.tconv2 = new TransposeConvolutionalLayer(128, 14, 64, 1);
-        this.tconv3 = new TransposeConvolutionalLayer(64,28, 1, 1);
+        this.tconv1 = new TransposeConvolutionalLayer(256, 5, 128, 1);  //
+        this.tconv2 = new TransposeConvolutionalLayer(128, 7, 64, 1);
+        this.tconv3 = new TransposeConvolutionalLayer(64,9, 1, 1);
     }
 }
 
