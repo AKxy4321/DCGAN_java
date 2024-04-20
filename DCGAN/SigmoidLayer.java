@@ -1,25 +1,25 @@
 package DCGAN;
 
 public class SigmoidLayer{
-    public float[][][] input;
-    public float[][][] output;
+    public double[][][] input;
+    public double[][][] output;
 
-    public float[][] input2D;
-    public float[][] output2D;
+    public double[][] input2D;
+    public double[][] output2D;
 
-    public float[] input1D;
-    public float[] output1D;
+    public double[] input1D;
+    public double[] output1D;
 
-    public float apply_sigmoid(float x) {
-        return (float)(1/(1+Math.exp(-x)));
+    public double apply_sigmoid(double x) {
+        return (double)(1/(1+Math.exp(-x)));
     }
 
-    public float[][][] forward(float[][][] input) {
+    public double[][][] forward(double[][][] input) {
         this.input = input;
         int depth = input.length;
         int height = input[0].length;
         int width = input[0][0].length;
-        output = new float[depth][height][width];
+        output = new double[depth][height][width];
 
         for (int d = 0; d < depth; d++) {
             for (int h = 0; h < height; h++) {
@@ -33,11 +33,11 @@ public class SigmoidLayer{
         return output;
     }
 
-    public float[][] forward(float[][] input) {
+    public double[][] forward(double[][] input) {
         this.input2D = input;
         int height = input.length;
         int width = input[0].length;
-        output2D = new float[height][width];
+        output2D = new double[height][width];
 
         for (int h = 0; h < height; h++) {
             for (int w = 0; w < width; w++) {
@@ -47,10 +47,10 @@ public class SigmoidLayer{
         return output2D;
     }
 
-    public float[] forward(float[] input) {
+    public double[] forward(double[] input) {
         this.input1D = input;
         int size = input.length;
-        output1D = new float[size];
+        output1D = new double[size];
 
         for (int i = 0; i < size; i++) {
             output1D[i] = apply_sigmoid(input[i]);
@@ -58,8 +58,8 @@ public class SigmoidLayer{
         return output1D;
     }
 
-    public float[][][] backward(float[][][] d_L_d_out) {
-        float[][][] d_L_d_input = new float[d_L_d_out.length][d_L_d_out[0].length][d_L_d_out[0][0].length];
+    public double[][][] backward(double[][][] d_L_d_out) {
+        double[][][] d_L_d_input = new double[d_L_d_out.length][d_L_d_out[0].length][d_L_d_out[0][0].length];
         int depth = d_L_d_out.length;
         int height = d_L_d_out[0].length;
         int width = d_L_d_out[0][0].length;
@@ -74,8 +74,8 @@ public class SigmoidLayer{
         return d_L_d_input;
     }
 
-    public float[][] backward(float[][] d_L_d_out) {
-        float[][] d_L_d_input = new float[d_L_d_out.length][d_L_d_out[0].length];
+    public double[][] backward(double[][] d_L_d_out) {
+        double[][] d_L_d_input = new double[d_L_d_out.length][d_L_d_out[0].length];
         int height = d_L_d_out.length;
         int width = d_L_d_out[0].length;
 
@@ -87,8 +87,8 @@ public class SigmoidLayer{
         return d_L_d_input;
     }
 
-    public float[] backward(float[] d_L_d_out) {
-        float[] d_L_d_input = new float[d_L_d_out.length];
+    public double[] backward(double[] d_L_d_out) {
+        double[] d_L_d_input = new double[d_L_d_out.length];
         int size = d_L_d_out.length;
 
         for (int i = 0; i < size; i++) {

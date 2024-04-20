@@ -3,11 +3,11 @@ package DCGAN;
 import java.util.Random;
 
 class ConvolutionalLayer {
-    float[][][] filters;
-    private float[] biases;
-    private float[][][] filtersGradient;
-    private float[] biasesGradient;
-    float[][] input;
+    double[][][] filters;
+    private double[] biases;
+    private double[][][] filtersGradient;
+    private double[] biasesGradient;
+    double[][] input;
     final public int numFilters;
     final public int filterSize;
 
@@ -16,14 +16,14 @@ class ConvolutionalLayer {
         Random rand = new Random();
         this.numFilters = numFilters;
         this.filterSize = filterSize;
-        this.filters = new float[numFilters][filterSize][filterSize];
-        biases = new float[numFilters];
-        filtersGradient = new float[numFilters][filterSize][filterSize];
-        biasesGradient = new float[numFilters];
+        this.filters = new double[numFilters][filterSize][filterSize];
+        biases = new double[numFilters];
+        filtersGradient = new double[numFilters][filterSize][filterSize];
+        biasesGradient = new double[numFilters];
         for (int k = 0; k < numFilters; k++) {
             for (int c = 0; c < filterSize; c++) {
                 for (int i = 0; i < filterSize; i++) {
-                    this.filters[k][c][i] = (float) rand.nextGaussian();
+                    this.filters[k][c][i] = (double) rand.nextGaussian();
                 }
             }
             // Initialize biases with zeros
@@ -31,7 +31,7 @@ class ConvolutionalLayer {
         }
     }
 
-    public float[][] forward(float[][] input) {
+    public double[][] forward(double[][] input) {
         //output_size = (input_size - filter_size) / stride + 1
         this.input = input;
         int inputHeight = input.length;
@@ -41,13 +41,13 @@ class ConvolutionalLayer {
         int outputHeight = inputHeight - filterSize + 1;
         int outputWidth = inputWidth - filterSize + 1;
 
-        float[][] output = new float[numFilters][outputHeight * outputWidth];
+        double[][] output = new double[numFilters][outputHeight * outputWidth];
 
         // Convolution operation
         for (int k = 0; k < numFilters; k++) {
             for (int h = 0; h < outputHeight; h++) {
                 for (int w = 0; w < outputWidth; w++) {
-                    float sum = 0;
+                    double sum = 0;
                     for (int i = 0; i < filterSize; i++) {
                         for (int j = 0; j < filterSize; j++) {
                             sum += input[h + i][w + j] * this.filters[k][i][j];
@@ -60,13 +60,13 @@ class ConvolutionalLayer {
         return output;
     }
 
-    public float leakyReLU(float x) {
+    public double leakyReLU(double x) {
         return x >= 0 ? x : 0.01f * x;
     }
 
-    public float[][] backward(float[][] outputGradient, float learningRate) {
+    public double[][] backward(double[][] outputGradient, double learningRate) {
         //output_size = (input_size - filter_size) / stride + 1
-        float[][] input = this.input;
+        double[][] input = this.input;
         int inputHeight = input.length;
         int inputWidth = input[0].length;
         int numFilters = this.filters.length;
@@ -110,10 +110,10 @@ class ConvolutionalLayer {
         }
 
         // Compute input gradients for the next layer
-        float[][] inputGradient = new float[inputHeight][inputWidth];
+        double[][] inputGradient = new double[inputHeight][inputWidth];
         for (int h = 0; h < inputHeight; h++) {
             for (int w = 0; w < inputWidth; w++) {
-                float sum = 0;
+                double sum = 0;
                 for (int k = 0; k < numFilters; k++) {
                     for (int i = 0; i < filterSize; i++) {
                         for (int j = 0; j < filterSize; j++) {
