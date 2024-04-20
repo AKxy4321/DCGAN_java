@@ -1,90 +1,75 @@
 package DCGAN;
-
 import java.util.Arrays;
+
 
 public class BatchNormalization {
     private final double epsilon = 1e-5;
     private final double momentum = 0.9;
-    private double[] runningMean;
-    private double[] runningVar;
+    private double runningMean;
+    private double runningVar;
     private double[] gamma;
     private double[] beta;
     private double[] xNormalized;
     private double[] xCentered;
-    private double[] mean;
-    private double[] var;
+    private double mean;
+    private double var;
     private int batchSize;
 
     public BatchNormalization() {
     }
 
-    public double[][] forward(double[][] x, boolean training) {
-        int inputDim = x[0].length;
+    public double[] forward(double[] x, boolean training) {
+        int inputDim = x.length;
         if (gamma == null) {
             initializeParameters(inputDim);
         }
 
-        double[][] out = new double[x.length][inputDim];
+        double[] out = new double[inputDim];
 
         if (training) {
-            batchSize = x.length;
+            batchSize = 1; // Since we're operating on a 1D array, batchSize is 1
             mean = calculateMean(x);
             var = calculateVariance(x);
             xCentered = calculateXCentered(x, mean);
             xNormalized = calculateXNormalized(xCentered, var);
-            for (int i = 0; i < x.length; i++) {
-                for (int j = 0; j < inputDim; j++) {
-                    out[i][j] = gamma[j] * xNormalized[i * inputDim + j] + beta[j];
-                }
+            for (int i = 0; i < inputDim; i++) {
+                out[i] = gamma[i] * xNormalized[i] + beta[i];
             }
             runningMean = updateRunningMean(mean);
             runningVar = updateRunningVar(var);
         } else {
             xNormalized = calculateXNormalized(x, runningMean, runningVar);
-            for (int i = 0; i < x.length; i++) {
-                for (int j = 0; j < inputDim; j++) {
-                    out[i][j] = gamma[j] * xNormalized[i * inputDim + j] + beta[j];
-                }
+            for (int i = 0; i < inputDim; i++) {
+                out[i] = gamma[i] * xNormalized[i] + beta[i];
             }
         }
 
         return out;
     }
 
-    public double[][] backward(double[][] dout) {
+    public double[] backward(double[] dout) {
         double[] dGamma = new double[gamma.length];
         double[] dBeta = new double[beta.length];
         double[] dxNormalized = new double[xNormalized.length];
-        double[] dVar = new double[var.length];
-        double[] dMean = new double[mean.length];
+        double dVar = 0;
+        double dMean = 0;
         double[] dx = new double[xCentered.length];
-        double[][] dxResult = new double[dx.length / mean.length][mean.length];
 
         for (int i = 0; i < dout.length; i++) {
-            for (int j = 0; j < gamma.length; j++) {
-                dGamma[j] += dout[i][j] * xNormalized[i * gamma.length + j];
-                dBeta[j] += dout[i][j];
-                dxNormalized[i * gamma.length + j] = dout[i][j] * gamma[j];
-            }
+            dGamma[i] += dout[i] * xNormalized[i];
+            dBeta[i] += dout[i];
+            dxNormalized[i] = dout[i] * gamma[i];
         }
 
-        for (int i = 0; i < xCentered.length / mean.length; i++) {
-            for (int j = 0; j < mean.length; j++) {
-                for (int k = 0; k < gamma.length; k++) {
-                    dVar[j] += dxNormalized[i * mean.length + j] * xCentered[i * mean.length + j] * -0.5 * Math.pow(var[j] + epsilon, -1.5);
-                    dMean[j] += dxNormalized[i * mean.length + j] * -1 / Math.sqrt(var[j] + epsilon);
-                }
-            }
+        for (int i = 0; i < xCentered.length; i++) {
+            dVar += dxNormalized[i] * xCentered[i] * -0.5 * Math.pow(var + epsilon, -1.5);
+            dMean += dxNormalized[i] * -1 / Math.sqrt(var + epsilon);
         }
 
-        for (int i = 0; i < xCentered.length / mean.length; i++) {
-            for (int j = 0; j < mean.length; j++) {
-                for (int k = 0; k < gamma.length; k++) {
-                    dx[i * mean.length + j] += dxNormalized[i * mean.length + j] / Math.sqrt(var[j] + epsilon) +
-                            dVar[j] * 2 * xCentered[i * mean.length + j] / batchSize +
-                            dMean[j] / batchSize;
-                }
-            }
+        for (int i = 0; i < xCentered.length; i++) {
+            dx[i] += dxNormalized[i] / Math.sqrt(var + epsilon) +
+                    dVar * 2 * xCentered[i] / batchSize +
+                    dMean / batchSize;
         }
 
         for (int i = 0; i < gamma.length; i++) {
@@ -92,95 +77,64 @@ public class BatchNormalization {
             beta[i] -= dBeta[i];
         }
 
-        for (int i = 0; i < dxResult.length; i++) {
-            dxResult[i] = Arrays.copyOfRange(dx, i * mean.length, (i + 1) * mean.length);
-        }
-
-        return dxResult;
+        return dx;
     }
 
-    private double[] calculateMean(double[][] x) {
-        double[] sum = new double[x[0].length];
-        for (double[] xi : x) {
-            for (int j = 0; j < xi.length; j++) {
-                sum[j] += xi[j];
-            }
+    private double calculateMean(double[] x) {
+        double sum = 0;
+        for (double xi : x) {
+            sum += xi;
         }
-        for (int i = 0; i < sum.length; i++) {
-            sum[i] /= x.length;
-        }
-        return sum;
+        return sum / x.length;
     }
 
-    private double[] calculateVariance(double[][] x) {
-        double[] sumSquare = new double[x[0].length];
-        double[] sum = new double[x[0].length];
-        for (double[] xi : x) {
-            for (int j = 0; j < xi.length; j++) {
-                sum[j] += xi[j];
-                sumSquare[j] += xi[j] * xi[j];
-            }
+    private double calculateVariance(double[] x) {
+        double sumSquare = 0;
+        double sum = 0;
+        for (double xi : x) {
+            sum += xi;
+            sumSquare += xi * xi;
         }
-        double[] variance = new double[x[0].length];
-        for (int i = 0; i < variance.length; i++) {
-            variance[i] = (sumSquare[i] / x.length) - (sum[i] / x.length) * (sum[i] / x.length);
-        }
-        return variance;
+        return (sumSquare / x.length) - (sum / x.length) * (sum / x.length);
     }
 
-    private double[] calculateXCentered(double[][] x, double[] mean) {
-        double[] xCentered = new double[x.length * x[0].length];
+    private double[] calculateXCentered(double[] x, double mean) {
+        double[] xCentered = new double[x.length];
         for (int i = 0; i < x.length; i++) {
-            for (int j = 0; j < x[0].length; j++) {
-                xCentered[i * x[0].length + j] = x[i][j] - mean[j];
-            }
+            xCentered[i] = x[i] - mean;
         }
         return xCentered;
     }
 
-    private double[] calculateXNormalized(double[] xCentered, double[] var) {
+    private double[] calculateXNormalized(double[] xCentered, double var) {
         double[] xNormalized = new double[xCentered.length];
         for (int i = 0; i < xCentered.length; i++) {
-            xNormalized[i] = xCentered[i] / Math.sqrt(var[i % var.length] + epsilon);
+            xNormalized[i] = xCentered[i] / Math.sqrt(var + epsilon);
         }
         return xNormalized;
     }
 
-    private double[] calculateXNormalized(double[][] x, double[] runningMean, double[] runningVar) {
-        double[] xNormalized = new double[x.length * x[0].length];
+    private double[] calculateXNormalized(double[] x, double runningMean, double runningVar) {
+        double[] xNormalized = new double[x.length];
         for (int i = 0; i < x.length; i++) {
-            for (int j = 0; j < x[0].length; j++) {
-                xNormalized[i * x[0].length + j] = (x[i][j] - runningMean[j]) / Math.sqrt(runningVar[j] + epsilon);
-            }
+            xNormalized[i] = (x[i] - runningMean) / Math.sqrt(runningVar + epsilon);
         }
         return xNormalized;
     }
 
-    private double[] updateRunningMean(double[] mean) {
-        if (runningMean == null) {
-            runningMean = new double[mean.length];
-        }
-        for (int i = 0; i < mean.length; i++) {
-            runningMean[i] = momentum * runningMean[i] + (1 - momentum) * mean[i];
-        }
+    private double updateRunningMean(double mean) {
+        runningMean = momentum * runningMean + (1 - momentum) * mean;
         return runningMean;
     }
 
-    private double[] updateRunningVar(double[] var) {
-        if (runningVar == null) {
-            runningVar = new double[var.length];
-        }
-        for (int i = 0; i < var.length; i++) {
-            runningVar[i] = momentum * runningVar[i] + (1 - momentum) * var[i];
-        }
+    private double updateRunningVar(double var) {
+        runningVar = momentum * runningVar + (1 - momentum) * var;
         return runningVar;
     }
 
     private void initializeParameters(int inputDim) {
         gamma = new double[inputDim];
         beta = new double[inputDim];
-        runningMean = new double[inputDim];
-        runningVar = new double[inputDim];
         for (int i = 0; i < inputDim; i++) {
             gamma[i] = 1.0;
             beta[i] = 0.0;
@@ -189,35 +143,20 @@ public class BatchNormalization {
 
     public static void main(String[] args) {
         // Demo input
-        double[][] input = {
-                {100000.0, 2.0, 3.0},
-                {4.0, 5.0, 6.0},
-                {7.0, 8.0, -900000.0}
-        };
+        double[] input = {100000.0, 2.0, 3.0};
 
         // Create an instance of BatchNormalization
         BatchNormalization batchNormalization = new BatchNormalization();
 
         // Forward pass
-        double[][] normalizedOutput = batchNormalization.forward(input, true);
+        double[] normalizedOutput = batchNormalization.forward(input, true);
         System.out.println("Normalized Output:");
-        printMatrix(normalizedOutput);
+        System.out.println(Arrays.toString(normalizedOutput));
 
         // Backward pass (Assuming some gradient values as demo)
-        double[][] gradients = {
-                {0.1, 0.2, 0.3},
-                {0.4, 0.5, 0.6},
-                {0.7, 0.8, 0.9}
-        };
-        double[][] dx = batchNormalization.backward(gradients);
+        double[] gradients = {0.1, 0.2, 0.3};
+        double[] dx = batchNormalization.backward(gradients);
         System.out.println("\nBackward Output (dx):");
-        printMatrix(dx);
-    }
-
-    // Utility function to print a matrix
-    private static void printMatrix(double[][] matrix) {
-        for (double[] row : matrix) {
-            System.out.println(Arrays.toString(row));
-        }
+        System.out.println(Arrays.toString(dx));
     }
 }
