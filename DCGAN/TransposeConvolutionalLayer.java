@@ -4,9 +4,9 @@ import java.util.Arrays;
 import java.util.Random;
 
 public class TransposeConvolutionalLayer {
-    float[][][] filters;
+    float[][][][] filters; // filterIndex, channelIndex, heightIndex, widthIndex
     private float[] biases;
-    private float[][][] filtersGradient;
+    private float[][][][] filtersGradient;
     private float[] biasesGradient;
     private int stride;
     float[][][] input;
@@ -17,14 +17,16 @@ public class TransposeConvolutionalLayer {
         Random rand = new Random();
         this.numFilters = numFilters;
         this.filterSize = filterSize;
-        this.filters = new float[numFilters][numFiltersPrev][filterSize];
+        this.filters = new float[numFilters][numFiltersPrev][filterSize][filterSize];
         this.biases = new float[numFilters];
-        this.filtersGradient = new float[numFilters][numFiltersPrev][filterSize];
+        this.filtersGradient = new float[numFilters][numFiltersPrev][filterSize][filterSize];
         this.biasesGradient = new float[numFilters];
         for (int k = 0; k < numFilters; k++) {
             for (int c = 0; c < numFiltersPrev; c++) {
                 for (int i = 0; i < filterSize; i++) {
-                    this.filters[k][c][i] = (float) rand.nextGaussian();
+                    for (int j = 0; j < filterSize; j++){
+                        this.filters[k][c][i][j] = (float) rand.nextGaussian();
+                    }
                 }
             }
             this.biases[k] = 0;
@@ -58,7 +60,7 @@ public class TransposeConvolutionalLayer {
                                 int inW = w - j * this.stride;
                                 if ((0 <= inH && inH < inputHeight)
                                         && (0 <= inW && inW < inputWidth)) {
-                                    sum += input[c][inH][inW] * this.filters[k][i][j];
+                                    sum += input[c][inH][inW] * this.filters[k][c][i][j];
                                 }
                             }
                         }
@@ -83,9 +85,11 @@ public class TransposeConvolutionalLayer {
         System.out.printf("Input Depth %d Height %d Width %d\n", inputChannels, inputHeight, inputWidth);
         for (int k = 0; k < numFilters; k++) {
             for (int c = 0; c < inputChannels; c++) {
-                for (int j = 0; j < filterSize; j++) {
-                    this.filtersGradient[k][c][j] = 0;
-                }
+                for (int i =0;i<filterSize;i++){
+                    for (int j = 0; j < filterSize; j++) {
+                        this.filtersGradient[k][c][i][j] = 0;
+                    }
+            }
             }
             this.biasesGradient[k] = 0;
         }
@@ -102,7 +106,7 @@ public class TransposeConvolutionalLayer {
                                 // Handle edge cases
                                 if ((0 <= inH && inH < inputHeight - filterSize - 1)
                                         && (0 <= inW && inW < inputWidth - filterSize - 1)) {
-                                    this.filtersGradient[k][c][i] += outputGradient[k][h][w] * input[c][inH][inW];
+                                    this.filtersGradient[k][c][i][j] += outputGradient[k][h][w] * input[c][inH][inW];
                                 }
                             }
                         }
@@ -127,7 +131,7 @@ public class TransposeConvolutionalLayer {
                                 int outH = h + i * this.stride;
                                 int outW = w + j * this.stride;
                                 if (outH >= 0 && outH < outputHeight && outW >= 0 && outW < outputWidth) {
-                                    sum += this.filters[k][c][i] * outputGradient[k][outH][outW];
+                                    sum += this.filters[k][c][i][j] * outputGradient[k][outH][outW];
                                 }
                             }
                         }
@@ -140,7 +144,9 @@ public class TransposeConvolutionalLayer {
         for (int k = 0; k < numFilters; k++) {
             for (int c = 0; c < inputChannels; c++) {
                 for (int i = 0; i < filterSize; i++) {
-                    this.filters[k][c][i] -= learningRate * this.filtersGradient[k][c][i];
+                    for (int j = 0; j < filterSize; j++) {
+                        this.filters[k][c][i][j] -= learningRate * this.filtersGradient[k][c][i][j];
+                    }
                 }
             }
             this.biases[k] -= learningRate * this.biasesGradient[k];
@@ -163,7 +169,7 @@ public class TransposeConvolutionalLayer {
     }
 
     public static void main(String[] args) {
-        int numFiltersPrev = 2;
+        int numFiltersPrev = 3;
         int filterSize = 2;
         int numFilters = 1;
         int stride = 1;
@@ -178,20 +184,19 @@ public class TransposeConvolutionalLayer {
         int inputWidth = input[0][0].length;
         int outputHeight = stride * (inputHeight - 1) + filterSize;
         int outputWidth = stride * (inputWidth - 1) + filterSize;
-        // float[][][] targetOutput = new float[1][outputHeight][outputWidth]{
-        // {
-        // {},
-        // }
-        // };
-        layer.filters[0][0][0] = 1;
-        layer.filters[0][0][1] = 2;
-        layer.filters[0][1][0] = 3;
-        layer.filters[0][1][1] = 4;
+        float[][][] targetOutput = //new float[1][outputHeight][outputWidth]
+        {{{1f, 1f, 1f}, {1f, 1f, 1f}, {1f, 1f, 1f}}};
+        // layer.filters[0][0][0][0] = 1;
+        // layer.filters[0][0][0][1] = 2;
+        // layer.filters[0][0][1][0] = 3;
+        // layer.filters[0][0][1][1] = 4;
 
 
         float[][][] output = layer.forward(input);
         System.out.println(Arrays.deepToString(layer.filters));
 
         System.out.println(Arrays.deepToString(output));
+
+        layer.backward(output, outputWidth);
     }
 }
