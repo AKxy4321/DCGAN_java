@@ -71,8 +71,8 @@ class ConvolutionalLayer {
         int inputWidth = input[0].length;
         int numFilters = this.filters.length;
         int filterSize = this.filters[0][0].length;
-        int outputHeight = inputHeight - filterSize + 1;
-        int outputWidth = inputWidth - filterSize + 1;
+        int outputHeight = (int) Math.sqrt(input[0].length);
+        int outputWidth = (int) Math.sqrt(input[0].length);
 
         // Reset gradients to zero
         for (int k = 0; k < numFilters; k++) {
@@ -84,7 +84,9 @@ class ConvolutionalLayer {
             }
         }
 
-        System.out.printf("Output Gradient Depth %d Length %d", outputGradient.length, outputGradient[0].length);
+        System.out.printf("Output Gradient Depth %d Length %d\n", outputGradient.length, outputGradient[0].length);
+        System.out.printf("Input Height %d Width %d\n", inputHeight, inputWidth);
+        System.out.printf("Output Height %d Width %d\n", outputHeight, outputHeight);
         // Compute gradients
         for (int k = 0; k < numFilters; k++) {
             for (int i = 0; i < filterSize; i++) {
@@ -94,7 +96,6 @@ class ConvolutionalLayer {
                             int inputH = h + i;
                             int inputW = w + j;
                             if ((inputH >= 0 && inputH < inputHeight) && (inputW >= 0 && inputW < inputWidth)) {
-//                                System.out.println(h * outputWidth + w);
                                 this.filtersGradient[k][i][j] += input[inputH][inputW] * outputGradient[k][h * outputWidth + w];
                             }
                         }
