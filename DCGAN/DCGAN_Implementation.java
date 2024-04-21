@@ -6,7 +6,6 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Random;
 //import logger class
 import java.util.logging.Level;
@@ -19,8 +18,8 @@ public class DCGAN_Implementation {
 //        logger.setLevel(Level.OFF);
         int train_size = 600;
         int label = 0;
-        double learning_rate_gen = 0.001F;
-        double learning_rate_disc = 0.0001F;
+        double learning_rate_gen = 0.01;
+        double learning_rate_disc = 0.001;
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
         Generator_Implementation generator = new Generator_Implementation();
         UTIL UTIL = new UTIL();
@@ -85,8 +84,7 @@ public class DCGAN_Implementation {
             double[][] real_output2_2 = discriminator.leakyReLULayer2.forward(real_output2);
             double[] real_output2_2_flattened = UTIL.flatten(real_output2_2);
             double[] real_output_dense = discriminator.dense.forward(real_output2_2_flattened);
-            double[] real_output_l = discriminator.sigmoidLayer.forward(real_output_dense);
-            double[] discriminator_output_real = real_output_l;//
+            double[] discriminator_output_real = discriminator.sigmoidLayer.forward(real_output_dense);//
 
             //DISC FORWARD FAKE
             System.out.println("Discriminator Forward Fake");
@@ -97,11 +95,10 @@ public class DCGAN_Implementation {
             double[] fake_output2_2_flattened = UTIL.flatten(fake_output2_2);
             double[] fake_out_dense = discriminator.dense.forward(fake_output2_2_flattened);
             logger.log(Level.INFO, "fake_out_dense : " + fake_out_dense[0]);
-            double[] fake_output_l = discriminator.sigmoidLayer.forward(fake_out_dense);
-            double[] discriminator_output_fake = fake_output_l;
+            double[] discriminator_output_fake = discriminator.sigmoidLayer.forward(fake_out_dense);
 
-            System.out.println("discriminator_output_fake : " + Arrays.toString(discriminator_output_fake));
-            System.out.println("real_output_l : " + Arrays.toString(discriminator_output_real));
+//            System.out.println("discriminator_output_fake : " + Arrays.toString(discriminator_output_fake));
+//            System.out.println("real_output_l : " + Arrays.toString(discriminator_output_real));
 
             // Calculate Loss
             double gen_loss = UTIL.gen_loss(discriminator_output_fake);
@@ -121,14 +118,13 @@ public class DCGAN_Implementation {
             double[] real_gradient_sigmoid = discriminator.sigmoidLayer.backward(computeGradientReal(discriminator_output_real));//disc_gradient_1d);
 
             double[] real_gradient_dense = discriminator.dense.backward(real_gradient_sigmoid, learning_rate_disc);
-            System.out.printf("Real Gradient Length %d\n", real_gradient_dense.length);
+//            System.out.printf("Real Gradient Length %d\n", real_gradient_dense.length);
             int size = (int) Math.sqrt((double) real_gradient_dense.length / discriminator.conv2.filters.length);
             double[][] real_gradient_dense_unflattened = UTIL.unflatten(real_gradient_dense, discriminator.conv2.filters.length, size * size);
             double[][] real_gradient_leakyrelu2 = discriminator.leakyReLULayer2.backward(real_gradient_dense_unflattened);
             double[][] real_gradient_conv2 = discriminator.conv2.backward(real_gradient_leakyrelu2, learning_rate_disc);
             double[][] real_gradient_leakyrelu1 = discriminator.leakyReLULayer1.backward(real_gradient_conv2);
-            double[][] real_gradient_conv1 = discriminator.conv1.backward(real_gradient_leakyrelu1, learning_rate_disc);
-            double[][] real_gradient_generator = real_gradient_conv1;
+            discriminator.conv1.backward(real_gradient_leakyrelu1, learning_rate_disc);
 
             // DISC FAKE BACKWARD
             System.out.println("Discriminator Backward Fake");
@@ -140,7 +136,6 @@ public class DCGAN_Implementation {
             double[][] fake_gradient_conv2 = discriminator.conv2.backward(fake_gradient_leakyrelu2, learning_rate_disc);
             double[][] fake_gradient_leakyrelu1 = discriminator.leakyReLULayer1.backward(fake_gradient_conv2);
             double[][] fake_gradient_conv1 = discriminator.conv1.backward(fake_gradient_leakyrelu1, learning_rate_disc);
-            double[][] fake_gradient_discriminator = fake_gradient_conv1;
 
             // GEN BACKWARD
             System.out.println("Generator Backward");
@@ -152,7 +147,7 @@ public class DCGAN_Implementation {
 //            }
 //            double[] fake_gradient = fake_gradient_discriminator; //UTIL.flatten(fakeImage[0]);
 //            fake_gradient = computeGradientGenerator(discriminator_output_fake, fake_gradient_sigmoid, );
-            double[][][] fake_back_gradient = new double[][][]{UTIL.negate(fake_gradient_discriminator)}; //UTIL.unflatten(fake_gradient, 28, 28)}; // we want a 3d array, with only 1 channel
+            double[][][] fake_back_gradient = new double[][][]{DCGAN.UTIL.negate(fake_gradient_conv1)}; //UTIL.unflatten(fake_gradient, 28, 28); // we want a 3d array, with only 1 channel
             double[][][] gradient0_1 = generator.tanh.backward(fake_back_gradient);
             double[][][] gradient1 = generator.tconv2.backward(gradient0_1, learning_rate_gen);
             double[][][] gradient1_2 = generator.leakyReLU2.backward(gradient1);
@@ -201,7 +196,7 @@ public class DCGAN_Implementation {
         final double epsilon = 0.000000001;
         double[] gradient = new double[real_output.length];
         for (int i = 0; i < real_output.length; i++) {
-            gradient[i] = (+1 / (real_output[i] + epsilon)) + 0;// ((0) / (1 - real_output[i]));
+            gradient[i] = (1 / (real_output[i] + epsilon));// ((0) / (1 - real_output[i]));
         }
         return gradient;
     }
@@ -212,7 +207,7 @@ public class DCGAN_Implementation {
         double[] gradient = new double[fake_output.length];
         for (int i = 0; i < fake_output.length; i++) {
             // (-0 / fake_output[i]) +
-            gradient[i] =  ((-1) / (1 - fake_output[i] + epsilon));
+            gradient[i] =  ((1) / (fake_output[i] - 1 + epsilon));
         }
         return gradient;
     }
@@ -274,16 +269,15 @@ class Generator_Implementation {
         this.dense = new DenseLayer(100, this.dense_output_size);
         this.batch1 = new BatchNormalization();
         this.leakyReLU1 = new LeakyReLULayer();
-        this.tconv1 = new TransposeConvolutionalLayer(128, 7, 64, 1);
+        this.tconv1 = new TransposeConvolutionalLayer(128, 5, 64, 1);
         this.batch2 = new BatchNormalization();
         this.leakyReLU2 = new LeakyReLULayer();
-        this.tconv2 = new TransposeConvolutionalLayer(64, 16, 1, 1);
+        this.tconv2 = new TransposeConvolutionalLayer(64, 8, 1, 2);
         this.tanh = new TanhLayer();
     }
 }
 
 class UTIL {
-    public static double epsilon = 1e-15F;
 
     public static BufferedImage load_image(String src) throws IOException {
         return ImageIO.read(new File(src));
@@ -355,8 +349,8 @@ class UTIL {
         double sum = 0.0F;
         double epsilon = 1e-15F; // small value to prevent taking log of zero
         for (int i = 0; i < y_true.length; i++) {
-            double pred = (double) Math.max(Math.min(y_pred[i], 1. - epsilon), epsilon); // clamp predictions to avoid log(0)
-            sum += (double) (-y_true[i] * Math.log(pred) - (1 - y_true[i]) * Math.log(1 - pred));
+            double pred = Math.max(Math.min(y_pred[i], 1. - epsilon), epsilon); // clamp predictions to avoid log(0)
+            sum += -y_true[i] * Math.log(pred) - (1 - y_true[i]) * Math.log(1 - pred);
         }
         return sum / y_true.length;
     }
@@ -405,7 +399,7 @@ class UTIL {
     }
 
     public static double[] negate(double[] array){
-        double new_array[] = new double[array.length];
+        double[] new_array = new double[array.length];
         for(int i=0;i<array.length;i++)
             new_array[i] = array[i] * -1;
         return new_array;

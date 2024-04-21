@@ -67,8 +67,8 @@ public class DenseLayer {
 
     public double[] backward(double[] outputGradient, double learningRate) {
         // Update weights and biases
-        System.out.printf("Output Gradient Length %d\n", outputGradient.length);
-        System.out.printf("Input Size %d Output Size %d\n", weights.length, weights[0].length);
+//        System.out.printf("Output Gradient Length %d\n", outputGradient.length);
+//        System.out.printf("Input Size %d Output Size %d\n", weights.length, weights[0].length);
         double[] inputGradient = new double[weights.length];
         for (int i = 0; i < weights.length; i++) {
             double sum = 0;
