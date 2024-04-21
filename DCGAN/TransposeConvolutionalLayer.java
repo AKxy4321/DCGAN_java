@@ -3,20 +3,18 @@ package DCGAN;
 public class TransposeConvolutionalLayer {
     double[][][][] filters;
     private double[] biases;
-    private double[][][][] filtersGradient;
-    private double[] biasesGradient;
     private final int stride;
     double[][][] input;
     public int numFilters;
     public int filterSize;
+    public int numFiltersPrev;
 
     public TransposeConvolutionalLayer(int numFiltersPrev, int filterSize, int numFilters, int stride) {
         this.numFilters = numFilters;
         this.filterSize = filterSize;
         this.filters = new double[numFilters][numFiltersPrev][filterSize][filterSize];
         this.biases = new double[numFilters];
-        this.filtersGradient = new double[numFilters][numFiltersPrev][filterSize][filterSize];
-        this.biasesGradient = new double[numFilters];
+        this.numFiltersPrev = numFiltersPrev;
         this.filters = XavierInitializer.xavierInit4D(numFilters, numFiltersPrev, filterSize);
         this.biases = XavierInitializer.xavierInit1D(numFilters);
         this.stride = stride;
@@ -58,7 +56,7 @@ public class TransposeConvolutionalLayer {
         return output;
     }
 
-    public double[][][] backward(double[][][] outputGradient, double learningRate) {
+    public double[][][] backward(double[][][] outputGradient) {
         double[][][] input = this.input;
         int inputChannels = input.length;
         int inputHeight = input[0].length;
@@ -69,41 +67,7 @@ public class TransposeConvolutionalLayer {
         int outputHeight = this.stride * (inputHeight - 1) + filterSize;
         int outputWidth = this.stride * (inputWidth - 1) + filterSize;
 
-        for (int k = 0; k < numFilters; k++) {
-            for (int c = 0; c < inputChannels; c++) {
-                for (int i =0;i<filterSize;i++){
-                    for (int j = 0; j < filterSize; j++) {
-                        this.filtersGradient[k][c][i][j] = 0;
-                    }
-                }
-            }
-            this.biasesGradient[k] = 0;
-        }
 
-        for (int k = 0; k < numFilters; k++) {
-            for (int c = 0; c < inputChannels; c++) {
-                for (int i = 0; i < filterSize; i++) {
-                    for (int j = 0; j < filterSize; j++) {
-                        for (int h = 0; h < outputHeight; h++) {
-
-                            for (int w = 0; w < outputWidth; w++) {
-                                int inH = h - i * this.stride;
-                                int inW = w - j * this.stride;
-                                if ((0 <= inH && inH < inputHeight - filterSize - 1)
-                                        && (0 <= inW && inW < inputWidth - filterSize - 1)) {
-                                    this.filtersGradient[k][c][i][j] += outputGradient[k][h][w] * input[c][inH][inW];
-                                }
-                            }
-                        }
-                    }
-                }
-                for (int h = 0; h < outputHeight; h++) {
-                    for (int w = 0; w < outputWidth; w++) {
-                        this.biasesGradient[k] += outputGradient[k][h][w];
-                    }
-                }
-            }
-        }
 
         double[][][] inputGradient = new double[inputChannels][inputHeight][inputWidth];
         for (int c = 0; c < inputChannels; c++) {
@@ -126,17 +90,68 @@ public class TransposeConvolutionalLayer {
             }
         }
 
+        return inputGradient;
+    }
+
+    public void updateParameters(double[][][] outputGradient, double learningRate){
+        int inputChannels = input.length;
+        int inputHeight = input[0].length;
+        int inputWidth = input[0][0].length;
+        int numFilters = this.filters.length;
+        int filterSize = this.filters[0][0].length;
+
+        int outputHeight = this.stride * (inputHeight - 1) + filterSize;
+        int outputWidth = this.stride * (inputWidth - 1) + filterSize;
+
+        double[][][][] filtersGradient = new double[numFilters][this.numFiltersPrev][filterSize][filterSize];
+        double[] biasesGradient = new double[numFilters];
+
+        for (int k = 0; k < numFilters; k++) {
+            for (int c = 0; c < inputChannels; c++) {
+                for (int i =0;i<filterSize;i++){
+                    for (int j = 0; j < filterSize; j++) {
+                        filtersGradient[k][c][i][j] = 0;
+                    }
+                }
+            }
+            biasesGradient[k] = 0;
+        }
+
         for (int k = 0; k < numFilters; k++) {
             for (int c = 0; c < inputChannels; c++) {
                 for (int i = 0; i < filterSize; i++) {
                     for (int j = 0; j < filterSize; j++) {
-                        this.filters[k][c][i][j] -= learningRate * this.filtersGradient[k][c][i][j];
+                        for (int h = 0; h < outputHeight; h++) {
+
+                            for (int w = 0; w < outputWidth; w++) {
+                                int inH = h - i * this.stride;
+                                int inW = w - j * this.stride;
+                                if ((0 <= inH && inH < inputHeight - filterSize - 1)
+                                        && (0 <= inW && inW < inputWidth - filterSize - 1)) {
+                                    filtersGradient[k][c][i][j] += outputGradient[k][h][w] * input[c][inH][inW];
+                                }
+                            }
+                        }
+                    }
+                }
+                for (int h = 0; h < outputHeight; h++) {
+                    for (int w = 0; w < outputWidth; w++) {
+                        biasesGradient[k] += outputGradient[k][h][w];
                     }
                 }
             }
-            this.biases[k] -= learningRate * this.biasesGradient[k];
         }
 
-        return inputGradient;
+        for (int k = 0; k < numFilters; k++) {
+            for (int c = 0; c < inputChannels; c++) {
+                for (int i = 0; i < filterSize; i++) {
+                    for (int j = 0; j < filterSize; j++) {
+                        this.filters[k][c][i][j] -= learningRate * filtersGradient[k][c][i][j];
+                    }
+                }
+            }
+            this.biases[k] -= learningRate * biasesGradient[k];
+        }
     }
+
 }

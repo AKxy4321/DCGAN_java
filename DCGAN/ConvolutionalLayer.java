@@ -5,8 +5,6 @@ import java.util.Random;
 class ConvolutionalLayer {
     double[][][] filters;
     private double[] biases;
-    private double[][][] filtersGradient;
-    private double[] biasesGradient;
     double[][] input;
     final public int numFilters;
     final public int filterSize;
@@ -15,10 +13,8 @@ class ConvolutionalLayer {
         Random rand = new Random();
         this.numFilters = numFilters;
         this.filterSize = filterSize;
-        this.filters = new double[numFilters][filterSize][filterSize];
-        this.biases = new double[numFilters];
-        this.filtersGradient = new double[numFilters][filterSize][filterSize];
-        this.biasesGradient = new double[numFilters];
+//        this.filters = new double[numFilters][filterSize][filterSize];
+//        this.biases = new double[numFilters];
         this.filters = XavierInitializer.xavierInit3D(numFilters, filterSize, filterSize);
         this.biases = XavierInitializer.xavierInit1D(numFilters);
     }
@@ -54,7 +50,7 @@ class ConvolutionalLayer {
         return x >= 0 ? x : 0.01f * x;
     }
 
-    public double[][] backward(double[][] outputGradient, double learningRate) {
+    public double[][] backward(double[][] outputGradient) {
         double[][] input = this.input;
         int inputHeight = input.length;
         int inputWidth = input[0].length;
@@ -63,35 +59,6 @@ class ConvolutionalLayer {
         int outputHeight = (int) Math.sqrt(input[0].length);
         int outputWidth = (int) Math.sqrt(input[0].length);
 
-        for (int k = 0; k < numFilters; k++) {
-            this.biasesGradient[k] = 0;
-            for (int i = 0; i < filterSize; i++) {
-                for (int j = 0; j < filterSize; j++) {
-                    this.filtersGradient[k][i][j] = 0;
-                }
-            }
-        }
-
-        for (int k = 0; k < numFilters; k++) {
-            for (int i = 0; i < filterSize; i++) {
-                for (int j = 0; j < filterSize; j++) {
-                    for (int h = 0; h < outputHeight; h++) {
-                        for (int w = 0; w < outputWidth; w++) {
-                            int inputH = h + i;
-                            int inputW = w + j;
-                            if ((inputH >= 0 && inputH < inputHeight) && (inputW >= 0 && inputW < inputWidth)) {
-                                this.filtersGradient[k][i][j] += input[inputH][inputW] * outputGradient[k][h * outputWidth + w];
-                            }
-                        }
-                    }
-                }
-            }
-            for (int h = 0; h < outputHeight; h++) {
-                for (int w = 0; w < outputWidth; w++) {
-                    this.biasesGradient[k] += outputGradient[k][h * outputWidth + w];
-                }
-            }
-        }
 
         double[][] inputGradient = new double[inputHeight][inputWidth];
         for (int h = 0; h < inputHeight; h++) {
@@ -109,16 +76,59 @@ class ConvolutionalLayer {
                 inputGradient[h][w] = sum;
             }
         }
+        return inputGradient;
+    }
+
+    double updateParameters(double[][] outputGradient, double learningRate) {
+        double[][] input = this.input;
+        int inputHeight = input.length;
+        int inputWidth = input[0].length;
+        int numFilters = this.filters.length;
+        int filterSize = this.filters[0][0].length;
+        int outputHeight = (int) Math.sqrt(input[0].length);
+        int outputWidth = (int) Math.sqrt(input[0].length);
+
+        double[][][] filtersGradient = new double[numFilters][filterSize][filterSize];
+        double[] biasesGradient = new double[numFilters];
+
+        for (int k = 0; k < numFilters; k++) {
+            biasesGradient[k] = 0;
+            for (int i = 0; i < filterSize; i++) {
+                for (int j = 0; j < filterSize; j++) {
+                    filtersGradient[k][i][j] = 0;
+                }
+            }
+        }
 
         for (int k = 0; k < numFilters; k++) {
             for (int i = 0; i < filterSize; i++) {
                 for (int j = 0; j < filterSize; j++) {
-                    this.filters[k][i][j] -= learningRate * this.filtersGradient[k][i][j];
+                    for (int h = 0; h < outputHeight; h++) {
+                        for (int w = 0; w < outputWidth; w++) {
+                            int inputH = h + i;
+                            int inputW = w + j;
+                            if ((inputH >= 0 && inputH < inputHeight) && (inputW >= 0 && inputW < inputWidth)) {
+                                filtersGradient[k][i][j] += input[inputH][inputW] * outputGradient[k][h * outputWidth + w];
+                            }
+                        }
+                    }
                 }
             }
-            this.biases[k] -= learningRate * this.biasesGradient[k];
+            for (int h = 0; h < outputHeight; h++) {
+                for (int w = 0; w < outputWidth; w++) {
+                    biasesGradient[k] += outputGradient[k][h * outputWidth + w];
+                }
+            }
         }
 
-        return inputGradient;
+        for (int k = 0; k < this.numFilters; k++) {
+            for (int i = 0; i < this.filterSize; i++) {
+                for (int j = 0; j < this.filterSize; j++) {
+                    this.filters[k][i][j] -= learningRate * filtersGradient[k][i][j];
+                }
+            }
+            this.biases[k] -= learningRate * biasesGradient[k];
+        }
+        return 0;
     }
 }

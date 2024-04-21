@@ -8,104 +8,185 @@ import java.nio.file.Paths;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import DCGAN.XavierInitializer;
+
 public class DCGAN_Implementation {
 
     public static void main(String[] args) throws IOException {
         Logger logger = Logger.getLogger(DCGAN_Implementation.class.getName());
         int train_size = 3000;
         int label = 0;
-        double learning_rate_gen = 1e-8;
-        double learning_rate_disc = 1e-8;
+        double learning_rate_gen = 1e-2;
+        double learning_rate_disc = 1e-2;
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
         Generator_Implementation generator = new Generator_Implementation();
         UTIL UTIL = new UTIL();
         System.out.println("Loading Images");
-        double[][][] realImages = new double[train_size][28][28];
+
         int[] index = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-        for (int i = 0; i < train_size; i++) {
-            if (label > 9) {
-                label = 0;
+        int batch_size = 8;
+        // minibatch gradient descent
+        for (int i = 0; i < train_size / batch_size; i++) {
+            double[][][][] fakeImages = new double[batch_size][1][28][28];
+            double[][][][] realImages = new double[batch_size][1][28][28];
+
+            double[][] discriminator_fake_outputs = new double[batch_size][1];
+            double[][] discriminator_real_outputs = new double[batch_size][1];
+            double[] gen_losses = new double[batch_size];
+            double[] disc_losses = new double[batch_size];
+
+            for (int real_idx = 0; real_idx < batch_size; real_idx++) {
+                BufferedImage img = DCGAN.UTIL.mnist_load_index(1, index[0]);
+                realImages[real_idx] = new double[][][]{DCGAN.UTIL.img_to_mat(img)};
+                index[0] += 1;
             }
-            BufferedImage img = DCGAN.UTIL.mnist_load_index(label, index[0]);
-            realImages[i] = DCGAN.UTIL.img_to_mat(img);
-            label++;
-        }
+            for (int j = 0; j < batch_size; j++) {
+                double[] noise = XavierInitializer.xavierInit1D(100);
 
-        for (int i = 0; i < train_size; i++) {
-            double[] noise = XavierInitializer.xavierInit1D(100);
+                System.out.println("Generator Forward");
+                double[] gen_dense_output = generator.dense.forward(noise);
+                double[] gen_batch1_output = generator.batch1.forward(gen_dense_output, true);
+                double[][][] gen_batch1_output_unflattened = UTIL.unflatten(gen_batch1_output, 128, 7, 7);
+                double[][][] gen_leakyrelu_output1 = generator.leakyReLU1.forward(gen_batch1_output_unflattened);
+                double[][][] outputTconv1 = generator.tconv1.forward(gen_leakyrelu_output1);
+                double[] gen_batch2_output = generator.batch2.forward(UTIL.flatten(outputTconv1), true);
+                double[][][] gen_batch2_output_unflattened = UTIL.unflatten(gen_batch2_output, outputTconv1.length, outputTconv1[0].length, outputTconv1[0][0].length);
+                double[][][] gen_leakyrelu_output2 = generator.leakyReLU2.forward(gen_batch2_output_unflattened);
+                double[][][] outputTconv2 = generator.tconv2.forward(gen_leakyrelu_output2);
+                double[] gen_batch3_output = generator.batch3.forward(UTIL.flatten(outputTconv2), true);
+                double[][][] gen_batch3_output_unflattened = UTIL.unflatten(gen_batch3_output, outputTconv2.length, outputTconv2[0].length, outputTconv2[0][0].length);
+                double[][][] gen_leakyrelu_output3 = generator.leakyReLU3.forward(gen_batch3_output_unflattened);
+                double[][][] fakeImage = generator.tanh.forward(gen_leakyrelu_output3);
 
-            System.out.println("Generator Forward");
-            double[] gen_dense_output = generator.dense.forward(noise);
-            double[] gen_batch1_output = generator.batch1.forward(gen_dense_output, true);
-            double[][][] gen_batch1_output_unflattened = UTIL.unflatten(gen_batch1_output, 128, 7, 7);
-            double[][][] gen_leakyrelu_output1 = generator.leakyReLU1.forward(gen_batch1_output_unflattened);
-            double[][][] outputTconv1 = generator.tconv1.forward(gen_leakyrelu_output1);
-            double[] gen_batch2_output = generator.batch2.forward(UTIL.flatten(outputTconv1), true);
-            double[][][] gen_batch2_output_unflattened = UTIL.unflatten(gen_batch2_output, outputTconv1.length, outputTconv1[0].length, outputTconv1[0][0].length);
-            double[][][] gen_leakyrelu_output2 = generator.leakyReLU2.forward(gen_batch2_output_unflattened);
-            double[][][] outputTconv2 = generator.tconv2.forward(gen_leakyrelu_output2);
-            double[] gen_batch3_output = generator.batch3.forward(UTIL.flatten(outputTconv2), true);
-            double[][][] gen_batch3_output_unflattened = UTIL.unflatten(gen_batch3_output, outputTconv2.length, outputTconv2[0].length, outputTconv2[0][0].length);
-            double[][][] gen_leakyrelu_output3 = generator.leakyReLU3.forward(gen_batch3_output_unflattened);
-            double[][][] fakeImage = generator.tanh.forward(gen_leakyrelu_output3);
+                fakeImages[j] = fakeImage;
+            }
 
-            System.out.printf("fakeImage depth %d length %d width %d\n", fakeImage.length, fakeImage[0].length, fakeImage[0][0].length);
+            for (int img_idx = 0; img_idx < batch_size; img_idx++) {
+                System.out.println("Discriminator Forward Real");
+                double[][] real_output1 = discriminator.conv1.forward(realImages[img_idx][0]);
+                double[][] real_output1_2 = discriminator.leakyReLULayer1.forward(real_output1);
+                double[][] real_output2 = discriminator.conv2.forward(real_output1_2);
+                double[][] real_output2_2 = discriminator.leakyReLULayer2.forward(real_output2);
+                double[] real_output2_2_flattened = UTIL.flatten(real_output2_2);
+                double[] real_output_dense = discriminator.dense.forward(real_output2_2_flattened);
+                double[] discriminator_output_real = discriminator.sigmoidLayer.forward(real_output_dense);
 
-            System.out.println("Discriminator Forward Real");
-            double[][] real_output1 = discriminator.conv1.forward(realImages[i]);
-            double[][] real_output1_2 = discriminator.leakyReLULayer1.forward(real_output1);
-            double[][] real_output2 = discriminator.conv2.forward(real_output1_2);
-            double[][] real_output2_2 = discriminator.leakyReLULayer2.forward(real_output2);
-            double[] real_output2_2_flattened = UTIL.flatten(real_output2_2);
-            double[] real_output_dense = discriminator.dense.forward(real_output2_2_flattened);
-            double[] discriminator_output_real = discriminator.sigmoidLayer.forward(real_output_dense);
+                System.out.println("Discriminator Forward Fake");
+                double[][] fake_output1 = discriminator.conv1.forward(fakeImages[img_idx][0]);
+                double[][] fake_output1_2 = discriminator.leakyReLULayer1.forward(fake_output1);
+                double[][] fake_output2 = discriminator.conv2.forward(fake_output1_2);
+                double[][] fake_output2_2 = discriminator.leakyReLULayer2.forward(fake_output2);
+                double[] fake_output2_2_flattened = UTIL.flatten(fake_output2_2);
+                double[] fake_out_dense = discriminator.dense.forward(fake_output2_2_flattened);
+                logger.log(Level.INFO, "fake_out_dense : " + fake_out_dense[0]);
+                double[] discriminator_output_fake = discriminator.sigmoidLayer.forward(fake_out_dense);
 
-            System.out.println("Discriminator Forward Fake");
-            double[][] fake_output1 = discriminator.conv1.forward(fakeImage[0]);
-            double[][] fake_output1_2 = discriminator.leakyReLULayer1.forward(fake_output1);
-            double[][] fake_output2 = discriminator.conv2.forward(fake_output1_2);
-            double[][] fake_output2_2 = discriminator.leakyReLULayer2.forward(fake_output2);
-            double[] fake_output2_2_flattened = UTIL.flatten(fake_output2_2);
-            double[] fake_out_dense = discriminator.dense.forward(fake_output2_2_flattened);
-            logger.log(Level.INFO, "fake_out_dense : " + fake_out_dense[0]);
-            double[] discriminator_output_fake = discriminator.sigmoidLayer.forward(fake_out_dense);
+                discriminator_real_outputs[img_idx] = discriminator_output_real;
+                discriminator_fake_outputs[img_idx] = discriminator_output_fake;
 
-            double gen_loss = UTIL.gen_loss(discriminator_output_fake);
-            double disc_loss = UTIL.disc_loss(discriminator_output_real, discriminator_output_fake);
+                double gen_loss = UTIL.gen_loss(discriminator_output_fake);
+                double disc_loss = UTIL.disc_loss(discriminator_output_real, discriminator_output_fake);
+                gen_losses[img_idx] = gen_loss;
+                disc_losses[img_idx] = disc_loss;
+            }
 
-            System.out.println("Gen_Loss " + gen_loss);
-            System.out.println("Disc_Loss " + disc_loss);
 
-            System.out.println("Discriminator Backward");
-            double[] dg = computeGradientDiscriminator(discriminator_output_real, discriminator_output_fake);
-            double[] disc_gradient = DCGAN.UTIL.negate(dg);
-            double[] disc_gradient_sigmoid = discriminator.sigmoidLayer.backward(disc_gradient);
-            double[] disc_gradient_dense = discriminator.dense.backward(disc_gradient_sigmoid, learning_rate_disc);
+            System.out.println("Gen_Loss " + DCGAN.UTIL.mean(gen_losses));
+            System.out.println("Disc_Loss " + DCGAN.UTIL.mean(disc_losses));
+
+            double[][] disc_output_gradients = new double[batch_size][1];
+            double[][][][] gen_output_gradients = new double[batch_size][1][28][28];
+
+            for (int img_idx = 0; img_idx < batch_size; img_idx++) {
+                double[] discriminator_output_fake = discriminator_fake_outputs[img_idx];
+                double[] discriminator_output_real = discriminator_real_outputs[img_idx];
+
+                System.out.println("Discriminator Backward");
+                double[] dg = computeGradientDiscriminator(discriminator_output_real, discriminator_output_fake);
+                double[] disc_gradient = DCGAN.UTIL.negate(dg);
+                disc_output_gradients[img_idx] = disc_gradient;
+
+                double[] disc_gradient_sigmoid = discriminator.sigmoidLayer.backward(disc_gradient);
+                double[] disc_gradient_dense = discriminator.dense.backward(disc_gradient_sigmoid);
+                int size = (int) Math.sqrt((double) disc_gradient_dense.length / discriminator.conv2.filters.length);
+                double[][] disc_gradient_dense_unflattened = UTIL.unflatten(disc_gradient_dense, discriminator.conv2.filters.length, size * size);
+                double[][] disc_gradient_leakyrelu2 = discriminator.leakyReLULayer2.backward(disc_gradient_dense_unflattened);
+                double[][] disc_gradient_conv2 = discriminator.conv2.backward(disc_gradient_leakyrelu2);
+                double[][] disc_gradient_leakyrelu1 = discriminator.leakyReLULayer1.backward(disc_gradient_conv2);
+                double[][] disc_g = discriminator.conv1.backward(disc_gradient_leakyrelu1);
+
+                System.out.println("Generator Backward");
+                double[][][] fake_back_gradient = new double[][][]{disc_g};
+                gen_output_gradients[img_idx] = fake_back_gradient;
+
+                double[][][] gradient0 = generator.tanh.backward(fake_back_gradient);
+                double[][][] gradient0_1 = generator.leakyReLU3.backward(gradient0);
+                double[][][] gradient0_2 = UTIL.unflatten(generator.batch3.backward(UTIL.flatten(gradient0_1)),
+                        gradient0_1.length, gradient0_1[0].length, gradient0_1[0][0].length);
+                double[][][] gradient1 = generator.tconv2.backward(gradient0_2);
+                double[][][] gradient1_2 = generator.leakyReLU2.backward(gradient1);
+                double[][][] gradient1_3 = UTIL.unflatten(
+                        generator.batch2.backward(UTIL.flatten(gradient1_2)),
+                        gradient1_2.length, gradient1_2[0].length, gradient1_2[0][0].length);
+                double[][][] gradient2 = generator.tconv1.backward(gradient1_3);
+                double[][][] gradient2_2 = generator.leakyReLU1.backward(gradient2);
+                double[] out = UTIL.flatten(gradient2_2);
+                double[] gradient3 = generator.batch1.backward(out);
+                generator.dense.backward(gradient3);
+            }
+
+            // back prop with update parameters
+            double[] disc_output_gradient = UTIL.mean_1st_layer(disc_output_gradients);
+            double[][][] gen_output_gradient = UTIL.mean_1st_layer(gen_output_gradients);
+
+            // update discriminator
+            double[] disc_gradient_sigmoid = discriminator.sigmoidLayer.backward(disc_output_gradient);
+            double[] disc_gradient_dense = discriminator.dense.backward(disc_gradient_sigmoid);
+            discriminator.dense.updateParameters(disc_gradient_sigmoid, learning_rate_disc);
+
             int size = (int) Math.sqrt((double) disc_gradient_dense.length / discriminator.conv2.filters.length);
             double[][] disc_gradient_dense_unflattened = UTIL.unflatten(disc_gradient_dense, discriminator.conv2.filters.length, size * size);
             double[][] disc_gradient_leakyrelu2 = discriminator.leakyReLULayer2.backward(disc_gradient_dense_unflattened);
-            double[][] disc_gradient_conv2 = discriminator.conv2.backward(disc_gradient_leakyrelu2, learning_rate_disc);
-            double[][] disc_gradient_leakyrelu1 = discriminator.leakyReLULayer1.backward(disc_gradient_conv2);
-            double[][] disc_g = discriminator.conv1.backward(disc_gradient_leakyrelu1, learning_rate_disc);
+            double[][] disc_gradient_conv2 = discriminator.conv2.backward(disc_gradient_leakyrelu2);
+            discriminator.conv2.updateParameters(disc_gradient_leakyrelu2, learning_rate_disc);
 
-            System.out.println("Generator Backward");
-            double[][][] fake_back_gradient = new double[][][]{disc_g};
-            double[][][] gradient0 = generator.tanh.backward(fake_back_gradient);
+            double[][] disc_gradient_leakyrelu1 = discriminator.leakyReLULayer1.backward(disc_gradient_conv2);
+            double[][] disc_g = discriminator.conv1.backward(disc_gradient_leakyrelu1);
+            discriminator.conv1.updateParameters(disc_gradient_leakyrelu1, learning_rate_disc);
+
+
+            // update generator
+            double[][][] gradient0 = generator.tanh.backward(gen_output_gradient);
             double[][][] gradient0_1 = generator.leakyReLU3.backward(gradient0);
-            double[][][] gradient0_2 = UTIL.unflatten(generator.batch3.backward(UTIL.flatten(gradient0_1), learning_rate_gen),
-            gradient0_1.length, gradient0_1[0].length, gradient0_1[0][0].length);
-            double[][][] gradient1 = generator.tconv2.backward(gradient0_2, learning_rate_gen);
+            double[] gradient_0_1_flattened = UTIL.flatten(gradient0_1);
+            double[][][] gradient0_2 = UTIL.unflatten(generator.batch3.backward(gradient_0_1_flattened),
+                    gradient0_1.length, gradient0_1[0].length, gradient0_1[0][0].length);
+            generator.batch3.updateParameters(gradient_0_1_flattened, learning_rate_gen);
+
+            double[][][] gradient1 = generator.tconv2.backward(gradient0_2);
+            generator.tconv2.updateParameters(gradient0_2,learning_rate_gen);
+
             double[][][] gradient1_2 = generator.leakyReLU2.backward(gradient1);
+            double[] gradient1_2_flattened = UTIL.flatten(gradient1_2);
             double[][][] gradient1_3 = UTIL.unflatten(
-            generator.batch2.backward(UTIL.flatten(gradient1_2), learning_rate_gen),
-            gradient1_2.length, gradient1_2[0].length, gradient1_2[0][0].length);
-            double[][][] gradient2 = generator.tconv1.backward(gradient1_3, learning_rate_gen);
+                    generator.batch2.backward(gradient1_2_flattened),
+                    gradient1_2.length, gradient1_2[0].length, gradient1_2[0][0].length);
+            generator.batch2.updateParameters(gradient1_2_flattened, learning_rate_gen);
+
+            double[][][] gradient2 = generator.tconv1.backward(gradient1_3);
+            generator.tconv1.updateParameters(gradient1_3, learning_rate_gen);
+
             double[][][] gradient2_2 = generator.leakyReLU1.backward(gradient2);
             double[] out = UTIL.flatten(gradient2_2);
-            double[] gradient3 = generator.batch1.backward(out, learning_rate_gen);
-            generator.dense.backward(gradient3, learning_rate_gen);
+            double[] gradient3 = generator.batch1.backward(out);
+            generator.batch1.updateParameters(out, learning_rate_gen);
 
-            BufferedImage image = getBufferedImage(fakeImage);
+            double[] gradient4 = generator.dense.backward(gradient3);
+            generator.dense.updateParameters(gradient3, learning_rate_gen);
+
+            // generate image
+
+            BufferedImage image = getBufferedImage(generator.generateImage());
 
             File outputImageFile = new File("generated_image.png");
             try {
@@ -132,8 +213,8 @@ public class DCGAN_Implementation {
             }
         }
 
-        for (int y = 0 ; y < 28 ; y++) {
-            for (int x = 0 ; x < 28 ; x++) {
+        for (int y = 0; y < 28; y++) {
+            for (int x = 0; x < 28; x++) {
                 double value = fakeImage[0][y][x];
                 double normalizedValue = (value - min) / (max - min);
                 double brightness = normalizedValue * 255.0;
@@ -199,6 +280,32 @@ class Generator_Implementation {
         this.batch3 = new BatchNormalization();
         this.leakyReLU3 = new LeakyReLULayer();
         this.tanh = new TanhLayer();
+
+        /*
+         * [128,1,6,6]   [3,3]   2
+         * 128,1,13,13   [4,4]   2
+         *  128,1,28,28
+         * */
+
+    }
+
+    public double[][][] generateImage() {
+        double[] noise = XavierInitializer.xavierInit1D(100); // generate noise input that we want to pass to the generator
+
+        double[] gen_dense_output = this.dense.forward(noise);
+        double[] gen_batch1_output = this.batch1.forward(gen_dense_output, true);
+        double[][][] gen_batch1_output_unflattened = UTIL.unflatten(gen_batch1_output, 128, 7, 7);
+        double[][][] gen_leakyrelu_output1 = this.leakyReLU1.forward(gen_batch1_output_unflattened);
+        double[][][] outputTconv1 = this.tconv1.forward(gen_leakyrelu_output1);
+        double[] gen_batch2_output = this.batch2.forward(UTIL.flatten(outputTconv1), true);
+        double[][][] gen_batch2_output_unflattened = UTIL.unflatten(gen_batch2_output, outputTconv1.length, outputTconv1[0].length, outputTconv1[0][0].length);
+        double[][][] gen_leakyrelu_output2 = this.leakyReLU2.forward(gen_batch2_output_unflattened);
+        double[][][] outputTconv2 = this.tconv2.forward(gen_leakyrelu_output2);
+        double[] gen_batch3_output = this.batch3.forward(UTIL.flatten(outputTconv2), true);
+        double[][][] gen_batch3_output_unflattened = UTIL.unflatten(gen_batch3_output, outputTconv2.length, outputTconv2[0].length, outputTconv2[0][0].length);
+        double[][][] gen_leakyrelu_output3 = this.leakyReLU3.forward(gen_batch3_output_unflattened);
+        double[][][] fakeImage = this.tanh.forward(gen_leakyrelu_output3);
+        return fakeImage;
     }
 }
 
@@ -207,7 +314,7 @@ class UTIL {
         return ImageIO.read(new File(src));
     }
 
-    public double[][][] unflatten(double[] input, int numFilters, int outputHeight, int outputWidth) {
+    public static double[][][] unflatten(double[] input, int numFilters, int outputHeight, int outputWidth) {
         double[][][] output = new double[numFilters][outputHeight][outputWidth];
         int index = 0;
         for (int k = 0; k < numFilters; k++) {
@@ -237,7 +344,7 @@ class UTIL {
     }
 
     public static BufferedImage mnist_load_index(int label, int index) throws IOException {
-        String mnistPath = Paths.get(".", "data", "mnist_png", "mnist_png", "training").toString();
+        String mnistPath = Paths.get("DCGAN", "data", "mnist_png", "mnist_png", "training").toString();
         File dir = new File(mnistPath, String.valueOf(label));
         String[] files = dir.list();
         assert files != null;
@@ -305,7 +412,7 @@ class UTIL {
         return output;
     }
 
-    public double[] flatten(double[][][] input) {
+    public static double[] flatten(double[][][] input) {
         int actualDepth = input.length;
         int actualHeight = input[0].length;
         int actualWidth = input[0][0].length;
@@ -321,11 +428,53 @@ class UTIL {
         return flatten_output;
     }
 
-    public static double[] negate(double[] array){
+    public static double[] negate(double[] array) {
         double[] new_array = new double[array.length];
-        for(int i=0;i<array.length;i++)
+        for (int i = 0; i < array.length; i++)
             new_array[i] = array[i] * -1;
         return new_array;
+    }
+
+    public static double mean(double[] array) {
+        double sum = 0;
+        for (double genLoss : array) {
+            sum += genLoss;
+        }
+        return sum / array.length;
+    }
+
+    public double[] mean_1st_layer(double[][] array) {
+        double[] sum = new double[array[0].length];
+        for (double[] subarray : array) {
+            for (int j = 0; j < subarray.length; j++) {
+                sum[j] += subarray[j];
+            }
+        }
+        for (int i = 0; i < sum.length; i++) {
+            sum[i] /= array.length;
+        }
+        return sum;
+    }
+
+    public double[][][] mean_1st_layer(double[][][][] array){
+        double[][][] sum = new double[array[0].length][array[0][0].length][array[0][0][0].length];
+        for (double[][][] subarray : array) {
+            for (int i = 0; i < subarray.length; i++) {
+                for (int j = 0; j < subarray[0].length; j++) {
+                    for (int k = 0; k < subarray[0][0].length; k++) {
+                        sum[i][j][k] += subarray[i][j][k];
+                    }
+                }
+            }
+        }
+        for (int i = 0; i < sum.length; i++) {
+            for (int j = 0; j < sum[0].length; j++) {
+                for (int k = 0; k < sum[0][0].length; k++) {
+                    sum[i][j][k] /= array.length;
+                }
+            }
+        }
+        return sum;
     }
 
 }

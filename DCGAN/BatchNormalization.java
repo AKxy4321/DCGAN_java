@@ -45,7 +45,7 @@ public class BatchNormalization {
         return out;
     }
 
-    public double[] backward(double[] dout, double learning_rate) {
+    public double[] backward(double[] dout) {
         double[] dGamma = new double[gamma.length];
         double[] dBeta = new double[beta.length];
         double[] dxNormalized = new double[xNormalized.length];
@@ -70,12 +70,21 @@ public class BatchNormalization {
                     dMean / batchSize;
         }
 
+        return dx;
+    }
+
+    public void updateParameters(double[] dout, double learning_rate){
+        double[] dGamma = new double[gamma.length];
+        double[] dBeta = new double[beta.length];
+        for (int i = 0; i < dout.length; i++) {
+            dGamma[i] += dout[i] * xNormalized[i];
+            dBeta[i] += dout[i];
+        }
+
         for (int i = 0; i < gamma.length; i++) {
             gamma[i] -= learning_rate * dGamma[i];
             beta[i] -= learning_rate * dBeta[i];
         }
-
-        return dx;
     }
 
     private double calculateMean(double[] x) {
