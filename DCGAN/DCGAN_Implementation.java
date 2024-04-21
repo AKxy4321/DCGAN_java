@@ -12,7 +12,7 @@ public class DCGAN_Implementation {
 
     public static void main(String[] args) throws IOException {
         Logger logger = Logger.getLogger(DCGAN_Implementation.class.getName());
-        int train_size = 25000;
+        int train_size = 3000;
         int label = 0;
         double learning_rate_gen = 1e-8;
         double learning_rate_disc = 1e-8;
@@ -26,7 +26,7 @@ public class DCGAN_Implementation {
             if (label > 9) {
                 label = 0;
             }
-            BufferedImage img = DCGAN.UTIL.mnist_load_index(label, index[label]);
+            BufferedImage img = DCGAN.UTIL.mnist_load_index(label, index[0]);
             realImages[i] = DCGAN.UTIL.img_to_mat(img);
             label++;
         }
