@@ -16,10 +16,10 @@ public class DCGAN_Implementation {
 
     public static void main(String[] args) throws IOException {
         Logger logger = Logger.getLogger(DCGAN_Implementation.class.getName());
-        logger.setLevel(Level.OFF);
-        int train_size = 100;
+//        logger.setLevel(Level.OFF);
+        int train_size = 600;
         int label = 0;
-        double learning_rate_gen = 0;//.001F;
+        double learning_rate_gen = 0.001F;
         double learning_rate_disc = 0.0001F;
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
         Generator_Implementation generator = new Generator_Implementation();
@@ -61,10 +61,9 @@ public class DCGAN_Implementation {
             }
             System.out.println("Generator Forward");
             double[] gen_dense_output = generator.dense.forward(noise);
-            // logger.log(Level.INFO, "gen_dense_output : " + Arrays.toString(gen_dense_output));
             double[] gen_batch1_output = generator.batch1.forward(gen_dense_output, true);
             double[][][] gen_batch1_output_unflattened = UTIL.unflatten(gen_batch1_output, 128, 7, 7);
-            logger.log(Level.INFO, "gen_dense_output_unflattened : " + Arrays.deepToString(gen_batch1_output_unflattened));
+//            logger.log(Level.INFO, "gen_dense_output_unflattened : " + Arrays.deepToString(gen_batch1_output_unflattened));
 
             double[][][] gen_leakyrelu_output1 = generator.leakyReLU1.forward(gen_batch1_output_unflattened);
 
@@ -87,6 +86,7 @@ public class DCGAN_Implementation {
             double[] real_output2_2_flattened = UTIL.flatten(real_output2_2);
             double[] real_output_dense = discriminator.dense.forward(real_output2_2_flattened);
             double[] real_output_l = discriminator.sigmoidLayer.forward(real_output_dense);
+            double[] discriminator_output_real = real_output_l;//
 
             //DISC FORWARD FAKE
             System.out.println("Discriminator Forward Fake");
@@ -96,41 +96,31 @@ public class DCGAN_Implementation {
             double[][] fake_output2_2 = discriminator.leakyReLULayer2.forward(fake_output2);
             double[] fake_output2_2_flattened = UTIL.flatten(fake_output2_2);
             double[] fake_out_dense = discriminator.dense.forward(fake_output2_2_flattened);
+            logger.log(Level.INFO, "fake_out_dense : " + fake_out_dense[0]);
             double[] fake_output_l = discriminator.sigmoidLayer.forward(fake_out_dense);
+            double[] discriminator_output_fake = fake_output_l;
 
-            System.out.println("fake_output_l : " + Arrays.toString(fake_output_l));
-            System.out.println("real_output_l : " + Arrays.toString(real_output_l));
+            System.out.println("discriminator_output_fake : " + Arrays.toString(discriminator_output_fake));
+            System.out.println("real_output_l : " + Arrays.toString(discriminator_output_real));
 
             // Calculate Loss
-            double gen_loss = UTIL.gen_loss(fake_output_l);
-            double disc_loss = UTIL.disc_loss(real_output_l, fake_output_l);
+            double gen_loss = UTIL.gen_loss(discriminator_output_fake);
+            double disc_loss = UTIL.disc_loss(discriminator_output_real, discriminator_output_fake);
 
             System.out.println("Gen_Loss " + gen_loss);
             System.out.println("Disc_Loss " + disc_loss);
 
-            // GEN BACKWARD
-            System.out.println("Generator Backward");
-            double[] fake_gradient = UTIL.flatten(fakeImage[0]);
-            fake_gradient = UTIL.computeGradientFake(fake_gradient);
-            double[][][] fake_back_gradient = new double[][][]{UTIL.unflatten(fake_gradient, 28, 28)}; // we want a 3d array, with only 1 channel
-            double[][][] gradient0_1 = generator.tanh.backward(fake_back_gradient);
-            double[][][] gradient1 = generator.tconv2.backward(gradient0_1, learning_rate_gen);
-            double[][][] gradient1_2 = generator.leakyReLU2.backward(gradient1);
-            double[][][] gradient1_3 = UTIL.unflatten(
-                generator.batch2.backward(UTIL.flatten(gradient1_2), learning_rate_gen),
-                gradient1_2.length, gradient1_2[0].length, gradient1_2[0][0].length);
-            double[][][] gradient2 = generator.tconv1.backward(gradient1_3, learning_rate_gen);
-            double[][][] gradient2_2 = generator.leakyReLU1.backward(gradient2);
-            double[] out = UTIL.flatten(gradient2_2);
-            double[] gradient3 = generator.batch1.backward(out, learning_rate_gen);
-            generator.dense.backward(gradient3, learning_rate_gen);
+
+            // DISC backward last layer
+//            double disc_gradient = computeGradientDiscriminator(discriminator_output_real, discriminator_output_fake);
+//            double[] disc_gradient_1d = com;//new double[]{disc_gradient}; //converting into array
 
             // DISC REAL BACKWARD
             System.out.println("Discriminator Backward Real");
-            double[] real_gradient_dense = UTIL.computeGradientReal(real_output_l);
-            double[] real_gradient_sigmoid = discriminator.sigmoidLayer.backward(real_gradient_dense);
 
-            real_gradient_dense = discriminator.dense.backward(real_gradient_sigmoid, learning_rate_disc);
+            double[] real_gradient_sigmoid = discriminator.sigmoidLayer.backward(computeGradientReal(discriminator_output_real));//disc_gradient_1d);
+
+            double[] real_gradient_dense = discriminator.dense.backward(real_gradient_sigmoid, learning_rate_disc);
             System.out.printf("Real Gradient Length %d\n", real_gradient_dense.length);
             int size = (int) Math.sqrt((double) real_gradient_dense.length / discriminator.conv2.filters.length);
             double[][] real_gradient_dense_unflattened = UTIL.unflatten(real_gradient_dense, discriminator.conv2.filters.length, size * size);
@@ -138,25 +128,50 @@ public class DCGAN_Implementation {
             double[][] real_gradient_conv2 = discriminator.conv2.backward(real_gradient_leakyrelu2, learning_rate_disc);
             double[][] real_gradient_leakyrelu1 = discriminator.leakyReLULayer1.backward(real_gradient_conv2);
             double[][] real_gradient_conv1 = discriminator.conv1.backward(real_gradient_leakyrelu1, learning_rate_disc);
+            double[][] real_gradient_generator = real_gradient_conv1;
 
             // DISC FAKE BACKWARD
             System.out.println("Discriminator Backward Fake");
-            double[] fake_gradient_l_1 = UTIL.computeGradientFake(fake_output_l);
-            double[] fake_gradient_sigmoid = discriminator.sigmoidLayer.backward(fake_gradient_l_1);
+
+            double[] fake_gradient_sigmoid = discriminator.sigmoidLayer.backward(computeGradientFake(discriminator_output_fake));
             double[] fake_gradient_dense = discriminator.dense.backward(fake_gradient_sigmoid, learning_rate_disc);
             double[][] fake_gradient_dense_unflattened = UTIL.unflatten(fake_gradient_dense, discriminator.conv2.filters.length, size * size);
             double[][] fake_gradient_leakyrelu2 = discriminator.leakyReLULayer2.backward(fake_gradient_dense_unflattened);
             double[][] fake_gradient_conv2 = discriminator.conv2.backward(fake_gradient_leakyrelu2, learning_rate_disc);
             double[][] fake_gradient_leakyrelu1 = discriminator.leakyReLULayer1.backward(fake_gradient_conv2);
             double[][] fake_gradient_conv1 = discriminator.conv1.backward(fake_gradient_leakyrelu1, learning_rate_disc);
+            double[][] fake_gradient_discriminator = fake_gradient_conv1;
+
+            // GEN BACKWARD
+            System.out.println("Generator Backward");
+            //since we want to ascend the gradient of the generator, we will negate fake_gradient_discriminator
+//            for (int idx = 0; idx < fake_gradient_discriminator.length; idx++) {
+//                for (int jdx = 0; jdx < fake_gradient_discriminator[0].length; jdx++) {
+//                    fake_gradient_discriminator[idx][jdx] = -fake_gradient_discriminator[idx][jdx];
+//                }
+//            }
+//            double[] fake_gradient = fake_gradient_discriminator; //UTIL.flatten(fakeImage[0]);
+//            fake_gradient = computeGradientGenerator(discriminator_output_fake, fake_gradient_sigmoid, );
+            double[][][] fake_back_gradient = new double[][][]{UTIL.negate(fake_gradient_discriminator)}; //UTIL.unflatten(fake_gradient, 28, 28)}; // we want a 3d array, with only 1 channel
+            double[][][] gradient0_1 = generator.tanh.backward(fake_back_gradient);
+            double[][][] gradient1 = generator.tconv2.backward(gradient0_1, learning_rate_gen);
+            double[][][] gradient1_2 = generator.leakyReLU2.backward(gradient1);
+            double[][][] gradient1_3 = UTIL.unflatten(
+                    generator.batch2.backward(UTIL.flatten(gradient1_2), learning_rate_gen),
+                    gradient1_2.length, gradient1_2[0].length, gradient1_2[0][0].length);
+            double[][][] gradient2 = generator.tconv1.backward(gradient1_3, learning_rate_gen);
+            double[][][] gradient2_2 = generator.leakyReLU1.backward(gradient2);
+            double[] out = UTIL.flatten(gradient2_2);
+            double[] gradient3 = generator.batch1.backward(out, learning_rate_gen);
+            generator.dense.backward(gradient3, learning_rate_gen);
 
             BufferedImage image = new BufferedImage(28, 28, BufferedImage.TYPE_INT_RGB);
             for (int y = 0; y < 28; y++) {
                 for (int x = 0; x < 28; x++) {
                     double value = fakeImage[0][y][x];
                     int brightness = (int) ((value + 1) * 0.5 * 255.0f);
-                    if (y==0 && x==0)
-                        logger.log(Level.INFO,"value : "+value+ " brightness: " + brightness);
+                    if (y == 0 && x == 0)
+                        logger.log(Level.INFO, "value : " + value + " brightness: " + brightness);
                     image.setRGB(x, y, new Color(brightness, brightness, brightness).getRGB());
 
                 }
@@ -172,6 +187,51 @@ public class DCGAN_Implementation {
             }
         }
     }
+
+    //    public static double computeGradientDiscriminator(double[] real_output, double[] fake_output) {
+    //        double gradient = 0;
+    //        for (int i = 0; i < real_output.length; i++) {
+    //            gradient += 1.0 / (real_output[i] + UTIL.epsilon) - (fake_output[i] / (1.0 - fake_output[i] + UTIL.epsilon));
+    //        }
+    //        gradient /= real_output.length;
+    //        return gradient;
+    //    }
+
+    public static double[] computeGradientReal(double[] real_output) {
+        final double epsilon = 0.000000001;
+        double[] gradient = new double[real_output.length];
+        for (int i = 0; i < real_output.length; i++) {
+            gradient[i] = (+1 / (real_output[i] + epsilon)) + 0;// ((0) / (1 - real_output[i]));
+        }
+        return gradient;
+    }
+
+    public static double[] computeGradientFake(double[] fake_output) {
+        final double epsilon = 0.000000001;
+
+        double[] gradient = new double[fake_output.length];
+        for (int i = 0; i < fake_output.length; i++) {
+            // (-0 / fake_output[i]) +
+            gradient[i] =  ((-1) / (1 - fake_output[i] + epsilon));
+        }
+        return gradient;
+    }
+
+//    public static double[] computeGradientReal(double[] real_output) {
+//        double[] gradient = new double[real_output.length];
+//        for (int i = 0; i < real_output.length; i++) {
+//            gradient[i] = real_output[i] - 1;
+//        }
+//        return gradient;
+//    }
+//
+//    public static double[] computeGradientFake(double[] fake_output) {
+//        double[] gradient = new double[fake_output.length];
+//        for (int i = 0; i < fake_output.length; i++) {
+//            gradient[i] = fake_output[i];
+//        }
+//        return gradient;
+//    }
 }
 
 class Discriminator_Implementation {
@@ -223,6 +283,8 @@ class Generator_Implementation {
 }
 
 class UTIL {
+    public static double epsilon = 1e-15F;
+
     public static BufferedImage load_image(String src) throws IOException {
         return ImageIO.read(new File(src));
     }
@@ -342,20 +404,28 @@ class UTIL {
         return flatten_output;
     }
 
-    public double[] computeGradientReal(double[] real_output) {
-        double[] gradient = new double[real_output.length];
-        for (int i = 0; i < real_output.length; i++) {
-            gradient[i] = 1 / real_output[i];
-        }
-        return gradient;
+    public static double[] negate(double[] array){
+        double new_array[] = new double[array.length];
+        for(int i=0;i<array.length;i++)
+            new_array[i] = array[i] * -1;
+        return new_array;
     }
 
-    public double[] computeGradientFake(double[] fake_output) {
-        double[] gradient = new double[fake_output.length];
-        for (int i = 0; i < fake_output.length; i++) {
-            gradient[i] = 1 / fake_output[i] - 1;
-        }
-        return gradient;
+    public static double[][] negate(double[][] array){
+        double[][] new_array = new double[array.length][array[0].length];
+        for(int i=0;i<array.length;i++)
+            for(int j=0;j<array[0].length;j++)
+                new_array[i][j] = array[i][j] * -1;
+        return new_array;
+    }
+
+    public static double[][][] negate(double[][][] array){
+        double[][][] new_array = new double[array.length][array[0].length][array[0][0].length];
+        for(int i=0;i<array.length;i++)
+            for(int j=0;j<array[0].length;j++)
+                for(int k=0;k<array[0][0].length;k++)
+                    new_array[i][j][k] = array[i][j][k] * -1;
+        return new_array;
     }
 
 //    public double[] computeGradientReal(double[] real_output) {
