@@ -8,11 +8,6 @@ public class TanhLayer {
     public double[][] input2D;
     public double[][] output2D;
 
-    //custom tanh function
-    public double tanh(double x) {
-        return (Math.pow(Math.E, x) - Math.pow(Math.E, -x)) / (Math.pow(Math.E, x) + Math.pow(Math.E, -x));
-    }
-
     public double[][][] forward(double[][][] input) {
         this.input = input;
         int depth = input.length;
@@ -23,7 +18,7 @@ public class TanhLayer {
         for (int d = 0; d < depth; d++) {
             for (int h = 0; h < height; h++) {
                 for (int w = 0; w < width; w++) {
-                    output[d][h][w] = (double)Math.tanh(input[d][h][w]);
+                    output[d][h][w] = Math.tanh(input[d][h][w]);
                 }
             }
         }
@@ -39,7 +34,7 @@ public class TanhLayer {
 
         for (int h = 0; h < height; h++) {
             for (int w = 0; w < width; w++) {
-                output2D[h][w] = (double)Math.tanh(input[h][w]);
+                output2D[h][w] = Math.tanh(input[h][w]);
             }
         }
         return output2D;
@@ -75,9 +70,3 @@ public class TanhLayer {
     }
 
 }
-/**
-        for(int i=0; i<input.weights.length; i++) {
-            double v2wi = output.getWeight(i);
-            input.setGradient(i,(1.0 - v2wi * v2wi) * output.getGradient(i));
-        }
-*/

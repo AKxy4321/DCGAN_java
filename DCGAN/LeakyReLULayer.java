@@ -11,15 +11,7 @@ public class LeakyReLULayer {
     public double[] input1D;
     public double[] output1D;
 
-    double k=0.001f;
-
-    public LeakyReLULayer() {
-        this.k = 0.001f; // default value
-    }
-
-    public LeakyReLULayer(double k) {
-        this.k = k;
-    }
+    double k = 0.0f;
 
     public double apply_leaky_relu(double x) {
         return x > 0 ? x : x * k;
@@ -78,7 +70,6 @@ public class LeakyReLULayer {
         for (int d = 0; d < depth; d++) {
             for (int h = 0; h < height; h++) {
                 for (int w = 0; w < width; w++) {
-                    // If the input value was negative, the gradient is k;
                     d_L_d_input[d][h][w] = output[d][h][w] > 0 ? d_L_d_out[d][h][w] : k * d_L_d_out[d][h][w];
                 }
             }
@@ -94,21 +85,9 @@ public class LeakyReLULayer {
 
         for (int h = 0; h < height; h++) {
             for (int w = 0; w < width; w++) {
-                // If the input value was negative, the gradient is k;
-                // TODO: Check if this is correct
                 d_L_d_input[h][w] = output2D[h][w] > 0 ? d_L_d_out[h][w] : k * d_L_d_out[h][w];
             }
         }
-        /**
-         * correct algorithm is :
-         * for(int i=0; i<len(inputs); i++) {
-         * * if(output.getWeight(i) <= 0) {
-         * * * * input.setGradient(i, k*output.getGradient(i))); // threshold
-         * * } else {
-         * * * * input.setGradient(i, output.getGradient(i));
-         * * }
-         * }
-         */
         return d_L_d_input;
     }
 

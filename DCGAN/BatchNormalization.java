@@ -1,5 +1,4 @@
 package DCGAN;
-import java.util.Arrays;
 
 
 public class BatchNormalization {
@@ -11,7 +10,6 @@ public class BatchNormalization {
     private double[] beta;
     private double[] xNormalized;
     private double[] xCentered;
-    private double mean;
     private double var;
     private int batchSize;
 
@@ -28,7 +26,7 @@ public class BatchNormalization {
 
         if (training) {
             batchSize = 1; // Since we're operating on a 1D array, batchSize is 1
-            mean = calculateMean(x);
+            double mean = calculateMean(x);
             var = calculateVariance(x);
             xCentered = calculateXCentered(x, mean);
             xNormalized = calculateXNormalized(xCentered, var);
@@ -139,24 +137,5 @@ public class BatchNormalization {
             gamma[i] = 1.0;
             beta[i] = 0.0;
         }
-    }
-
-    public static void main(String[] args) {
-        // Demo input
-        double[] input = {100000.0, 2.0, 3.0};
-
-        // Create an instance of BatchNormalization
-        BatchNormalization batchNormalization = new BatchNormalization();
-
-        // Forward pass
-        double[] normalizedOutput = batchNormalization.forward(input, true);
-        System.out.println("Normalized Output:");
-        System.out.println(Arrays.toString(normalizedOutput));
-
-        // Backward pass (Assuming some gradient values as demo)
-        double[] gradients = {0.1, 0.2, 0.3};
-        double[] dx = batchNormalization.backward(gradients, 0.1);
-        System.out.println("\nBackward Output (dx):");
-        System.out.println(Arrays.toString(dx));
     }
 }

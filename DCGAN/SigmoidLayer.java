@@ -1,6 +1,6 @@
 package DCGAN;
 
-public class SigmoidLayer{
+public class SigmoidLayer {
     public double[][][] input;
     public double[][][] output;
 
@@ -11,7 +11,7 @@ public class SigmoidLayer{
     public double[] output1D;
 
     public double apply_sigmoid(double x) {
-        return (double)(1/(1+Math.exp(-x)));
+        return 1 /( 1 + Math.exp(-x));
     }
 
     public double[][][] forward(double[][][] input) {
@@ -24,7 +24,6 @@ public class SigmoidLayer{
         for (int d = 0; d < depth; d++) {
             for (int h = 0; h < height; h++) {
                 for (int w = 0; w < width; w++) {
-                    
                     output[d][h][w] = apply_sigmoid(input[d][h][w]);
                 }
             }
@@ -97,9 +96,3 @@ public class SigmoidLayer{
         return d_L_d_input;
     }
 }
-/**
-        for(int i=0; i<N; i++) {
-            double v2wi = output.getWeight(i);
-            input.setGradient(i, v2wi * (1.0 - v2wi) * output.getGradient(i));
-        }
- */
