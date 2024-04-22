@@ -17,7 +17,7 @@ public class DCGAN_Implementation {
         int train_size = 3000;
         int label = 0;
         double learning_rate_gen = 1e-2;
-        double learning_rate_disc = 1e-2;
+        double learning_rate_disc = 1e-4;
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
         Generator_Implementation generator = new Generator_Implementation();
         UTIL UTIL = new UTIL();
@@ -36,7 +36,7 @@ public class DCGAN_Implementation {
             double[] disc_losses = new double[batch_size];
 
             for (int real_idx = 0; real_idx < batch_size; real_idx++) {
-                BufferedImage img = DCGAN.UTIL.mnist_load_index(1, index[0]);
+                BufferedImage img = DCGAN.UTIL.mnist_load_index(0, index[0]);
                 realImages[real_idx] = new double[][][]{DCGAN.UTIL.img_to_mat(img)};
                 index[0] += 1;
             }
@@ -101,12 +101,17 @@ public class DCGAN_Implementation {
                 double[] discriminator_output_fake = discriminator_fake_outputs[img_idx];
                 double[] discriminator_output_real = discriminator_real_outputs[img_idx];
 
-                System.out.println("Discriminator Backward");
+                System.out.println("computing discriminator gradients");
+                // gradient wrt both real and fake output
                 double[] dg = computeGradientDiscriminator(discriminator_output_real, discriminator_output_fake);
                 double[] disc_gradient = DCGAN.UTIL.negate(dg);
+                // negating because we to do gradient ascent, not descent
                 disc_output_gradients[img_idx] = disc_gradient;
 
-                double[] disc_gradient_sigmoid = discriminator.sigmoidLayer.backward(disc_gradient);
+                //gradient wrt only fake output
+                double[] disc_gradient_fake = computeGradientDiscriminatorWRTFake(discriminator_output_fake);
+
+                double[] disc_gradient_sigmoid = discriminator.sigmoidLayer.backward(disc_gradient_fake);
                 double[] disc_gradient_dense = discriminator.dense.backward(disc_gradient_sigmoid);
                 int size = (int) Math.sqrt((double) disc_gradient_dense.length / discriminator.conv2.filters.length);
                 double[][] disc_gradient_dense_unflattened = UTIL.unflatten(disc_gradient_dense, discriminator.conv2.filters.length, size * size);
@@ -114,25 +119,9 @@ public class DCGAN_Implementation {
                 double[][] disc_gradient_conv2 = discriminator.conv2.backward(disc_gradient_leakyrelu2);
                 double[][] disc_gradient_leakyrelu1 = discriminator.leakyReLULayer1.backward(disc_gradient_conv2);
                 double[][] disc_g = discriminator.conv1.backward(disc_gradient_leakyrelu1);
-
-                System.out.println("Generator Backward");
+                // now we have the gradient of the loss function for the generated output wrt to the generator output(which is nothing but dou J / dou G(zi))
                 double[][][] fake_back_gradient = new double[][][]{disc_g};
                 gen_output_gradients[img_idx] = fake_back_gradient;
-
-                double[][][] gradient0 = generator.tanh.backward(fake_back_gradient);
-                double[][][] gradient0_1 = generator.leakyReLU3.backward(gradient0);
-                double[][][] gradient0_2 = UTIL.unflatten(generator.batch3.backward(UTIL.flatten(gradient0_1)),
-                        gradient0_1.length, gradient0_1[0].length, gradient0_1[0][0].length);
-                double[][][] gradient1 = generator.tconv2.backward(gradient0_2);
-                double[][][] gradient1_2 = generator.leakyReLU2.backward(gradient1);
-                double[][][] gradient1_3 = UTIL.unflatten(
-                        generator.batch2.backward(UTIL.flatten(gradient1_2)),
-                        gradient1_2.length, gradient1_2[0].length, gradient1_2[0][0].length);
-                double[][][] gradient2 = generator.tconv1.backward(gradient1_3);
-                double[][][] gradient2_2 = generator.leakyReLU1.backward(gradient2);
-                double[] out = UTIL.flatten(gradient2_2);
-                double[] gradient3 = generator.batch1.backward(out);
-                generator.dense.backward(gradient3);
             }
 
             // back prop with update parameters
@@ -228,9 +217,18 @@ public class DCGAN_Implementation {
 
     public static double[] computeGradientDiscriminator(double[] real_output, double[] fake_output) {
         double[] gradient = new double[real_output.length];
-        double epsilon = 1e-3;
+        double epsilon = 1e-5F;
         for (int i = 0; i < real_output.length; i++) {
             gradient[i] += 1.0 / (real_output[i] + epsilon) - (1 / (1.0 - fake_output[i] + epsilon));
+        }
+        return gradient;
+    }
+
+    public static double[] computeGradientDiscriminatorWRTFake(double[] fake_output) {
+        double[] gradient = new double[fake_output.length];
+        double epsilon = 1e-3F;
+        for (int i = 0; i < fake_output.length; i++) {
+            gradient[i] += - (1 / (1.0 - fake_output[i] + epsilon));
         }
         return gradient;
     }
@@ -246,9 +244,9 @@ class Discriminator_Implementation {
     SigmoidLayer sigmoidLayer;
 
     public Discriminator_Implementation() {
-        this.conv1 = new ConvolutionalLayer(5, 64);
+        this.conv1 = new ConvolutionalLayer(5, 64,1);
         this.leakyReLULayer1 = new LeakyReLULayer();
-        this.conv2 = new ConvolutionalLayer(5, 128);
+        this.conv2 = new ConvolutionalLayer(5, 128,1);
         this.leakyReLULayer2 = new LeakyReLULayer();
         this.dense = new DenseLayer(24 * 24 * 128, 1);
         this.sigmoidLayer = new SigmoidLayer();
@@ -378,7 +376,7 @@ class UTIL {
 
     public double binary_cross_entropy(double[] y_true, double[] y_pred) {
         double sum = 0.0F;
-        double epsilon = 1e-3F;
+        double epsilon = 1e-5F;
         for (int i = 0; i < y_true.length; i++) {
             double pred = Math.max(Math.min(y_pred[i], 1. - epsilon), epsilon);
             sum += -y_true[i] * Math.log(pred) - (1 - y_true[i]) * Math.log(1 - pred);

@@ -8,8 +8,9 @@ class ConvolutionalLayer {
     double[][] input;
     final public int numFilters;
     final public int filterSize;
+    final public int stride;
 
-    public ConvolutionalLayer(int filterSize, int numFilters) {
+    public ConvolutionalLayer(int filterSize, int numFilters, int stride) {
         Random rand = new Random();
         this.numFilters = numFilters;
         this.filterSize = filterSize;
@@ -17,6 +18,7 @@ class ConvolutionalLayer {
 //        this.biases = new double[numFilters];
         this.filters = XavierInitializer.xavierInit3D(numFilters, filterSize, filterSize);
         this.biases = XavierInitializer.xavierInit1D(numFilters);
+        this.stride = stride;
     }
 
     public double[][] forward(double[][] input) {
