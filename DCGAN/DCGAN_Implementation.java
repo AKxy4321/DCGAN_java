@@ -18,8 +18,10 @@ public class DCGAN_Implementation {
 
     public void discriminator_execute() {
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
-        int num_images = 200;
+        int num_images = 5;
         int num_images_test = 20;
+        int num_epochs = 200;
+
         double[][][] fakeImages_train = new double[num_images][28][28];
         double[][][] realImages_train = new double[num_images][28][28];
 
@@ -38,7 +40,6 @@ public class DCGAN_Implementation {
             fakeImages_test[i] = XavierInitializer.xavierInit2D(28, 28);
         }
 
-        int num_epochs = 100;
         for (int epoch = 0; epoch < num_epochs; epoch++) {
             double total_loss = 0.0;
 
@@ -187,7 +188,7 @@ public class DCGAN_Implementation {
 
                 // update discriminator
                 discriminator.updateParameters(disc_output_gradient, learning_rate_disc);
-                
+
 
                 // update generator
                 generator.updateParameters(gen_output_gradient, learning_rate_gen);
@@ -399,7 +400,7 @@ class UTIL {
     }
 
     public static BufferedImage mnist_load_index(int label, int index) {
-        String mnistPath = Paths.get("DCGAN", "data", "mnist_png", "mnist_png", "training").toString();
+        String mnistPath = Paths.get("DCGAN", "data", "mnist_png", "mnist_png").toString();
         File dir = new File(mnistPath, String.valueOf(label));
         String[] files = dir.list();
         assert files != null;
