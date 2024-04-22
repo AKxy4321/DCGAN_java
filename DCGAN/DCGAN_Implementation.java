@@ -13,8 +13,8 @@ public class DCGAN_Implementation {
 
     public static void main(String[] args) {
         DCGAN_Implementation dcgan = new DCGAN_Implementation();
-//        dcgan.dcgan_execute();
-        dcgan.discriminator_execute();
+        dcgan.dcgan_execute();
+//        dcgan.discriminator_execute();
     }
 
     public void discriminator_execute() {
@@ -274,6 +274,8 @@ class Discriminator_Implementation {
         double[][][] disc_in_gradient_leakyrelu1 = this.leakyReLULayer1.backward(disc_in_gradient_dense_unflattened);
         double[][][] disc_in_gradient_maxpool = this.maxPool1.backprop(disc_in_gradient_leakyrelu1);
         double[][][] disc_in_gradient_conv1 = this.conv1.backprop(disc_in_gradient_maxpool);
+
+        System.out.println("conv1 length:"+disc_in_gradient_conv1.length+" conv1[0].length:"+disc_in_gradient_conv1[0].length+" conv1[0][0].length:"+disc_in_gradient_conv1[0][0].length);
         // now we have the gradient of the loss function for the generated output wrt to the generator output(which is nothing but dou J / dou G(zi))
         return disc_in_gradient_conv1; // this is fake_back_gradient
     }
@@ -289,6 +291,7 @@ class Discriminator_Implementation {
         double[][][] disc_in_gradient_maxpool = this.maxPool1.backprop(disc_in_gradient_leakyrelu1);
         double[][][] disc_in_gradient_conv1 = this.conv1.backprop(disc_in_gradient_maxpool);
 
+        // conv1 uses Convolution class , and they do it differently, so we have to pass its own inputGradient to itself to calc filters
         conv1.updateParameters(disc_in_gradient_conv1, learning_rate_disc);
         // now we have the gradient of the loss function for the generated output wrt to the generator output(which is nothing but dou J / dou G(zi))
     }
@@ -312,14 +315,14 @@ class Generator_Implementation {
         this.dense = new DenseLayer(100, this.dense_output_size);
         this.batch1 = new BatchNormalization();
         this.leakyReLU1 = new LeakyReLULayer();
-        this.tconv1 = new TransposeConvolutionalLayer(128, 5, 64, 1);
+        this.tconv1 = new TransposeConvolutionalLayer(256, 5, 64, 1);
         this.batch2 = new BatchNormalization();
         this.leakyReLU2 = new LeakyReLULayer();
         this.tconv2 = new TransposeConvolutionalLayer(64, 8, 1, 2);
         this.batch3 = new BatchNormalization();
         this.leakyReLU3 = new LeakyReLULayer();
         this.tanh = new TanhLayer();
-
+        // size of tanh is supposed to be 64x5*5
         /*
          * [128,1,6,6]   [3,3]   2
          * 128,1,13,13   [4,4]   2
