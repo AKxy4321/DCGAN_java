@@ -25,8 +25,8 @@ class ConvolutionalLayer {
         int inputHeight = input.length;
         int numFilters = this.numFilters;
         int filterSize = this.filterSize;
-        int outputHeight = Math.round((float) (inputHeight - filterSize) / this.stride) + 1;
-        int outputWidth = Math.round((float) (inputHeight - filterSize) / this.stride) + 1;
+        int outputHeight = (inputHeight - filterSize) / this.stride + 1;
+        int outputWidth = (inputHeight - filterSize) / this.stride + 1;
 
         double[][] output = new double[numFilters][outputHeight * outputWidth];
 

@@ -36,7 +36,7 @@ public class DCGAN_Implementation {
             double[] disc_losses = new double[batch_size];
 
             for (int real_idx = 0; real_idx < batch_size; real_idx++) {
-                BufferedImage img = DCGAN.UTIL.mnist_load_index(0, index[0]);
+                BufferedImage img = DCGAN.UTIL.mnist_load_index(1, index[0]);
                 realImages[real_idx] = new double[][][]{DCGAN.UTIL.img_to_mat(img)};
                 index[0] += 1;
             }
