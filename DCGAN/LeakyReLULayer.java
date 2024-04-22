@@ -11,7 +11,7 @@ public class LeakyReLULayer {
     public double[] input1D;
     public double[] output1D;
 
-    double k = 0.0f;
+    double k = 0.01f;
 
     public double apply_leaky_relu(double x) {
         return x > 0 ? x : x * k;
