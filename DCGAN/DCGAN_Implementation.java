@@ -325,7 +325,7 @@ class UTIL {
     }
 
     public static BufferedImage mnist_load_index(int label, int index) throws IOException {
-        String mnistPath = Paths.get("DCGAN", "data", "mnist_png", "mnist_png", "training").toString();
+        String mnistPath = Paths.get("DCGAN", "data", "mnist_png", "mnist_png").toString();
         File dir = new File(mnistPath, String.valueOf(label));
         String[] files = dir.list();
         assert files != null;
