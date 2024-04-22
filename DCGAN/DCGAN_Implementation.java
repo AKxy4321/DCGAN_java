@@ -18,9 +18,9 @@ public class DCGAN_Implementation {
 
     public void discriminator_execute() {
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
-        int num_images = 5;
+        int num_images = 3000;
         int num_images_test = 20;
-        int num_epochs = 200;
+        int num_epochs = 500;
 
         double[][][] fakeImages_train = new double[num_images][28][28];
         double[][][] realImages_train = new double[num_images][28][28];
@@ -72,7 +72,7 @@ public class DCGAN_Implementation {
             accuracy /= (2 * num_images_test);
 
             System.out.println("Epoch: " + (epoch + 1) + ", Average Training Loss: " + (total_loss / num_images) +
-                    ", Test Loss: " + test_loss + ", Test Accuracy: " + accuracy);
+                    ", Test Loss: " + test_loss + ", Test Accuracy: " + accuracy + ", Total training loss: "+total_loss);
         }
     }
 
