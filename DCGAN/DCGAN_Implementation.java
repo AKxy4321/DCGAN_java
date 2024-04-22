@@ -36,29 +36,12 @@ public class DCGAN_Implementation {
             double[] disc_losses = new double[batch_size];
 
             for (int real_idx = 0; real_idx < batch_size; real_idx++) {
-                BufferedImage img = DCGAN.UTIL.mnist_load_index(1, index[0]);
+                BufferedImage img = DCGAN.UTIL.mnist_load_index(0, index[0]);
                 realImages[real_idx] = new double[][][]{DCGAN.UTIL.img_to_mat(img)};
                 index[0] += 1;
             }
             for (int j = 0; j < batch_size; j++) {
-                double[] noise = XavierInitializer.xavierInit1D(100);
-
-                System.out.println("Generator Forward");
-                double[] gen_dense_output = generator.dense.forward(noise);
-                double[] gen_batch1_output = generator.batch1.forward(gen_dense_output, true);
-                double[][][] gen_batch1_output_unflattened = UTIL.unflatten(gen_batch1_output, 128, 7, 7);
-                double[][][] gen_leakyrelu_output1 = generator.leakyReLU1.forward(gen_batch1_output_unflattened);
-                double[][][] outputTconv1 = generator.tconv1.forward(gen_leakyrelu_output1);
-                double[] gen_batch2_output = generator.batch2.forward(UTIL.flatten(outputTconv1), true);
-                double[][][] gen_batch2_output_unflattened = UTIL.unflatten(gen_batch2_output, outputTconv1.length, outputTconv1[0].length, outputTconv1[0][0].length);
-                double[][][] gen_leakyrelu_output2 = generator.leakyReLU2.forward(gen_batch2_output_unflattened);
-                double[][][] outputTconv2 = generator.tconv2.forward(gen_leakyrelu_output2);
-                double[] gen_batch3_output = generator.batch3.forward(UTIL.flatten(outputTconv2), true);
-                double[][][] gen_batch3_output_unflattened = UTIL.unflatten(gen_batch3_output, outputTconv2.length, outputTconv2[0].length, outputTconv2[0][0].length);
-                double[][][] gen_leakyrelu_output3 = generator.leakyReLU3.forward(gen_batch3_output_unflattened);
-                double[][][] fakeImage = generator.tanh.forward(gen_leakyrelu_output3);
-
-                fakeImages[j] = fakeImage;
+                fakeImages[j] = generator.generateImage();
             }
 
             for (int img_idx = 0; img_idx < batch_size; img_idx++) {
