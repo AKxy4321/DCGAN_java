@@ -14,10 +14,10 @@ public class DCGAN_Implementation {
 
     public static void main(String[] args) throws IOException {
         Logger logger = Logger.getLogger(DCGAN_Implementation.class.getName());
-        int train_size = 3000;
+        int train_size = 3200;
         int label = 0;
         double learning_rate_gen = 1e-2;
-        double learning_rate_disc = 1e-4;
+        double learning_rate_disc = -1e-4;
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
         Generator_Implementation generator = new Generator_Implementation();
         UTIL UTIL = new UTIL();
@@ -61,7 +61,7 @@ public class DCGAN_Implementation {
                 double[][] fake_output2_2 = discriminator.leakyReLULayer2.forward(fake_output2);
                 double[] fake_output2_2_flattened = UTIL.flatten(fake_output2_2);
                 double[] fake_out_dense = discriminator.dense.forward(fake_output2_2_flattened);
-                logger.log(Level.INFO, "fake_out_dense : " + fake_out_dense[0]);
+//                logger.log(Level.INFO, "fake_out_dense : " + fake_out_dense[0]);
                 double[] discriminator_output_fake = discriminator.sigmoidLayer.forward(fake_out_dense);
 
                 discriminator_real_outputs[img_idx] = discriminator_output_real;
@@ -74,8 +74,8 @@ public class DCGAN_Implementation {
             }
 
 
-            System.out.println("Gen_Loss " + DCGAN.UTIL.mean(gen_losses));
-            System.out.println("Disc_Loss " + DCGAN.UTIL.mean(disc_losses));
+            logger.log(Level.INFO,"Gen_Loss " + DCGAN.UTIL.mean(gen_losses));
+            logger.log(Level.INFO,"Disc_Loss " + DCGAN.UTIL.mean(disc_losses));
 
             double[][] disc_output_gradients = new double[batch_size][1];
             double[][][][] gen_output_gradients = new double[batch_size][1][28][28];
@@ -84,16 +84,16 @@ public class DCGAN_Implementation {
                 double[] discriminator_output_fake = discriminator_fake_outputs[img_idx];
                 double[] discriminator_output_real = discriminator_real_outputs[img_idx];
 
-                System.out.println("computing discriminator gradients");
+//                System.out.println("computing discriminator gradients");
                 // gradient wrt both real and fake output
                 double[] dg = computeGradientDiscriminator(discriminator_output_real, discriminator_output_fake);
-                double[] disc_gradient = DCGAN.UTIL.negate(dg);
+//                double[] disc_gradient = DCGAN.UTIL.negate(dg);
                 // negating because we to do gradient ascent, not descent
-                disc_output_gradients[img_idx] = disc_gradient;
+                disc_output_gradients[img_idx] = dg;
 
                 //gradient wrt only fake output
                 double[] disc_gradient_fake = computeGradientDiscriminatorWRTFake(discriminator_output_fake);
-
+//                disc_gradient_fake[0] *= -1;
                 double[] disc_gradient_sigmoid = discriminator.sigmoidLayer.backward(disc_gradient_fake);
                 double[] disc_gradient_dense = discriminator.dense.backward(disc_gradient_sigmoid);
                 int size = (int) Math.sqrt((double) disc_gradient_dense.length / discriminator.conv2.filters.length);
@@ -188,7 +188,7 @@ public class DCGAN_Implementation {
         for (int y = 0; y < 28; y++) {
             for (int x = 0; x < 28; x++) {
                 double value = fakeImage[0][y][x];
-                double normalizedValue = (value - min) / (max - min);
+                double normalizedValue = (value+1)/2.0;//(value - min) / (max - min);
                 double brightness = normalizedValue * 255.0;
                 int grayValue = (int) brightness;
                 int rgb = (grayValue << 16) | (grayValue << 8) | grayValue;
@@ -200,7 +200,7 @@ public class DCGAN_Implementation {
 
     public static double[] computeGradientDiscriminator(double[] real_output, double[] fake_output) {
         double[] gradient = new double[real_output.length];
-        double epsilon = 1e-5F;
+        double epsilon = 1e-4F;
         for (int i = 0; i < real_output.length; i++) {
             gradient[i] += 1.0 / (real_output[i] + epsilon) - (1 / (1.0 - fake_output[i] + epsilon));
         }
@@ -209,7 +209,7 @@ public class DCGAN_Implementation {
 
     public static double[] computeGradientDiscriminatorWRTFake(double[] fake_output) {
         double[] gradient = new double[fake_output.length];
-        double epsilon = 1e-3F;
+        double epsilon = 1e-4F;
         for (int i = 0; i < fake_output.length; i++) {
             gradient[i] += - (1 / (1.0 - fake_output[i] + epsilon));
         }
