@@ -18,7 +18,7 @@ public class DCGAN_Implementation {
 
     public void discriminator_execute() {
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
-        int num_images = 3000;
+        int num_images = 20;
         int num_images_test = 20;
         int num_epochs = 500;
 
@@ -29,15 +29,14 @@ public class DCGAN_Implementation {
         double[][][] realImages_test = new double[num_images_test][28][28];
 
         for (int i = 0; i < num_images; i++) {
-            BufferedImage img = DCGAN.UTIL.mnist_load_index(0, i);
-            realImages_train[i] = DCGAN.UTIL.img_to_mat(img);
-            fakeImages_train[i] = XavierInitializer.xavierInit2D(28, 28);
+            System.out.println(i);
+            realImages_train[i] = DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(1, i));
+            fakeImages_train[i] = DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(0, i));
         }
 
         for (int i = 0; i < num_images_test; i++) {
-            BufferedImage img_test = DCGAN.UTIL.mnist_load_index(0, i + num_images);
-            realImages_test[i] = DCGAN.UTIL.img_to_mat(img_test);
-            fakeImages_test[i] = XavierInitializer.xavierInit2D(28, 28);
+            realImages_test[i] =  DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(1, i + num_images));
+            fakeImages_test[i] =  DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(0, i + num_images));
         }
 
         for (int epoch = 0; epoch < num_epochs; epoch++) {
@@ -48,8 +47,9 @@ public class DCGAN_Implementation {
             for (int i = 0; i < num_images; i++) {
                 double[] real_output = discriminator.getOutput(realImages_train[i]);
                 double[] fake_output = discriminator.getOutput(fakeImages_train[i]);
-                double loss = lossDiscriminatorMSE(real_output, fake_output);
-                double[] gradient = gradientDiscriminatorMSE(real_output, fake_output);
+                double loss = lossDiscriminator(real_output, fake_output);
+                double[] gradient = computeGradientDiscriminator(real_output, fake_output);
+                gradient[0] *= -1;
                 total_loss += loss;
 
                 // Update gradients
@@ -57,7 +57,7 @@ public class DCGAN_Implementation {
             }
 
             // Update discriminator parameters after processing all images
-            discriminator.updateParameters(UTIL.mean_1st_layer(outputGradients),1e-2);
+            discriminator.updateParameters(UTIL.mean_1st_layer(outputGradients),5*1e-2);
 
             // Calculate test loss and accuracy
             double test_loss = 0.0;
@@ -65,7 +65,7 @@ public class DCGAN_Implementation {
             for (int i = 0; i < num_images_test; i++) {
                 double[] test_real_outputs = discriminator.getOutput(realImages_test[i]);
                 double[] test_fake_outputs = discriminator.getOutput(fakeImages_test[i]);
-                test_loss += lossDiscriminatorMSE(test_real_outputs, test_fake_outputs);
+                test_loss += lossDiscriminator(test_real_outputs, test_fake_outputs);
                 accuracy += calculateAccuracy(test_real_outputs, test_fake_outputs);
             }
             test_loss /= num_images_test;
@@ -199,6 +199,14 @@ public class DCGAN_Implementation {
                 DCGAN.UTIL.saveImage(image, "generated_image.png");
             }
         }
+    }
+
+    public static double lossDiscriminator(double[] real_output, double[] fake_output) {
+        double loss = 0;
+        for (int i = 0; i < real_output.length; i++) {
+            loss += -Math.log(real_output[i]) - Math.log(1 - fake_output[i]);
+        }
+        return loss / real_output.length;
     }
 
     public static double[] computeGradientDiscriminator(double[] real_output, double[] fake_output) {
@@ -367,7 +375,12 @@ class Generator_Implementation {
 
 class UTIL {
     public static BufferedImage load_image(String src) throws IOException {
-        return ImageIO.read(new File(src));
+        BufferedImage file =  ImageIO.read(new File(src));
+        if (file == null) {
+            System.err.println(src);
+            throw new IOException("Error loading image");
+        }
+        return file;
     }
 
     public static double[][][] unflatten(double[] input, int numFilters, int outputHeight, int outputWidth) {
