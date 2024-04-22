@@ -45,7 +45,7 @@ public class DenseLayer {
                 weights[i][j] -= learningRate * outputGradient[j] * weights[i][j];
             }
         }
-        for (int j = 0; j < weights[1].length; j++) {
+        for (int j = 0; j < weights[0].length; j++) {
             biases[j] -= learningRate * outputGradient[j];
         }
     }
