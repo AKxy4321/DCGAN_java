@@ -244,11 +244,11 @@ class Discriminator_Implementation {
     SigmoidLayer sigmoidLayer;
 
     public Discriminator_Implementation() {
-        this.conv1 = new ConvolutionalLayer(5, 64,1);
+        this.conv1 = new ConvolutionalLayer(5, 64,2);
         this.leakyReLULayer1 = new LeakyReLULayer();
-        this.conv2 = new ConvolutionalLayer(5, 128,1);
+        this.conv2 = new ConvolutionalLayer(5, 128,2);
         this.leakyReLULayer2 = new LeakyReLULayer();
-        this.dense = new DenseLayer(24 * 24 * 128, 1);
+        this.dense = new DenseLayer(4 * 4 * 128, 1);
         this.sigmoidLayer = new SigmoidLayer();
     }
 }

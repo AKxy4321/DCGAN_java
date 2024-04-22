@@ -11,7 +11,6 @@ class ConvolutionalLayer {
     final public int stride;
 
     public ConvolutionalLayer(int filterSize, int numFilters, int stride) {
-        Random rand = new Random();
         this.numFilters = numFilters;
         this.filterSize = filterSize;
 //        this.filters = new double[numFilters][filterSize][filterSize];
@@ -24,11 +23,10 @@ class ConvolutionalLayer {
     public double[][] forward(double[][] input) {
         this.input = input;
         int inputHeight = input.length;
-        int inputWidth = input[0].length;
         int numFilters = this.numFilters;
         int filterSize = this.filterSize;
-        int outputHeight = inputHeight - filterSize + 1;
-        int outputWidth = inputWidth - filterSize + 1;
+        int outputHeight = Math.round((float) (inputHeight - filterSize) / this.stride) + 1;
+        int outputWidth = Math.round((float) (inputHeight - filterSize) / this.stride) + 1;
 
         double[][] output = new double[numFilters][outputHeight * outputWidth];
 
@@ -41,15 +39,11 @@ class ConvolutionalLayer {
                             sum += input[h + i][w + j] * this.filters[k][i][j];
                         }
                     }
-                    output[k][h * outputWidth + w] = leakyReLU(sum + this.biases[k]);
+                    output[k][h * outputWidth + w] = sum + this.biases[k];
                 }
             }
         }
         return output;
-    }
-
-    public double leakyReLU(double x) {
-        return x >= 0 ? x : 0.01f * x;
     }
 
     public double[][] backward(double[][] outputGradient) {
@@ -58,8 +52,8 @@ class ConvolutionalLayer {
         int inputWidth = input[0].length;
         int numFilters = this.filters.length;
         int filterSize = this.filters[0][0].length;
-        int outputHeight = (int) Math.sqrt(input[0].length);
-        int outputWidth = (int) Math.sqrt(input[0].length);
+        int outputHeight = (int) Math.sqrt(outputGradient[0].length);
+        int outputWidth = (int) Math.sqrt(outputGradient[0].length);
 
 
         double[][] inputGradient = new double[inputHeight][inputWidth];
@@ -87,8 +81,8 @@ class ConvolutionalLayer {
         int inputWidth = input[0].length;
         int numFilters = this.filters.length;
         int filterSize = this.filters[0][0].length;
-        int outputHeight = (int) Math.sqrt(input[0].length);
-        int outputWidth = (int) Math.sqrt(input[0].length);
+        int outputHeight = (int) Math.sqrt(outputGradient[0].length);
+        int outputWidth = (int) Math.sqrt(outputGradient[0].length);
 
         double[][][] filtersGradient = new double[numFilters][filterSize][filterSize];
         double[] biasesGradient = new double[numFilters];
