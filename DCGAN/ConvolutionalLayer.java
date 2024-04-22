@@ -23,10 +23,11 @@ class ConvolutionalLayer {
     public double[][] forward(double[][] input) {
         this.input = input;
         int inputHeight = input.length;
+        int inputWidth = input[0].length;
         int numFilters = this.numFilters;
         int filterSize = this.filterSize;
         int outputHeight = (inputHeight - filterSize) / this.stride + 1;
-        int outputWidth = (inputHeight - filterSize) / this.stride + 1;
+        int outputWidth = (inputWidth - filterSize) / this.stride + 1;
 
         double[][] output = new double[numFilters][outputHeight * outputWidth];
 

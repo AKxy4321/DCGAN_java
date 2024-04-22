@@ -6,8 +6,8 @@ public class DenseLayer {
     double[] input;
 
     public DenseLayer(int inputSize, int outputSize) {
-        weights = new double[inputSize][outputSize];
-        biases = new double[outputSize];
+//        weights = new double[inputSize][outputSize];
+//        biases = new double[outputSize];
         this.weights = XavierInitializer.xavierInit2D(inputSize, outputSize);
         this.biases = XavierInitializer.xavierInit1D(outputSize);
     }
@@ -32,7 +32,7 @@ public class DenseLayer {
             for (int j = 0; j < weights[0].length; j++) {
                 sum += outputGradient[j] * weights[i][j];
             }
-            inputGradient[i] = sum;
+            inputGradient[i] = sum;// + biases[i];
         }
 
         return inputGradient;
@@ -42,7 +42,7 @@ public class DenseLayer {
     public void updateParameters(double[] outputGradient, double learningRate) {
         for (int i = 0; i < weights.length; i++) {
             for (int j = 0; j < weights[0].length; j++) {
-                weights[i][j] -= learningRate * outputGradient[j] * weights[i][j];
+                weights[i][j] -= learningRate * outputGradient[j] * input[i];
             }
         }
         for (int j = 0; j < weights[0].length; j++) {

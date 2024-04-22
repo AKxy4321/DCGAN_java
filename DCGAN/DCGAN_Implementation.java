@@ -20,7 +20,7 @@ public class DCGAN_Implementation {
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
         int num_images = 20;
         int num_images_test = 20;
-        int num_epochs = 500;
+        int num_epochs = 3000;
 
         double[][][] fakeImages_train = new double[num_images][28][28];
         double[][][] realImages_train = new double[num_images][28][28];
@@ -47,8 +47,8 @@ public class DCGAN_Implementation {
             for (int i = 0; i < num_images; i++) {
                 double[] real_output = discriminator.getOutput(realImages_train[i]);
                 double[] fake_output = discriminator.getOutput(fakeImages_train[i]);
-                double loss = lossDiscriminator(real_output, fake_output);
-                double[] gradient = computeGradientDiscriminator(real_output, fake_output);
+                double loss = lossDiscriminatorMSE(real_output, fake_output);
+                double[] gradient = gradientDiscriminatorMSE(real_output, fake_output);
                 gradient[0] *= -1;
                 total_loss += loss;
 
@@ -65,7 +65,7 @@ public class DCGAN_Implementation {
             for (int i = 0; i < num_images_test; i++) {
                 double[] test_real_outputs = discriminator.getOutput(realImages_test[i]);
                 double[] test_fake_outputs = discriminator.getOutput(fakeImages_test[i]);
-                test_loss += lossDiscriminator(test_real_outputs, test_fake_outputs);
+                test_loss += lossDiscriminatorMSE(test_real_outputs, test_fake_outputs);
                 accuracy += calculateAccuracy(test_real_outputs, test_fake_outputs);
             }
             test_loss /= num_images_test;
@@ -239,7 +239,7 @@ class Discriminator_Implementation {
 
     public Discriminator_Implementation() {
         int inputWidth=28, inputHeight=28;
-        this.conv1 = new ConvolutionalLayer(5, 12, 2);
+        this.conv1 = new ConvolutionalLayer(5, 12, 3);
         int outputHeight1 = (inputHeight - conv1.filterSize) / conv1.stride + 1;
         int outputWidth1 = (inputWidth  - conv1.filterSize) / conv1.stride + 1;
         this.leakyReLULayer1 = new LeakyReLULayer();
