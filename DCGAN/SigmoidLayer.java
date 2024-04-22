@@ -66,7 +66,7 @@ public class SigmoidLayer {
         for (int d = 0; d < depth; d++) {
             for (int h = 0; h < height; h++) {
                 for (int w = 0; w < width; w++) {
-                    d_L_d_input[d][h][w] =  (1-output[d][h][w]*output[d][h][w]) * d_L_d_out[d][h][w];
+                    d_L_d_input[d][h][w] =  (1-output[d][h][w])*output[d][h][w] * d_L_d_out[d][h][w];
                 }
             }
         }
@@ -80,7 +80,7 @@ public class SigmoidLayer {
 
         for (int h = 0; h < height; h++) {
             for (int w = 0; w < width; w++) {
-                d_L_d_input[h][w] = (1-output2D[h][w]*output2D[h][w]) *d_L_d_out[h][w];
+                d_L_d_input[h][w] = (1-output2D[h][w])*output2D[h][w] * d_L_d_out[h][w];
             }
         }
         return d_L_d_input;
@@ -91,7 +91,7 @@ public class SigmoidLayer {
         int size = d_L_d_out.length;
 
         for (int i = 0; i < size; i++) {
-            d_L_d_input[i] = (1-output1D[i]*output1D[i]) * d_L_d_out[i];
+            d_L_d_input[i] = (1-output1D[i])*output1D[i] * d_L_d_out[i];
         }
         return d_L_d_input;
     }

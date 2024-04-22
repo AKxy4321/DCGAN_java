@@ -49,7 +49,7 @@ public class DCGAN_Implementation {
                 double[] fake_output = discriminator.getOutput(fakeImages_train[i]);
                 double loss = lossDiscriminatorMSE(real_output, fake_output);
                 double[] gradient = gradientDiscriminatorMSE(real_output, fake_output);
-                gradient[0] *= -1;
+//                gradient[0] *= -1;
                 total_loss += loss;
 
                 // Update gradients
