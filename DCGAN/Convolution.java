@@ -25,115 +25,177 @@ public class Convolution {
     public int numFilters;
     public int filterSize;
     public int stride;
-    public double[][][] filters;
+    public double[][][][] filters;
+    public double[] biases;
     public double[][][] input3D;
+    public int output_width, output_height, output_depth;
+    public int input_width, input_height, input_depth;
 
-    Convolution(int filterSize,int numFilters, int stride){
+    public int filter_depth;
+
+    Convolution(int filterSize, int numFilters, int stride, int input_width, int input_height, int input_depth) {
         this.numFilters = numFilters;
         this.filterSize = filterSize;
         this.stride = stride;
-        this.filters = init_filters();
-    }
+        this.input_width = input_width;
+        this.input_height = input_height;
+        this.input_depth = input_depth;
 
-    Convolution(double[][][] filters, int stride){
-        this.filters = filters;
-        this.numFilters = this.filters.length;
-        this.filterSize = this.filters[0].length;
-        this.stride = stride;
-    }
+        this.output_width = (int) Math.floor((double) (input_width - filterSize) / stride + 1);
+        this.output_height = (int) Math.floor((double) (input_height - filterSize) / stride + 1);
+        this.output_depth = this.numFilters;
 
-    public double[][] input;
+        this.filter_depth = input_depth;
 
-    public double[][][] init_filters() {
-        double[][][] result = new double[numFilters][filterSize][filterSize];
-        for (int k = 0 ; k < numFilters ; k++){
-            result[k] = Mat.m_zeros(filterSize, filterSize);
-        }
-        for (int k = 0; k < numFilters; k+=stride) {
-            result[k] = Mat.m_random(filterSize, filterSize);
-        }
-        return result;
-    }
+        /*TODO: replace with below code after padding is added:
+        this.output_width = (int)Math.floor((input_width + this.padding * 2 - filterSize) / stride + 1);
+        this.output_height = (int)Math.floor((input_height + this.padding * 2 - filterSize) / stride + 1);
+        *
+        * */
 
-    public double[][] convolveSxS(double[][] image, double[][] filter) {
-        input = image;
-        int resultSizeX = (image.length - filter.length) / stride + 1;
-        int resultSizeY = (image[0].length - filter[0].length) / stride + 1;
-        double[][] result = new double[resultSizeX][resultSizeY];
-        for (int i = 0; i < resultSizeX; i++) {
-            for (int j = 0; j < resultSizeY; j++) {
-                int startX = i * stride;
-                int startY = j * stride;
-                double[][] conv_region = getConvolutionRegion(image, startX, startY, filter.length, filter[0].length);
-                result[i][j] = Mat.mm_elsum(conv_region, filter);
-            }
-        }
-        return result;
-    }
+        this.filters = new double[numFilters][input_depth][filterSize][filterSize];
+        this.biases = new double[numFilters];
 
-    private double[][] getConvolutionRegion(double[][] image, int startX, int startY, int filterSizeX, int filterSizeY) {
-        double[][] convRegion = new double[filterSizeX][filterSizeY];
-        for (int i = 0; i < filterSizeX; i++) {
-            for (int j = 0; j < filterSizeY; j++) {
-                int x = startX + i;
-                int y = startY + j;
-                if (x >= 0 && x < image.length && y >= 0 && y < image[0].length) {
-                    convRegion[i][j] = image[x][y];
-                } else {
-                    // Handle out-of-bounds access, for example, by padding with zeros
-                    convRegion[i][j] = 0.0f; // Assuming double values
+        for (int d = 0; d < numFilters; d++) {
+            for (int fd = 0; fd < filter_depth; fd++) {
+                for (int fy = 0; fy < filterSize; fy++) {
+                    for (int fx = 0; fx < filterSize; fx++) {
+                        this.filters[d][fd][fy][fx] = 1;//Math.random();
+                    }
                 }
             }
+            this.biases[d] = 0;//Math.random();
         }
-        return convRegion;
     }
 
 
-    public double[][][] forward(double[][] image) {
-        int output_size = ((image.length - filterSize) / stride) + 1;
-        double[][][] result = new double[numFilters][output_size][output_size];
-        for (int k = 0; k < filters.length; k+=stride) {
-            double[][] res = convolveSxS(image, filters[k]);
-            result[k] = res;
-        }
-        return result;
-    }
+    public double[][][] forward(double[][][] input) {//TODO: recheck logic
+        this.input3D = input;
 
-    public double[][][] forward(double[][][] image) {//TODO: recheck logic
-        int output_size = ((image[0].length - filterSize) / stride) + 1;
-        double[][][] result = new double[numFilters][output_size][output_size];
-        for(int i = 0; i < image.length; i++) {
-            for (int k = 0; k < filters.length; k += stride) {
-                double[][] res = convolveSxS(image[i], filters[k]);
-                result[k] = res;
-            }
-        }
-        return result;
-    }
+        double[][][] output = new double[output_depth][output_height][output_width];
 
-    public double[][][] backprop(double[][][] d_L_d_out) {
-        double[][][] d_L_d_filters = new double[filters.length][filters[0].length][filters[0][0].length];
-        for (int i = 0; i <= (input.length - filterSize) / stride; i++) {
-            for (int j = 0; j <= (input[0].length - filterSize) / stride; j++) {
-                for (int k = 0; k < filters.length; k++) {
-                    int startX = i * stride;
-                    int startY = j * stride;
-                    double[][] region = getConvolutionRegion(input, startX, startY, filterSize, filterSize);
-                    d_L_d_filters[k] = Mat.mm_add(d_L_d_filters[k], Mat.m_scale(region, d_L_d_out[k][i][j]));
+        for (int d = 0; d < this.output_depth; d++) {
+            double[][][] f = this.filters[d];
+
+            int y = 0; //-this.padding;
+            for (int output_y = 0; output_y < this.output_height; y += stride, output_y++) {  // xy_stride
+                int x = 0; // -this.padding;
+                for (int output_x = 0; output_x < this.output_width; x += stride, output_x++) {  // xy_stride
+
+                    // convolve centered at this particular location
+                    double a = 0.0;
+                    for (int fy = 0; fy < filterSize; fy++) {
+                        int input_y = y + fy; // coordinates in the original input array coordinates
+                        for (int fx = 0; fx < filterSize; fx++) {
+                            int input_x = x + fx;
+                            if (input_y >= 0 && input_y < input_height && input_x >= 0 && input_x < input_width) {
+                                for (int fd = 0; fd < f.length; fd++) {
+                                    double input_val = input[fd][input_y][input_x];
+
+//                                    System.out.println("input: " + input_val + " greater than 0?: "+ (input_val > 0?"yes":"no") );
+                                    a += f[fd][fy][fx] * input[fd][input_y][input_x];
+                                }
+                            }
+                        }
+                    }
+                    a += this.biases[d];
+                    output[d][output_y][output_x] = a;
                 }
             }
         }
 
-        return d_L_d_filters;
+        return output;
     }
 
-    public void updateParameters(double[][][] d_L_d_filters, double learning_rate) {
-        for (int m = 0; m < filters.length; m++) {
-            filters[m] = Mat.mm_add(filters[m], Mat.m_scale(d_L_d_filters[m], -learning_rate));
+    public double[][][] backprop(double[][][] output_gradients) {
+
+        double[][][] inputGradient = new double[input_depth][input_height][input_width];
+
+//        System.out.println(Arrays.deepToString(inputGradient));
+
+        for (int d = 0; d < this.output_depth; d++) {
+            double[][][] f = this.filters[d];
+
+            int y = 0; //-this.padding;
+            for (int output_y = 0; output_y < this.output_height; y += stride, output_y++) {
+                int x = 0; // -this.padding;
+                for (int output_x = 0; output_x < this.output_width; x += stride, output_x++) {
+
+                    // convolve centered at this particular location
+                    double chain_grad = output_gradients[d][output_y][output_x];
+                    for (int fy = 0; fy < filterSize; fy++) {
+                        int input_y = y + fy; // coordinates in the original input array coordinates
+                        for (int fx = 0; fx < filterSize; fx++) {
+                            int input_x = x + fx;
+                            if (input_y >= 0 && input_y < input_height && input_x >= 0 && input_x < input_width) {
+                                for (int fd = 0; fd < f.length; fd++) {
+                                    inputGradient[fd][input_y][input_x] += f[fd][fy][fx] * chain_grad;
+
+//                                    if (inputGradient[fd][input_y][input_x] != 0.0)
+//                                        System.out.println(inputGradient[fd][input_y][input_x]);//String.format("f[%d][%d][%d]:", fd,fy,fx) + f[fd][fy][fx]);
+
+//                                    if (f[fd][fy][fx] != 0.0)
+//                                        System.out.println(String.format("f[%d][%d][%d]:", fd,fy,fx) + f[fd][fy][fx]);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
+
+        return inputGradient;
     }
 
-    public double[][][] get_Filters() {
-        return filters;
+    public void updateParameters(double[][][] output_gradients, double learning_rate) {
+//        System.out.println(Arrays.deepToString(input3D));
+
+        double[][][][] filterGradients = new double[numFilters][filter_depth][filterSize][filterSize];
+        double[] biasGradients = new double[numFilters];
+
+        for (int d = 0; d < this.output_depth; d++) {
+            double[][][] f = this.filters[d];
+
+            int y = 0; //-this.padding;
+            for (int output_y = 0; output_y < this.output_height; y += stride, output_y++) {
+                int x = 0; // -this.padding;
+                for (int output_x = 0; output_x < this.output_width; x += stride, output_x++) {
+
+                    // convolve centered at this particular location
+                    double chain_grad = output_gradients[d][output_y][output_x];
+                    for (int fy = 0; fy < filterSize; fy++) {
+                        int input_y = y + fy; // coordinates in the original input array coordinates
+                        for (int fx = 0; fx < filterSize; fx++) {
+                            int input_x = x + fx;
+                            if (input_y >= 0 && input_y < input_height && input_x >= 0 && input_x < input_width) {
+                                for (int fd = 0; fd < f.length; fd++) {
+                                    filterGradients[d][fd][fy][fx] += input3D[fd][input_y][input_x] * chain_grad;
+
+                                    double a = input3D[fd][input_y][input_x];
+//                                    System.out.println(fd+" "+input_y+" "+input_x);
+//                                    if(a!=0.0){//filterGradients[d][fd][fy][fx] != 0){
+//                                        System.out.println(a);//filterGradients[d][fd][fy][fx]);
+//                                    }
+
+                                }
+                            }
+                        }
+                    }
+                    biasGradients[d] += chain_grad;
+                }
+            }
+        }
+
+        for (int d = 0; d < filters.length; d++) {
+            for (int fd = 0; fd < filters[0].length; fd++) {
+                for (int fy = 0; fy < filterSize; fy++) {
+                    for (int fx = 0; fx < filterSize; fx++) {
+                        this.filters[d][fd][fy][fx] -= learning_rate * filterGradients[d][fd][fy][fx];
+                    }
+                }
+            }
+            this.biases[d] -= learning_rate * biasGradients[d];
+        }
+
     }
 }
