@@ -56,16 +56,9 @@ public class Convolution {
         this.filters = new double[numFilters][input_depth][filterSize][filterSize];
         this.biases = new double[numFilters];
 
-        for (int d = 0; d < numFilters; d++) {
-            for (int fd = 0; fd < filter_depth; fd++) {
-                for (int fy = 0; fy < filterSize; fy++) {
-                    for (int fx = 0; fx < filterSize; fx++) {
-                        this.filters[d][fd][fy][fx] = 1;//Math.random();
-                    }
-                }
-            }
-            this.biases[d] = 0;//Math.random();
-        }
+        this.filters = XavierInitializer.xavierInit4D(numFilters, filter_depth, filterSize);
+
+        this.biases = XavierInitializer.xavierInit1D(numFilters);
     }
 
 
