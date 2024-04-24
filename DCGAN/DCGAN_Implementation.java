@@ -19,8 +19,8 @@ public class DCGAN_Implementation {
 
     public void discriminator_execute() {
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
-        int num_images = 20;
-        int num_images_test = 20;
+        int num_images = 200;
+        int num_images_test = 100;
         int num_epochs = 100;
 
         double[][][] fakeImages_train = new double[num_images][28][28];
@@ -75,7 +75,7 @@ public class DCGAN_Implementation {
             discriminator.getOutput(avg_image[0]);
 
             // Update discriminator parameters after processing all images
-            discriminator.updateParameters(UTIL.mean_1st_layer(outputGradients), 0.05);
+            discriminator.updateParameters(UTIL.mean_1st_layer(outputGradients), 0.0005);
 
             // Calculate test loss and accuracy
             double test_loss = 0.0;
