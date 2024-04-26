@@ -61,21 +61,21 @@ public class LeakyReLULayer {
         return output2D;
     }
 
-    public double[][][] backward(double[][][] d_L_d_out) {
-        double[][][] d_L_d_input = new double[d_L_d_out.length][d_L_d_out[0].length][d_L_d_out[0][0].length];
-        int depth = d_L_d_out.length;
-        int height = d_L_d_out[0].length;
-        int width = d_L_d_out[0][0].length;
+    public double[][][] backward(double[][][] outputGradient) {
+        double[][][] inputGradient = new double[outputGradient.length][outputGradient[0].length][outputGradient[0][0].length];
+        int depth = outputGradient.length;
+        int height = outputGradient[0].length;
+        int width = outputGradient[0][0].length;
 
         for (int d = 0; d < depth; d++) {
             for (int h = 0; h < height; h++) {
                 for (int w = 0; w < width; w++) {
-                    d_L_d_input[d][h][w] = output[d][h][w] > 0 ? d_L_d_out[d][h][w] : k * d_L_d_out[d][h][w];
+                    inputGradient[d][h][w] = output[d][h][w] > 0 ? outputGradient[d][h][w] : k * outputGradient[d][h][w];
                 }
             }
         }
 
-        return d_L_d_input;
+        return inputGradient;
     }
 
     public double[][] backward(double[][] d_L_d_out) {

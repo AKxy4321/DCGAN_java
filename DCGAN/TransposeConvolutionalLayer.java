@@ -1,55 +1,85 @@
 package DCGAN;
 
+import java.awt.image.BufferedImage;
+
 public class TransposeConvolutionalLayer {
     double[][][][] filters;
     private double[] biases;
     private final int stride;
     double[][][] input;
     public int numFilters;
-    public int filterSize;
-    public int numFiltersPrev;
+    public int filterDepth;
 
-    public TransposeConvolutionalLayer(int numFiltersPrev, int filterSize, int numFilters, int stride) {
+    public int filterSize;
+    public int inputWidth, inputHeight, inputDepth;
+    public int outputWidth, outputHeight, outputDepth;
+    public int padding = 0;
+
+    public TransposeConvolutionalLayer(int inputDepth, int filterSize, int numFilters, int stride) {
+        this(filterSize, numFilters, stride, 28, 28, inputDepth, 0);
+    }
+
+
+    public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride, int inputWidth, int inputHeight, int inputDepth, int padding) {
         this.numFilters = numFilters;
         this.filterSize = filterSize;
-        this.filters = new double[numFilters][numFiltersPrev][filterSize][filterSize];
+        this.filters = new double[numFilters][inputDepth][filterSize][filterSize];
         this.biases = new double[numFilters];
-        this.numFiltersPrev = numFiltersPrev;
-        this.filters = XavierInitializer.xavierInit4D(numFilters, numFiltersPrev, filterSize);
-        this.biases = XavierInitializer.xavierInit1D(numFilters);
+        this.filterDepth = inputDepth;
+
+        this.filters = XavierInitializer.xavierInit4D(numFilters, filterDepth, filterSize);
+
+        // TODO: Change to xavier initialization later, cause we aren't currently using bias
+        this.biases = UTIL.multiplyScalar(XavierInitializer.xavierInit1D(numFilters), 0);
         this.stride = stride;
+
+        this.inputWidth = inputWidth;
+        this.inputHeight = inputHeight;
+        this.inputDepth = inputDepth;
+
+        // output_shape = (input_shape - 1) * stride - 2 * padding + kernel_size + output_padding
+
+//        if (paddingType.equals("same")) {
+//            outputHeight = inputHeight + (filterSize - 1);
+//            outputWidth = inputWidth + (filterSize - 1);
+//        } else if (paddingType.equals("valid")) {
+//            outputHeight = inputHeight - filterSize + 1;
+//            outputWidth = inputWidth - filterSize + 1;
+//        } else {// zero padding
+//            padding = 0;
+        outputHeight = this.stride * (inputHeight - 1) + filterSize - 2 * padding;
+        outputWidth = this.stride * (inputWidth - 1) + filterSize - 2 * padding;
+//        }
+
+        outputDepth = numFilters;
     }
 
     public double[][][] forward(double[][][] input) {
         this.input = input;
-        int inputChannels = input.length;
-        int inputHeight = input[0].length;
-        int inputWidth = input[0][0].length;
-        int numFilters = this.filters.length;
-        int filterSize = this.filters[0][0].length;
 
-        int outputHeight = this.stride * (inputHeight - 1) + filterSize;
-        int outputWidth = this.stride * (inputWidth - 1) + filterSize;
 
         double[][][] output = new double[numFilters][outputHeight][outputWidth];
 
-        for (int k = 0; k < numFilters; k++) {
-            for (int h = 0; h < outputHeight; h++) {
-                for (int w = 0; w < outputWidth; w++) {
+        for (int oy = 0; oy < outputHeight; oy++) {
+            for (int ox = 0; ox < outputWidth; ox++) {
+                for (int k = 0; k < numFilters; k++) {
+
                     double sum = 0;
-                    for (int c = 0; c < inputChannels; c++) {
-                        for (int i = 0; i < filterSize; i++) {
-                            for (int j = 0; j < filterSize; j++) {
-                                int inH = h - i * this.stride;
-                                int inW = w - j * this.stride;
+                    for (int c = 0; c < inputDepth; c++) {
+
+                        for (int fy = 0; fy < filterSize; fy++) {
+                            for (int fx = 0; fx < filterSize; fx++) {
+                                int inH = oy - fy * this.stride;
+                                int inW = ox - fx * this.stride;
                                 if ((0 <= inH && inH < inputHeight)
                                         && (0 <= inW && inW < inputWidth)) {
-                                    sum += input[c][inH][inW] * this.filters[k][c][i][j];
+                                    sum += input[c][inH][inW] * this.filters[k][c][fy][fx];
                                 }
                             }
                         }
                     }
-                    output[k][h][w] = sum + this.biases[k];
+
+                    output[k][oy][ox] = sum + this.biases[k];
                 }
             }
         }
@@ -57,35 +87,44 @@ public class TransposeConvolutionalLayer {
     }
 
     public double[][][] backward(double[][][] outputGradient) {
-        double[][][] input = this.input;
-        int inputChannels = input.length;
-        int inputHeight = input[0].length;
-        int inputWidth = input[0][0].length;
-        int numFilters = this.filters.length;
-        int filterSize = this.filters[0][0].length;
 
-        int outputHeight = this.stride * (inputHeight - 1) + filterSize;
-        int outputWidth = this.stride * (inputWidth - 1) + filterSize;
+        // to do backward propagation for transpose conv layer,
+        // you need to basically do forward propagation for outputGradient of the layer
+        // using the same filters
 
+        double[][][] inputGradient = new double[inputDepth][inputHeight][inputWidth];
 
+        for (int d = 0; d < inputDepth; d++) {
 
-        double[][][] inputGradient = new double[inputChannels][inputHeight][inputWidth];
-        for (int c = 0; c < inputChannels; c++) {
-            for (int h = 0; h < inputHeight; h++) {
-                for (int w = 0; w < inputWidth; w++) {
-                    double sum = 0;
+            int y = -this.padding;
+            for (int inputY = 0; inputY < inputHeight; y += stride, inputY++) {  // xy_stride
+                int x = -this.padding;
+                for (int inputX = 0; inputX < inputWidth; x += stride, inputX++) {  // xy_stride
+
+                    // convolve centered at this particular location
+                    double a = 0.0;
                     for (int k = 0; k < numFilters; k++) {
-                        for (int i = 0; i < filterSize; i++) {
-                            for (int j = 0; j < filterSize; j++) {
-                                int outH = h + i * this.stride;
-                                int outW = w + j * this.stride;
-                                if (outH >= 0 && outH < outputHeight && outW >= 0 && outW < outputWidth) {
-                                    sum += this.filters[k][c][i][j] * outputGradient[k][outH][outW];
+
+                        for (int fy = 0; fy < filterSize; fy++) {
+                            int outputY = y + fy; // coordinates in the original input array coordinates
+                            for (int fx = 0; fx < filterSize; fx++) {
+
+                                int outputX = x + fx;
+                                if (outputY >= 0 && outputY < outputHeight && outputX >= 0 && outputX < outputWidth) {
+                                    for (int fd = 0; fd < filters[0].length; fd++) {// filter depth
+                                        double[][][] f = this.filters[k];
+
+                                        //calculate the 180 degree rotated filter indices
+                                        int new_fx = filterSize - 1 - fx;
+                                        int new_fy = filterSize - 1 - fy;
+
+                                        a += f[fd][new_fy][new_fx] * outputGradient[k][outputY][outputX];
+                                    }
                                 }
                             }
                         }
                     }
-                    inputGradient[c][h][w] = sum;
+                    inputGradient[d][inputY][inputX] = a;
                 }
             }
         }
@@ -93,65 +132,125 @@ public class TransposeConvolutionalLayer {
         return inputGradient;
     }
 
-    public void updateParameters(double[][][] outputGradient, double learningRate){
-        int inputChannels = input.length;
-        int inputHeight = input[0].length;
-        int inputWidth = input[0][0].length;
-        int numFilters = this.filters.length;
-        int filterSize = this.filters[0][0].length;
-
-        int outputHeight = this.stride * (inputHeight - 1) + filterSize;
-        int outputWidth = this.stride * (inputWidth - 1) + filterSize;
-
-        double[][][][] filtersGradient = new double[numFilters][this.numFiltersPrev][filterSize][filterSize];
+    public void updateParameters(double[][][] outputGradient, double learningRate) {
+        double[][][][] filtersGradient = new double[numFilters][filterDepth][filterSize][filterSize];
         double[] biasesGradient = new double[numFilters];
 
-        for (int k = 0; k < numFilters; k++) {
-            for (int c = 0; c < inputChannels; c++) {
-                for (int i =0;i<filterSize;i++){
-                    for (int j = 0; j < filterSize; j++) {
-                        filtersGradient[k][c][i][j] = 0;
-                    }
-                }
-            }
-            biasesGradient[k] = 0;
-        }
 
         for (int k = 0; k < numFilters; k++) {
-            for (int c = 0; c < inputChannels; c++) {
+            for (int c = 0; c < filterDepth; c++) {
                 for (int i = 0; i < filterSize; i++) {
                     for (int j = 0; j < filterSize; j++) {
-                        for (int h = 0; h < outputHeight; h++) {
 
+                        for (int h = 0; h < outputHeight; h++) {
                             for (int w = 0; w < outputWidth; w++) {
                                 int inH = h - i * this.stride;
                                 int inW = w - j * this.stride;
-                                if ((0 <= inH && inH < inputHeight - filterSize - 1)
-                                        && (0 <= inW && inW < inputWidth - filterSize - 1)) {
+                                if ((0 <= inH && inH < inputHeight)
+                                        && (0 <= inW && inW < inputWidth)) {
                                     filtersGradient[k][c][i][j] += outputGradient[k][h][w] * input[c][inH][inW];
                                 }
                             }
                         }
+
                     }
                 }
-                for (int h = 0; h < outputHeight; h++) {
-                    for (int w = 0; w < outputWidth; w++) {
-                        biasesGradient[k] += outputGradient[k][h][w];
-                    }
+            }
+            for (int h = 0; h < outputHeight; h++) {
+                for (int w = 0; w < outputWidth; w++) {
+                    biasesGradient[k] += outputGradient[k][h][w];
                 }
             }
         }
 
         for (int k = 0; k < numFilters; k++) {
-            for (int c = 0; c < inputChannels; c++) {
+            for (int c = 0; c < filterDepth; c++) {
                 for (int i = 0; i < filterSize; i++) {
                     for (int j = 0; j < filterSize; j++) {
                         this.filters[k][c][i][j] -= learningRate * filtersGradient[k][c][i][j];
                     }
                 }
             }
-            this.biases[k] -= learningRate * biasesGradient[k];
+//            this.biases[k] -= learningRate * biasesGradient[k];
         }
     }
 
+    public static void main(String[] args) {
+        int height = 11, width = 11, depth = 1;
+//        output_shape = (input_shape - 1) * stride - 2 * padding + kernel_size + output_padding
+        TransposeConvolutionalLayer layer = new TransposeConvolutionalLayer(5, 1, 2, width, height, depth, 3);
+//        int height = 19, width = 19, depth = 1;
+////        output_shape = (input_shape - 1) * stride - 2 * padding + kernel_size + output_padding
+//        TransposeConvolutionalLayer layer = new TransposeConvolutionalLayer(6, 1, 2, width, height, depth, 7);
+//        double[][][] input = {{
+//                {0, 1},
+//                {2, 3}
+//        }};
+//
+//        double[][][] filter = {{
+//                {0, 1,3},
+//                {2, 1,4},
+//                {2,1,4}
+//        }};
+//        layer.filters[0] = filter;
+//
+//        double[] biases = new double[1];
+//        layer.biases = biases;
+//
+//        double[][][] output = layer.forward(input);
+//        System.out.println("Output:");
+//        for (int i = 0; i < output[0].length; i++) {
+//            for (int j = 0; j < output[0][0].length; j++) {
+//                System.out.print(output[0][i][j] + " ");
+//            }
+//            System.out.println();
+//        }
+
+        double[][][] output = layer.forward(XavierInitializer.xavierInit3D(depth, height, width));
+        BufferedImage image = DCGAN.UTIL.getBufferedImage(output);
+        UTIL.saveImage(image, "generated_image_transpose.png");
+
+        System.out.println(output.length + " " + output[0].length + " " + output[0][0].length);
+
+        layer.backward(new double[output.length][output[0].length][output[0][0].length]);
+
+    }
 }
+/*
+* To test layer:
+* TransposeConvolutionalLayer layer = new TransposeConvolutionalLayer(1, 2, 1, 2);
+        double[][][] input = {{
+                {0, 1},
+                {2, 3}
+        }};
+
+        double[][][] filter = {{
+                {0, 1},
+                {2, 3}
+        }};
+        layer.filters[0] = filter;
+
+        double[] biases = new double[1];
+        layer.biases = biases;
+
+        double[][][] output = layer.forward(input);
+        System.out.println("Output:");
+        for (int i = 0; i < output[0].length; i++) {
+            for (int j = 0; j < output[0][0].length; j++) {
+                System.out.print(output[0][i][j] + " ");
+            }
+            System.out.println();
+        }
+
+*
+0.0 0.0 0.0 1.0
+0.0 0.0 2.0 3.0
+0.0 2.0 0.0 3.0
+4.0 6.0 6.0 9.0
+*
+        For stride one for [1,2],[3,4] and filter [1,2],[3,4] the output is:
+        1.0 4.0 4.0
+        6.0 20.0 16.0
+        9.0 24.0 16.0
+
+* */

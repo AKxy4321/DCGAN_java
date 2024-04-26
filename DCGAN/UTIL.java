@@ -7,6 +7,23 @@ import java.io.IOException;
 import java.nio.file.Paths;
 
 public class UTIL {
+
+    public static double lossDiscriminatorMSE(double[] outputs, double[] expectedOutputs) {
+        double loss = 0;
+        for (int i = 0; i < outputs.length; i++) {
+            loss += Math.pow(outputs[i] - expectedOutputs[i], 2);
+        }
+        return (loss / outputs.length);
+    }
+
+    public static double gradientDiscriminatorMSE(double[] outputs, double[] expectedOutputs) {
+        double gradient = 0;
+        for (int i = 0; i < outputs.length; i++) {
+            gradient += 2 * (outputs[i] - expectedOutputs[i]);
+        }
+        return gradient / outputs.length;
+    }
+
     public static BufferedImage load_image(String src) throws IOException {
         BufferedImage file = ImageIO.read(new File(src));
         if (file == null) {
@@ -85,16 +102,37 @@ public class UTIL {
         return array;
     }
 
-    public static double[][] multiplyScalar(double[][] array, double scalar) {
-        for (int i = 0; i < array.length; i++) {
-            for (int j = 0; j < array[i].length; j++) {
-                array[i][j] *= scalar;
-            }
-        }
-        return array;
+    public static double clamp(double val, double lower, double upper) {
+        return Math.max(lower, Math.min(val, upper));
     }
 
-    public double gen_loss(double[] fake_output) {
+    public static double[] clamp(double[] vals, double lower, double upper) {
+        double[] clamped = new double[vals.length];
+        for (int i = 0; i < vals.length; i++) {
+            clamped[i] = clamp(vals[i], lower, upper);
+        }
+        return clamped;
+    }
+
+    public static double[][] multiplyScalar(double[][] array, double scalar) {
+        double[][] new_array = new double[array.length][array[0].length];
+        for (int i = 0; i < array.length; i++) {
+            for (int j = 0; j < array[i].length; j++) {
+                new_array[i][j] = array[i][j] * scalar;
+            }
+        }
+        return new_array;
+    }
+
+    public static double[] multiplyScalar(double[] array, double scalar) {
+        double[] new_array = new double[array.length];
+        for (int i = 0; i < array.length; i++) {
+            new_array[i] = array[i] * scalar;
+        }
+        return new_array;
+    }
+
+    public static double gen_loss(double[] fake_output) {
         double[] fake_one = new double[fake_output.length];
 
         for (int i = 0; i < fake_output.length; i++) {
@@ -103,7 +141,7 @@ public class UTIL {
         return binary_cross_entropy(fake_one, fake_output);
     }
 
-    public double disc_loss(double[] real_output, double[] fake_output) {
+    public static double disc_loss(double[] real_output, double[] fake_output) {
         double[] real_one = new double[real_output.length];
         double[] fake_zero = new double[fake_output.length];
 
@@ -118,33 +156,24 @@ public class UTIL {
         return real_loss + fake_loss;
     }
 
-    public double binary_cross_entropy(double[] y_true, double[] y_pred) {
+    public static double binary_cross_entropy(double[] y_true, double[] y_pred) {
         double sum = 0.0F;
         double epsilon = 1e-5F;
         for (int i = 0; i < y_true.length; i++) {
-            sum += y_true[i] * Math.log(y_pred[i]+epsilon) + (1 - y_true[i]) * Math.log(1 - y_pred[i]+epsilon);
+            sum += y_true[i] * Math.log(y_pred[i]);
         }
         return -sum / y_true.length;
     }
 
-    public static BufferedImage getBufferedImage(double[][][] fakeImage) {
-        double max = fakeImage[0][0][0];
-        double min = fakeImage[0][0][0];
-        BufferedImage image = new BufferedImage(28, 28, BufferedImage.TYPE_BYTE_GRAY);
-//        for (int y = 0; y < 28; y++) {
-//            for (int x = 0; x < 28; x++) {
-//                if (max < fakeImage[0][y][x]) {
-//                    max = fakeImage[0][y][x];
-//                }
-//                if (min > fakeImage[0][y][x]) {
-//                    min = fakeImage[0][y][x];
-//                }
-//            }
-//        }
+    public static BufferedImage getBufferedImage(double[][] imageData) {
+        int width = imageData[0].length;
+        int height = imageData.length;
 
-        for (int y = 0; y < 28; y++) {
-            for (int x = 0; x < 28; x++) {
-                double value = fakeImage[0][y][x];
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
+
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                double value = imageData[y][x];
                 double normalizedValue = (value + 1) / 2.0; // (value - min) / (max - min);
                 double brightness = normalizedValue * 255.0;
                 int grayValue = (int) brightness;
@@ -153,6 +182,11 @@ public class UTIL {
             }
         }
         return image;
+    }
+
+    public static BufferedImage getBufferedImage(double[][][] imageData) {
+        // TODO: change this to get the Buffered Image taking into accoun that this might have RGB channels in the extra 3rd dimension
+        return getBufferedImage(imageData[0]);
     }
 
     public static double[][] unflatten(double[] out_l, int height, int width) {
@@ -226,7 +260,7 @@ public class UTIL {
         return sum;
     }
 
-    public double[][][] mean_1st_layer(double[][][][] array) {
+    public static double[][][] mean_1st_layer(double[][][][] array) {
         double[][][] sum = new double[array[0].length][array[0][0].length][array[0][0][0].length];
         for (double[][][] subarray : array) {
             for (int i = 0; i < subarray.length; i++) {
@@ -255,5 +289,15 @@ public class UTIL {
         } catch (IOException e) {
             System.err.println("Error saving image: " + e.getMessage());
         }
+    }
+
+    public static double[][][][] multiplyScalar(double[][][][] array, double scalar) {
+        double[][][][] new_array = new double[array.length][array[0].length][array[0][0].length][array[0][0][0].length];
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                for (int k = 0; k < array[0][0].length; k++)
+                    for (int l = 0; l < array[0][0][0].length; l++)
+                        new_array[i][j][k][l] = array[i][j][k][l] * scalar;
+        return new_array;
     }
 }

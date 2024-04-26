@@ -33,14 +33,14 @@ public class DigitClassifier {
             realImages_train[i] =
                     UTIL.zeroToOneToMinusOneToOne(DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(1, i)));
             fakeImages_train[i] =
-                    UTIL.zeroToOneToMinusOneToOne(DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(0, i)));
+                    UTIL.zeroToOneToMinusOneToOne(DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(7, i)));
         }
 
         for (int i = 0; i < num_images_test; i++) {
             realImages_test[i] = //DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(1, i + num_images));
                     UTIL.zeroToOneToMinusOneToOne(DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(1, i + num_images)));
             fakeImages_test[i] = //DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(0, i + num_images));
-                    UTIL.zeroToOneToMinusOneToOne(DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(0, i + num_images)));
+                    UTIL.zeroToOneToMinusOneToOne(DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(7, i + num_images)));
         }
 
 
