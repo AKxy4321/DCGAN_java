@@ -30,40 +30,53 @@ public class DigitClassifier {
             //
             // problem 2: but the problem is that the value is still so small, the output at some of the layers is 0 every time you do forward prop
             // so we need to multiply it by a value to light up the neurons in the later layers
-            realImages_train[i] =
-                    UTIL.zeroToOneToMinusOneToOne(DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(1, i)));
-            fakeImages_train[i] =
-                    UTIL.zeroToOneToMinusOneToOne(DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(7, i)));
+            realImages_train[i] = UTIL.zeroToOneToMinusOneToOne(DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(3, i)));
+            fakeImages_train[i] = UTIL.zeroToOneToMinusOneToOne(DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(8, i)));
         }
 
         for (int i = 0; i < num_images_test; i++) {
             realImages_test[i] = //DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(1, i + num_images));
-                    UTIL.zeroToOneToMinusOneToOne(DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(1, i + num_images)));
+                    UTIL.zeroToOneToMinusOneToOne(DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(3, i + num_images)));
             fakeImages_test[i] = //DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(0, i + num_images));
-                    UTIL.zeroToOneToMinusOneToOne(DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(7, i + num_images)));
+                    UTIL.zeroToOneToMinusOneToOne(DCGAN.UTIL.img_to_mat(DCGAN.UTIL.mnist_load_index(8, i + num_images)));
         }
 
 
         // Train discriminator to identify fake from real images using batch gradient descent
         for (int epoch = 0; epoch < num_epochs; epoch++) {
             double total_loss = 0.0;
-            double[][] batchGradients = new double[num_images][1];
-
-            // Train discriminator to identify fake from real images using batch gradient descent
+            int[] indices = new int[num_images];
             for (int i = 0; i < num_images; i++) {
-                double[][] image = epoch % 2 == 0 ? realImages_train[i] : fakeImages_train[i];
-                double loss = lossDiscriminatorMSE(discriminator.getOutput(image), new double[]{epoch % 2 == 0 ? 1 : 0});
-                total_loss += loss;
-                double[] output_gradient = new double[]{gradientDiscriminatorMSE(discriminator.getOutput(image), new double[]{epoch % 2 == 0 ? 1 : 0})};
-                batchGradients[i] = output_gradient;
-
-//                discriminator.updateParameters(output_gradient, learning_rate); // SGD
+                indices[i] = i;
             }
+            shuffle(indices);
 
-            double[] mean_batch_gradient = UTIL.mean_1st_layer(batchGradients);
+            // Train discriminator using minibatch gradient descent
+            for (int i = 0; i < num_images; i += batch_size) {
+                int endIndex = Math.min(i + batch_size, num_images);
+                double[][][] batch_real_images = new double[endIndex - i][28][28];
+                double[][][] batch_fake_images = new double[endIndex - i][28][28];
+                double[][] batchGradients = new double[endIndex - i][1];
 
-//            discriminator.backward(mean_batch_gradient);
-            discriminator.updateParameters(mean_batch_gradient, learning_rate);
+                // Load minibatch of real and fake images
+                for (int j = i; j < endIndex; j++) {
+                    batch_real_images[j - i] = realImages_train[indices[j]];
+                    batch_fake_images[j - i] = fakeImages_train[indices[j]];
+                }
+
+                // Compute loss and gradients for the minibatch
+                for (int j = 0; j < endIndex - i; j++) {
+                    double[][] image = epoch % 2 == 0 ? batch_real_images[j] : batch_fake_images[j];
+                    double loss = lossDiscriminatorMSE(discriminator.getOutput(image), new double[]{epoch % 2 == 0 ? 1 : 0});
+                    total_loss += loss;
+                    double[] output_gradient = gradientDiscriminatorBinaryCrossEntropy(discriminator.getOutput(image), new double[]{epoch % 2 == 0 ? 1 : 0});
+                    batchGradients[j] = output_gradient;
+                }
+
+                // Update discriminator parameters using mean gradients of the minibatch
+                double[] mean_batch_gradient = UTIL.mean_1st_layer(batchGradients);
+                discriminator.updateParameters(mean_batch_gradient, learning_rate);
+            }
 
             // Calculate test loss and accuracy
             double test_loss = 0.0;
@@ -71,7 +84,7 @@ public class DigitClassifier {
             for (int i = 0; i < num_images_test; i++) {
                 double[] test_real_outputs = discriminator.getOutput(realImages_test[i]);
                 double[] test_fake_outputs = discriminator.getOutput(fakeImages_test[i]);
-                test_loss += lossDiscriminatorMSE(new double[]{test_real_outputs[0], test_fake_outputs[0]}, new double[]{1, 0});
+                test_loss += lossDiscriminatorBinaryCrossEntropy(new double[]{test_real_outputs[0], test_fake_outputs[0]}, new double[]{1, 0});
                 accuracy += calculateAccuracy(test_real_outputs, test_fake_outputs);
                 if (epoch == num_epochs - 1) {
                     System.out.println("Real output: " + Arrays.toString(test_real_outputs) + ", Fake output: " + Arrays.toString(test_fake_outputs));
@@ -80,8 +93,16 @@ public class DigitClassifier {
             test_loss /= num_images_test;
             accuracy /= (2 * num_images_test);
 
-            System.out.println("Epoch: " + (epoch + 1) + ", Average Training Loss: " + (total_loss / num_images) +
-                    ", Test Loss: " + test_loss + ", Test Accuracy: " + accuracy + ", Total training loss: " + total_loss);
+            System.out.println("Epoch: " + (epoch + 1) + ", Average Training Loss: " + (total_loss / num_images) + ", Test Loss: " + test_loss + ", Test Accuracy: " + accuracy + ", Total training loss: " + total_loss);
+        }
+    }
+
+    private void shuffle(int[] indices) {
+        for (int i = 0; i < indices.length; i++) {
+            int randomIndex = (int) (Math.random() * indices.length);
+            int temp = indices[i];
+            indices[i] = indices[randomIndex];
+            indices[randomIndex] = temp;
         }
     }
 
@@ -92,6 +113,7 @@ public class DigitClassifier {
         }
         return (loss / outputs.length);
     }
+
     public double lossDiscriminatorRMSE(double[] outputs, double[] expectedOutputs) {
         double loss = 0;
         for (int i = 0; i < outputs.length; i++) {
@@ -103,7 +125,7 @@ public class DigitClassifier {
     public double gradientDiscriminatorRMSE(double[] outputs, double[] expectedOutputs) {
         double sum_squares = 0;
         double sum_errors = 0;
-        int n= outputs.length;
+        int n = outputs.length;
         for (int i = 0; i < n; i++) {
             sum_squares += Math.pow(outputs[i] - expectedOutputs[i], 2);
 
@@ -111,9 +133,10 @@ public class DigitClassifier {
         }
         double mse = sum_squares / n;
         double rmse = Math.sqrt(mse);
-        double gradient = -(1/rmse)*sum_errors/n;
+        double gradient = -(1 / rmse) * sum_errors / n;
         return gradient;
     }
+
     public double gradientDiscriminatorMSE(double[] outputs, double[] expectedOutputs) {
         double gradient = 0;
         for (int i = 0; i < outputs.length; i++) {
@@ -134,4 +157,23 @@ public class DigitClassifier {
         }
         return accuracy;
     }
+
+    public double lossDiscriminatorBinaryCrossEntropy(double[] outputs, double[] labels) {
+        double loss = 0;
+        for (int i = 0; i < outputs.length; i++) {
+            loss += labels[i] * Math.log(outputs[i]) + (1 - labels[i]) * Math.log(1 - outputs[i]);
+        }
+        return -loss / outputs.length;
+    }
+
+    public double[] gradientDiscriminatorBinaryCrossEntropy(double[] outputs, double[] labels) {
+        double[] gradient = new double[outputs.length];
+        for (int i = 0; i < outputs.length; i++) {
+            gradient[i] = (outputs[i] - labels[i]) / (outputs[i] * (1 - outputs[i]) + epsilon);
+        }
+        return gradient;
+    }
+
+    public static double epsilon = 0.00001;
+
 }

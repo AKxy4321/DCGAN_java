@@ -232,6 +232,49 @@ public class UTIL {
         return flatten_output;
     }
 
+    public static void main(String[] args) {
+        double[][][] array = new double[][][]{
+                {
+                        {1, 2, 3},
+                        {4, 5, 6},
+                        {7, 8, 9}
+                },
+                {
+                        {10, 11, 12},
+                        {13, 14, 15},
+                        {16, 17, 18}
+                }
+        };
+        double[] flatten = flatten(array);
+        double[][][] unflatten = unflatten(flatten, 2, 3, 3);
+
+        System.out.println("Actual array : ");
+        for (double[][] doubles : array) {
+            for (double[] aDouble : doubles) {
+                for (double v : aDouble) {
+                    System.out.print(v + " ");
+                }
+                System.out.println();
+            }
+            System.out.println();
+        }
+
+        System.out.println("Flattened array : ");
+        System.out.println(java.util.Arrays.toString(flatten));
+
+        System.out.println("Unflattened version of flattened array : ");
+        for (double[][] doubles : unflatten) {
+            for (double[] aDouble : doubles) {
+                for (double v : aDouble) {
+                    System.out.print(v + " ");
+                }
+                System.out.println();
+            }
+            System.out.println();
+        }
+
+    }
+
     public static double[] negate(double[] array) {
         double[] new_array = new double[array.length];
         for (int i = 0; i < array.length; i++)

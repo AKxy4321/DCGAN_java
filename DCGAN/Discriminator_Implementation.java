@@ -13,7 +13,6 @@ public class Discriminator_Implementation {
         int inputWidth = 28, inputHeight = 28;
         this.conv1 = new Convolution(5, 64, 3, inputWidth, inputHeight, 1);
         this.leakyReLULayer1 = new LeakyReLULayer();
-//        this.conv2 = new Convolution(5, 64, 3, conv1.output_width, conv1.output_height, conv1.output_depth);
         this.maxPool = new MaxPool();
         this.dense = new DenseLayer(conv1.output_depth * conv1.output_width * conv1.output_height / 4, 1);
         this.sigmoidLayer = new SigmoidLayer();
@@ -41,7 +40,7 @@ public class Discriminator_Implementation {
         double[][][] disc_in_gradient_leakyrelu1 = this.leakyReLULayer1.backward(disc_in_gradient_maxpool);
         double[][][] disc_in_gradient_conv1 = this.conv1.backprop(disc_in_gradient_leakyrelu1);
         // now we have the gradient of the loss function for the generated output wrt to the generator output(which is nothing but dou J / dou image)
-        return disc_in_gradient_conv1; // this is fake_back_gradient
+        return disc_in_gradient_conv1; // this is the inputGradient
     }
 
     public void updateParameters(double[] outputGradient, double learning_rate_disc) {
@@ -57,6 +56,14 @@ public class Discriminator_Implementation {
         double[][][] disc_in_gradient_conv1 = this.conv1.backprop(disc_in_gradient_leakyrelu1);
 
         conv1.updateParameters(disc_in_gradient_leakyrelu1, learning_rate_disc);
+
+//        // print the first filter weights
+//        double[][][][] filters = conv1.filters;
+//        for(int i=0;i<filters[0].length;i++){
+//            for(int j=0;j<filters[0][0].length;j++){
+//                System.out.println(Arrays.toString(filters[0][i][j]));
+//            }
+//        }
 
         // print the sum of all the gradients
         System.out.println("Sum of all gradients in discriminator: "

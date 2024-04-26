@@ -47,14 +47,8 @@ public class Convolution {
 
         this.filter_depth = input_depth;
 
-        /*TODO: replace with below code after padding is added:
-        this.output_width = (int)Math.floor((input_width + this.padding * 2 - filterSize) / stride + 1);
-        this.output_height = (int)Math.floor((input_height + this.padding * 2 - filterSize) / stride + 1);
-        *
-        * */
-
-        this.filters = new double[numFilters][input_depth][filterSize][filterSize];
-        this.biases = new double[numFilters];
+//        this.filters = new double[numFilters][input_depth][filterSize][filterSize];
+//        this.biases = new double[numFilters];
 
         this.filters = XavierInitializer.xavierInit4D(numFilters, filter_depth, filterSize);
 
@@ -83,9 +77,6 @@ public class Convolution {
                             int input_x = x + fx;
                             if (input_y >= 0 && input_y < input_height && input_x >= 0 && input_x < input_width) {
                                 for (int fd = 0; fd < f.length; fd++) {
-                                    double input_val = input[fd][input_y][input_x];
-
-//                                    System.out.println("input: " + input_val + " greater than 0?: "+ (input_val > 0?"yes":"no") );
                                     a += f[fd][fy][fx] * input[fd][input_y][input_x];
                                 }
                             }
@@ -104,7 +95,6 @@ public class Convolution {
 
         double[][][] inputGradient = new double[input_depth][input_height][input_width];
 
-//        System.out.println(Arrays.deepToString(inputGradient));
 
         for (int d = 0; d < this.output_depth; d++) {
             double[][][] f = this.filters[d];
@@ -124,11 +114,6 @@ public class Convolution {
                                 for (int fd = 0; fd < f.length; fd++) {
                                     inputGradient[fd][input_y][input_x] += f[fd][fy][fx] * chain_grad;
 
-//                                    if (inputGradient[fd][input_y][input_x] != 0.0)
-//                                        System.out.println(inputGradient[fd][input_y][input_x]);//String.format("f[%d][%d][%d]:", fd,fy,fx) + f[fd][fy][fx]);
-
-//                                    if (f[fd][fy][fx] != 0.0)
-//                                        System.out.println(String.format("f[%d][%d][%d]:", fd,fy,fx) + f[fd][fy][fx]);
                                 }
                             }
                         }
@@ -141,7 +126,6 @@ public class Convolution {
     }
 
     public void updateParameters(double[][][] output_gradients, double learning_rate) {
-//        System.out.println(Arrays.deepToString(input3D));
 
         double[][][][] filterGradients = new double[numFilters][filter_depth][filterSize][filterSize];
         double[] biasGradients = new double[numFilters];
@@ -163,13 +147,6 @@ public class Convolution {
                             if (input_y >= 0 && input_y < input_height && input_x >= 0 && input_x < input_width) {
                                 for (int fd = 0; fd < f.length; fd++) {
                                     filterGradients[d][fd][fy][fx] += input3D[fd][input_y][input_x] * chain_grad;
-
-                                    double a = input3D[fd][input_y][input_x];
-//                                    System.out.println(fd+" "+input_y+" "+input_x);
-//                                    if(a!=0.0){//filterGradients[d][fd][fy][fx] != 0){
-//                                        System.out.println(a);//filterGradients[d][fd][fy][fx]);
-//                                    }
-
                                 }
                             }
                         }
@@ -179,15 +156,15 @@ public class Convolution {
             }
         }
 
-        for (int d = 0; d < filters.length; d++) {
+        for (int k = 0; k < filters.length; k++) {
             for (int fd = 0; fd < filters[0].length; fd++) {
                 for (int fy = 0; fy < filterSize; fy++) {
                     for (int fx = 0; fx < filterSize; fx++) {
-                        this.filters[d][fd][fy][fx] -= learning_rate * filterGradients[d][fd][fy][fx];
+                        this.filters[k][fd][fy][fx] -= learning_rate * filterGradients[k][fd][fy][fx];
                     }
                 }
             }
-            this.biases[d] -= learning_rate * biasGradients[d];
+            this.biases[k] -= learning_rate * biasGradients[k];
         }
 
     }
