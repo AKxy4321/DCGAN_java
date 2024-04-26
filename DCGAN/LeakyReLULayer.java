@@ -67,6 +67,11 @@ public class LeakyReLULayer {
         int height = outputGradient[0].length;
         int width = outputGradient[0][0].length;
 
+//        System.out.println("For LeakyRELULayer:");
+//        System.out.println("inputGradient shape : "+inputGradient.length+" "+inputGradient[0].length+" "+inputGradient[0][0].length);
+//        System.out.println("outputGradient shape : "+outputGradient.length+" "+outputGradient[0].length+" "+outputGradient[0][0].length);
+//        System.out.println("output shape : "+output.length+" "+output[0].length+" "+output[0][0].length);
+
         for (int d = 0; d < depth; d++) {
             for (int h = 0; h < height; h++) {
                 for (int w = 0; w < width; w++) {

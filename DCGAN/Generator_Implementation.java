@@ -55,6 +55,7 @@ public class Generator_Implementation {
         double[][][] gen_leakyrelu_output1 = this.leakyReLU1.forward(gen_batch1_output_unflattened);
         double[][][] outputTconv1 = this.tconv1.forward(gen_leakyrelu_output1);
         double[] gen_batch2_output = this.batch2.forward(UTIL.flatten(outputTconv1), true);
+
         double[][][] gen_batch2_output_unflattened = UTIL.unflatten(gen_batch2_output, outputTconv1.length, outputTconv1[0].length, outputTconv1[0][0].length);
         double[][][] gen_leakyrelu_output2 = this.leakyReLU2.forward(gen_batch2_output_unflattened);
         double[][][] outputTconv2 = this.tconv2.forward(gen_leakyrelu_output2);
@@ -70,49 +71,51 @@ public class Generator_Implementation {
 
     public void updateParameters(double[][][] gen_output_gradient, double learning_rate_gen) {
 
-        double[][][] gradient0 = this.tanh.backward(gen_output_gradient);
-        double[][][] gradient0_1 = this.leakyReLU3.backward(gradient0);
-        double[] gradient_0_1_flattened = UTIL.flatten(gradient0_1);
-        double[][][] gradient0_2 = UTIL.unflatten(this.batch3.backward(gradient_0_1_flattened),
-                gradient0_1.length, gradient0_1[0].length, gradient0_1[0][0].length);
-        this.batch3.updateParameters(gradient_0_1_flattened, learning_rate_gen);
+        double[][][] tanh_in_gradient = this.tanh.backward(gen_output_gradient);
+        System.out.println("gradient0 shape : " + tanh_in_gradient.length + " " + tanh_in_gradient[0].length + " " + tanh_in_gradient[0][0].length);
+        double[][][] tconv3_in_gradient = this.tconv3.backward(tanh_in_gradient);
+        double[][][] leakyrelu3_in_gradient = this.leakyReLU3.backward(tconv3_in_gradient);
+        double[] leakyrelu3_in_gradient_flattened = UTIL.flatten(leakyrelu3_in_gradient);
+        double[][][] batch3_in_gradient_unflattened = UTIL.unflatten(this.batch3.backward(leakyrelu3_in_gradient_flattened),
+                leakyrelu3_in_gradient.length, leakyrelu3_in_gradient[0].length, leakyrelu3_in_gradient[0][0].length);
+        this.batch3.updateParameters(leakyrelu3_in_gradient_flattened, learning_rate_gen);
 
-        double[][][] gradient1 = this.tconv2.backward(gradient0_2);
-        this.tconv2.updateParameters(gradient0_2, learning_rate_gen);
+        double[][][] tconv2_in_gradient = this.tconv2.backward(batch3_in_gradient_unflattened);
+        this.tconv2.updateParameters(batch3_in_gradient_unflattened, learning_rate_gen);
 
-        double[][][] gradient1_2 = this.leakyReLU2.backward(gradient1);
-        double[] gradient1_2_flattened = UTIL.flatten(gradient1_2);
-        double[][][] gradient1_3 = UTIL.unflatten(
-                this.batch2.backward(gradient1_2_flattened),
-                gradient1_2.length, gradient1_2[0].length, gradient1_2[0][0].length);
-        this.batch2.updateParameters(gradient1_2_flattened, learning_rate_gen);
+        double[][][] leakyrelu2_in_gradient = this.leakyReLU2.backward(tconv2_in_gradient);
+        double[] leakyrelu2_in_gradient_flattened = UTIL.flatten(leakyrelu2_in_gradient);
+        double[][][] batch2_in_gradient_unflattened = UTIL.unflatten(
+                this.batch2.backward(leakyrelu2_in_gradient_flattened),
+                leakyrelu2_in_gradient.length, leakyrelu2_in_gradient[0].length, leakyrelu2_in_gradient[0][0].length);
+        this.batch2.updateParameters(leakyrelu2_in_gradient_flattened, learning_rate_gen);
 
-        double[][][] gradient2 = this.tconv1.backward(gradient1_3);
-        this.tconv1.updateParameters(gradient1_3, learning_rate_gen);
+        double[][][] tconv1_in_gradient = this.tconv1.backward(batch2_in_gradient_unflattened);
+        this.tconv1.updateParameters(batch2_in_gradient_unflattened, learning_rate_gen);
 
-        double[][][] gradient2_2 = this.leakyReLU1.backward(gradient2);
-        double[] out = UTIL.flatten(gradient2_2);
-        double[] gradient3 = this.batch1.backward(out);
+        double[][][] leakyrelu_in_gradient = this.leakyReLU1.backward(tconv1_in_gradient);
+        double[] leakyrelu_in_gradient_flattened = UTIL.flatten(leakyrelu_in_gradient);
+        double[] batch1_in_gradient = this.batch1.backward(leakyrelu_in_gradient_flattened);
 //        gradient3 = UTIL.multiplyScalar(gradient3, 0.000001);
-        this.batch1.updateParameters(out, learning_rate_gen * 1); // 0.000001);
+        this.batch1.updateParameters(leakyrelu_in_gradient_flattened, learning_rate_gen * 1); // 0.000001);
 
-        double[] gradient4 = this.dense.backward(gradient3);
-        this.dense.updateParameters(gradient3, learning_rate_gen * 1);// 0.0000000001);
+        double[] dense_in_gradient = this.dense.backward(batch1_in_gradient);
+        this.dense.updateParameters(batch1_in_gradient, learning_rate_gen * 1);// 0.0000000001);
 
         // print out the sum of each gradient by flattening it and summing it up using stream().sum()
         System.out.println("Sum of each gradient in generator: ");
 
-        System.out.println("gradient0: " + Arrays.stream(UTIL.flatten(gradient0)).sum());
-        System.out.println("gradient0_1: " + Arrays.stream(UTIL.flatten(gradient0_1)).sum());
-        System.out.println("gradient0_2: " + Arrays.stream(UTIL.flatten(gradient0_2)).sum());
-        System.out.println("gradient1: " + Arrays.stream(UTIL.flatten(gradient1)).sum());
-        System.out.println("gradient1_2: " + Arrays.stream(UTIL.flatten(gradient1_2)).sum());
-        System.out.println("gradient1_3: " + Arrays.stream(UTIL.flatten(gradient1_3)).sum());
-        System.out.println("gradient2: " + Arrays.stream(UTIL.flatten(gradient2)).sum());
-        System.out.println("gradient2_2: " + Arrays.stream(UTIL.flatten(gradient2_2)).sum());
-        System.out.println("out: " + Arrays.stream(out).sum());
-        System.out.println("gradient3: " + Arrays.stream(gradient3).sum());
-        System.out.println("gradient4: " + Arrays.stream(gradient4).sum());
+        System.out.println("gradient0: " + Arrays.stream(UTIL.flatten(tanh_in_gradient)).sum());
+        System.out.println("gradient0_1: " + Arrays.stream(UTIL.flatten(leakyrelu3_in_gradient)).sum());
+        System.out.println("gradient0_2: " + Arrays.stream(UTIL.flatten(batch3_in_gradient_unflattened)).sum());
+        System.out.println("gradient1: " + Arrays.stream(UTIL.flatten(tconv2_in_gradient)).sum());
+        System.out.println("gradient1_2: " + Arrays.stream(UTIL.flatten(leakyrelu2_in_gradient)).sum());
+        System.out.println("gradient1_3: " + Arrays.stream(UTIL.flatten(batch2_in_gradient_unflattened)).sum());
+        System.out.println("gradient2: " + Arrays.stream(UTIL.flatten(tconv1_in_gradient)).sum());
+        System.out.println("gradient2_2: " + Arrays.stream(UTIL.flatten(leakyrelu_in_gradient)).sum());
+        System.out.println("out: " + Arrays.stream(leakyrelu_in_gradient_flattened).sum());
+        System.out.println("gradient3: " + Arrays.stream(batch1_in_gradient).sum());
+        System.out.println("gradient4: " + Arrays.stream(dense_in_gradient).sum());
     }
 
 
