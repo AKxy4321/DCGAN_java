@@ -13,7 +13,7 @@ public class DigitClassifier {
         int num_images = 100;
         int num_images_test = 100;
         int num_epochs = 1000;
-        double learning_rate = 0.005;
+        double learning_rate = 1e-4;
         int batch_size = 8;
 
         double[][][] fakeImages_train = new double[num_images][28][28];
