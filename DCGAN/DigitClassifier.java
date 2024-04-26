@@ -9,11 +9,11 @@ public class DigitClassifier {
     }
 
     public void discriminator_execute() {
-        Discriminator_Implementation discriminator = new Discriminator_Implementation();
+        DiscriminatorWithBatchNorm discriminator = new DiscriminatorWithBatchNorm();
         int num_images = 100;
         int num_images_test = 100;
         int num_epochs = 1000;
-        double learning_rate = 1e-4;
+        double learning_rate = 5*1e-4;
         int batch_size = 8;
 
         double[][][] fakeImages_train = new double[num_images][28][28];
@@ -69,7 +69,7 @@ public class DigitClassifier {
                     double[][] image = epoch % 2 == 0 ? batch_real_images[j] : batch_fake_images[j];
                     double loss = lossDiscriminatorMSE(discriminator.getOutput(image), new double[]{epoch % 2 == 0 ? 1 : 0});
                     total_loss += loss;
-                    double[] output_gradient = gradientDiscriminatorBinaryCrossEntropy(discriminator.getOutput(image), new double[]{epoch % 2 == 0 ? 1 : 0});
+                    double[] output_gradient = gradientBinaryCrossEntropy(discriminator.getOutput(image), new double[]{epoch % 2 == 0 ? 1 : 0});
                     batchGradients[j] = output_gradient;
                 }
 
@@ -84,7 +84,7 @@ public class DigitClassifier {
             for (int i = 0; i < num_images_test; i++) {
                 double[] test_real_outputs = discriminator.getOutput(realImages_test[i]);
                 double[] test_fake_outputs = discriminator.getOutput(fakeImages_test[i]);
-                test_loss += lossDiscriminatorBinaryCrossEntropy(new double[]{test_real_outputs[0], test_fake_outputs[0]}, new double[]{1, 0});
+                test_loss += lossBinaryCrossEntropy(new double[]{test_real_outputs[0], test_fake_outputs[0]}, new double[]{1, 0});
                 accuracy += calculateAccuracy(test_real_outputs, test_fake_outputs);
                 if (epoch == num_epochs - 1) {
                     System.out.println("Real output: " + Arrays.toString(test_real_outputs) + ", Fake output: " + Arrays.toString(test_fake_outputs));
@@ -158,7 +158,7 @@ public class DigitClassifier {
         return accuracy;
     }
 
-    public double lossDiscriminatorBinaryCrossEntropy(double[] outputs, double[] labels) {
+    public double lossBinaryCrossEntropy(double[] outputs, double[] labels) {
         double loss = 0;
         for (int i = 0; i < outputs.length; i++) {
             loss += labels[i] * Math.log(outputs[i]) + (1 - labels[i]) * Math.log(1 - outputs[i]);
@@ -166,7 +166,7 @@ public class DigitClassifier {
         return -loss / outputs.length;
     }
 
-    public double[] gradientDiscriminatorBinaryCrossEntropy(double[] outputs, double[] labels) {
+    public double[] gradientBinaryCrossEntropy(double[] outputs, double[] labels) {
         double[] gradient = new double[outputs.length];
         for (int i = 0; i < outputs.length; i++) {
             gradient[i] = (outputs[i] - labels[i]) / (outputs[i] * (1 - outputs[i]) + epsilon);

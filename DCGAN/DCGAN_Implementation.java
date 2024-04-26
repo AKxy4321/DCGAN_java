@@ -35,8 +35,8 @@ public class DCGAN_Implementation {
         Logger logger = Logger.getLogger(DCGAN_Implementation.class.getName());
         int train_size = 3200;
         int label = 3;
-        double learning_rate_gen = 0.005;
-        double learning_rate_disc = 0.005;
+        double learning_rate_gen = 1e-2;
+        double learning_rate_disc = -1e-4;
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
         Generator_Implementation generator = new Generator_Implementation();
         System.out.println("Loading Images");
@@ -75,8 +75,8 @@ public class DCGAN_Implementation {
                     discriminator_real_outputs[img_idx] = discriminator_output_real;
                     discriminator_fake_outputs[img_idx] = discriminator_output_fake;
 
-                    double gen_loss = UTIL.gen_loss(discriminator_output_fake);
-                    double disc_loss = UTIL.disc_loss(discriminator_output_real, discriminator_output_fake);
+                    double gen_loss = generatorLoss(discriminator_output_fake);
+                    double disc_loss = discriminatorLoss(discriminator_output_real, discriminator_output_fake);
                     gen_losses[img_idx] = gen_loss;
                     disc_losses[img_idx] = disc_loss;
 
@@ -96,13 +96,12 @@ public class DCGAN_Implementation {
 
 //                System.out.println("computing discriminator gradients");
                     // gradient wrt both real and fake output
-                    double[] discriminator_outputs = new double[]{discriminator_output_real[0], discriminator_output_fake[0]};
-                    double[] dg = new double[]{UTIL.gradientDiscriminatorMSE(discriminator_outputs, new double[]{1.0, 0.0})};
+                    double[] dg = discriminatorLossGradient(discriminator_output_real, discriminator_output_fake);
                     disc_output_gradients[img_idx] = dg; //UTIL.negate(dg);
 
                     //gradient wrt only fake output
-                    double[] disc_gradient_fake = UTIL.negate(dg); // new double[]{UTIL.gradientDiscriminatorMSE(discriminator_output_fake, new double[]{0.0})});
-                    disc_gradient_fake[0] *= 5;
+                    double[] disc_gradient_fake = generatorLossGradient(discriminator_output_fake);
+                    disc_gradient_fake[0] *= 1;
                     // do one forward pass so that convolution layer stores this image
                     discriminator.getOutput(fakeImages[img_idx][0]);
 
@@ -123,35 +122,75 @@ public class DCGAN_Implementation {
 
                 // generate image
                 BufferedImage image = DCGAN.UTIL.getBufferedImage(generator.generateImage());
-
                 DCGAN.UTIL.saveImage(image, "generated_image.png");
+                System.out.println("Saved image");
             }
         }
     }
 
-    public static double lossDiscriminator(double[] real_output, double[] fake_output) {
-        double loss = 0;
-        for (int i = 0; i < real_output.length; i++) {
-            loss += -Math.log(real_output[i]) - Math.log(1 - fake_output[i]);
-        }
-        return loss / real_output.length;
+
+    public double generatorLoss(double[] fake_output) {
+        double[] ones = new double[fake_output.length];
+        Arrays.fill(ones, 1);
+        return lossBinaryCrossEntropy(fake_output, ones);
     }
 
-    public static double[] computeGradientDiscriminator(double[] real_output, double[] fake_output) {
+    public double discriminatorLoss(double[] real_output, double[] fake_output) {
+        double[] ones = new double[real_output.length];
+        double[] zeros = new double[real_output.length];
+        Arrays.fill(ones, 1);
+
+        double real_loss = lossBinaryCrossEntropy(real_output, ones);
+        double fake_loss = lossBinaryCrossEntropy(fake_output, zeros);
+
+        return real_loss + fake_loss;
+    }
+
+    public double[] discriminatorLossGradient(double[] real_output, double[] fake_output) {
+        double[] ones = new double[real_output.length];
+        double[] zeros = new double[real_output.length];
+        Arrays.fill(ones, 1);
+        Arrays.fill(zeros, 0);
+        double[] real_gradient = gradientBinaryCrossEntropy(real_output, ones);
+        double[] fake_gradient = gradientBinaryCrossEntropy(fake_output, zeros);
         double[] gradient = new double[real_output.length];
-        double epsilon = 1e-4F;
         for (int i = 0; i < real_output.length; i++) {
-            gradient[i] = -(1.0 / (real_output[i] + epsilon) + (1 / (fake_output[i] + epsilon)));
+            gradient[i] = real_gradient[i] + fake_gradient[i];
         }
         return gradient;
     }
 
-    public static double[] computeGradientDiscriminatorWRTFake(double[] fake_output) {
+    public double[] generatorLossGradientNew(double[] fake_output){
+        // loss function : -log(D(G(z)))
         double[] gradient = new double[fake_output.length];
-        double epsilon = 1e-1F;
-        for (int i = 0; i < fake_output.length; i++) {
-            gradient[i] += (1 / (fake_output[i] - 1 + epsilon));
+        for(int i = 0;i<fake_output.length;i++){
+            gradient[i] = -1/(fake_output[i] + epsilon);
         }
         return gradient;
     }
+
+    public double[] generatorLossGradient(double[] fake_output) {
+        double[] ones = new double[fake_output.length];
+        Arrays.fill(ones, 1);
+        return gradientBinaryCrossEntropy(fake_output, ones);
+    }
+
+    public double lossBinaryCrossEntropy(double[] outputs, double[] labels) {
+        double loss = 0;
+        for (int i = 0; i < outputs.length; i++) {
+            loss += labels[i] * Math.log(outputs[i] + epsilon) + (1 - labels[i]) * Math.log(1 - outputs[i] + epsilon);
+        }
+        return -loss / outputs.length;
+    }
+
+    public double[] gradientBinaryCrossEntropy(double[] outputs, double[] labels) {
+        double[] gradient = new double[outputs.length];
+        for (int i = 0; i < outputs.length; i++) {
+            gradient[i] = (outputs[i] - labels[i]) / (outputs[i] * (1 - outputs[i]) + epsilon);
+        }
+        return gradient;
+    }
+
+    public double epsilon = 0.00001;
+
 }
