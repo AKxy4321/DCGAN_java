@@ -28,11 +28,11 @@ public class Generator_Implementation {
 //         output_shape = (input_shape - 1) * stride  + kernel_size - 2 * padding
 //         padding = ((filter_height - 1) * stride + output_height - input_height)
 // if padding = same : ((filter_height - 1) * stride + 0) = (5-1)*1
-        this.tconv1 = new TransposeConvolutionalLayer(5, 128, 1, tconv1_input_width, tconv1_input_height, tconv1_input_depth, 0);
+        this.tconv1 = new TransposeConvolutionalLayer(5, 32, 1, tconv1_input_width, tconv1_input_height, tconv1_input_depth, 0);
         //11*11
         this.batch2 = new BatchNormalization(tconv1.outputDepth * tconv1.outputHeight * tconv1.outputWidth);
         this.leakyReLU2 = new LeakyReLULayer();
-        this.tconv2 = new TransposeConvolutionalLayer(5, 64, 2, tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth, 3);
+        this.tconv2 = new TransposeConvolutionalLayer(5, 32, 2, tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth, 3);
         this.batch3 = new BatchNormalization(tconv2.outputDepth * tconv2.outputHeight * tconv2.outputWidth);
         this.leakyReLU3 = new LeakyReLULayer();
         this.tconv3 = new TransposeConvolutionalLayer(6, 1, 2, tconv2.outputWidth, tconv2.outputHeight, tconv2.outputDepth, 7);

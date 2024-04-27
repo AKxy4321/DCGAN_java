@@ -175,44 +175,83 @@ public class TransposeConvolutionalLayer {
         }
     }
 
+    public static double calculateMSE(double[][] predictedOutput, double[][] targetOutput) {
+        double mse = 0.0;
+
+        for (int b = 0; b < predictedOutput.length; b++) {
+            for (int i = 0; i < predictedOutput[0].length; i++) {
+                mse += Math.pow(predictedOutput[b][i] - targetOutput[b][i], 2); // Calculate MSE
+            }
+        }
+
+        mse /= (predictedOutput.length * predictedOutput.length);
+        return mse;
+    }
+    public static double[][] calculateOutputGradient(double[][] predictedOutput, double[][] targetOutput) {
+        int batchSize = predictedOutput.length;
+        int outputSize = predictedOutput[0].length;
+        double[][] outputGradient = new double[batchSize][outputSize];
+
+        for (int b = 0; b < batchSize; b++) {
+            for (int i = 0; i < outputSize; i++) {
+                outputGradient[b][i] = 2 * (predictedOutput[b][i] - targetOutput[b][i]); // Gradient of MSE loss
+            }
+        }
+
+        return outputGradient;
+    }
+
     public static void main(String[] args) {
-        int height = 11, width = 11, depth = 1;
 //        output_shape = (input_shape - 1) * stride - 2 * padding + kernel_size + output_padding
-        TransposeConvolutionalLayer layer = new TransposeConvolutionalLayer(5, 1, 2, width, height, depth, 3);
-//        int height = 19, width = 19, depth = 1;
-////        output_shape = (input_shape - 1) * stride - 2 * padding + kernel_size + output_padding
-//        TransposeConvolutionalLayer layer = new TransposeConvolutionalLayer(6, 1, 2, width, height, depth, 7);
-//        double[][][] input = {{
-//                {0, 1},
-//                {2, 3}
-//        }};
-//
-//        double[][][] filter = {{
-//                {0, 1,3},
-//                {2, 1,4},
-//                {2,1,4}
-//        }};
-//        layer.filters[0] = filter;
-//
-//        double[] biases = new double[1];
-//        layer.biases = biases;
-//
-//        double[][][] output = layer.forward(input);
-//        System.out.println("Output:");
-//        for (int i = 0; i < output[0].length; i++) {
-//            for (int j = 0; j < output[0][0].length; j++) {
-//                System.out.print(output[0][i][j] + " ");
-//            }
-//            System.out.println();
-//        }
+        TransposeConvolutionalLayer layer = new TransposeConvolutionalLayer(2, 1, 2, 2, 2, 1, 0);
+        double[][][] input = {{
+                {0, 1},
+                {2, 3}
+        }};
 
-        double[][][] output = layer.forward(XavierInitializer.xavierInit3D(depth, height, width));
-        BufferedImage image = DCGAN.UTIL.getBufferedImage(output);
-        UTIL.saveImage(image, "generated_image_transpose.png");
+        double[][][] filter = {{
+                {0, 1},
+                {2, 3}
+        }};
+        layer.filters[0] = filter;
 
-        System.out.println(output.length + " " + output[0].length + " " + output[0][0].length);
+        double[] biases = new double[1];
+        layer.biases = biases;
 
-        layer.backward(new double[output.length][output[0].length][output[0][0].length]);
+        double[][][] output = layer.forward(input);
+        System.out.println("Output:");
+        for (int i = 0; i < output[0].length; i++) {
+            for (int j = 0; j < output[0][0].length; j++) {
+                System.out.print(output[0][i][j] + " ");
+            }
+            System.out.println();
+        }
+
+        double[][] targetOutput = {
+                {0, 0, 0, 1},
+                {0, 3, 2, 3},
+                {0, 2, 0, 3},
+                {4, 6, 6, 9}
+        };
+
+
+        for (int epoch = 0; epoch < 5000; epoch++) {
+            double[][] res = layer.forward(input)[0];
+            double[][] outputGradient = layer.calculateOutputGradient(res, targetOutput);
+            double mse = layer.calculateMSE(res, targetOutput);
+            System.out.println("Epoch " + (epoch + 1) + ", MSE: " + mse);
+            layer.updateParameters(new double[][][]{outputGradient},0.05);
+
+
+            System.out.println("Output:");
+            for (int i = 0; i < output[0].length; i++) {
+                for (int j = 0; j < output[0][0].length; j++) {
+                    System.out.print(res[i][j] + " ");
+                }
+                System.out.println();
+            }
+        }
+
 
     }
 }

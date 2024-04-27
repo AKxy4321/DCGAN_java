@@ -67,7 +67,7 @@ public class DigitClassifier {
                 // Compute loss and gradients for the minibatch
                 for (int j = 0; j < endIndex - i; j++) {
                     double[][] image = epoch % 2 == 0 ? batch_real_images[j] : batch_fake_images[j];
-                    double loss = lossDiscriminatorMSE(discriminator.getOutput(image), new double[]{epoch % 2 == 0 ? 1 : 0});
+                    double loss = lossBinaryCrossEntropy(discriminator.getOutput(image), new double[]{epoch % 2 == 0 ? 1 : 0});
                     total_loss += loss;
                     double[] output_gradient = gradientBinaryCrossEntropy(discriminator.getOutput(image), new double[]{epoch % 2 == 0 ? 1 : 0});
                     batchGradients[j] = output_gradient;
