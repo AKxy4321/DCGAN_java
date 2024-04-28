@@ -21,7 +21,7 @@ public class Generator_Implementation {
 
     public Generator_Implementation() {
         int noise_length = 100;
-        int tconv1_input_width = 7, tconv1_input_height = 7, tconv1_input_depth = 256;
+        int tconv1_input_width = 7, tconv1_input_height = 7, tconv1_input_depth = 5;
         this.dense_output_size = tconv1_input_width * tconv1_input_height * tconv1_input_depth;
         this.dense = new DenseLayer(noise_length, this.dense_output_size);
         this.batch1 = new BatchNormalization(this.dense_output_size);
@@ -38,7 +38,10 @@ public class Generator_Implementation {
     }
 
     public double[][][] generateImage() {
-        double[] noise = XavierInitializer.xavierInit1D(100); // generate noise input that we want to pass to the generator
+//        double[] noise = XavierInitializer.xavierInit1D(100); // generate noise input that we want to pass to the generator
+
+        double[] noise = new double[100];
+        Arrays.fill(noise,0.5);// TODO: go back to xavier Initialization
 
         double[] gen_dense_output = this.dense.forward(noise);
         double[] gen_batch1_output = this.batch1.forward(gen_dense_output, true);
@@ -68,29 +71,32 @@ public class Generator_Implementation {
         double[] leakyrelu3_in_gradient_flattened = UTIL.flatten(leakyrelu3_in_gradient);
         double[][][] batch3_in_gradient_unflattened = UTIL.unflatten(this.batch3.backward(leakyrelu3_in_gradient_flattened),
                 leakyrelu3_in_gradient.length, leakyrelu3_in_gradient[0].length, leakyrelu3_in_gradient[0][0].length);
-        this.batch3.updateParameters(leakyrelu3_in_gradient_flattened, learning_rate_gen);
 
         double[][][] tconv2_in_gradient = this.tconv2.backward(batch3_in_gradient_unflattened);
-        this.tconv2.updateParameters(batch3_in_gradient_unflattened, learning_rate_gen);
 
         double[][][] leakyrelu2_in_gradient = this.leakyReLU2.backward(tconv2_in_gradient);
         double[] leakyrelu2_in_gradient_flattened = UTIL.flatten(leakyrelu2_in_gradient);
         double[][][] batch2_in_gradient_unflattened = UTIL.unflatten(
                 this.batch2.backward(leakyrelu2_in_gradient_flattened),
                 leakyrelu2_in_gradient.length, leakyrelu2_in_gradient[0].length, leakyrelu2_in_gradient[0][0].length);
-        this.batch2.updateParameters(leakyrelu2_in_gradient_flattened, learning_rate_gen);
+
 
         double[][][] tconv1_in_gradient = this.tconv1.backward(batch2_in_gradient_unflattened);
-        this.tconv1.updateParameters(batch2_in_gradient_unflattened, learning_rate_gen);
+
 
         double[][][] leakyrelu_in_gradient = this.leakyReLU1.backward(tconv1_in_gradient);
         double[] leakyrelu_in_gradient_flattened = UTIL.flatten(leakyrelu_in_gradient);
         double[] batch1_in_gradient = this.batch1.backward(leakyrelu_in_gradient_flattened);
 //        gradient3 = UTIL.multiplyScalar(gradient3, 0.000001);
-        this.batch1.updateParameters(leakyrelu_in_gradient_flattened, learning_rate_gen * 1); // 0.000001);
 
         double[] dense_in_gradient = this.dense.backward(batch1_in_gradient);
-        this.dense.updateParameters(batch1_in_gradient, learning_rate_gen * 1);// 0.0000000001);
+
+        this.tconv1.updateParameters(batch2_in_gradient_unflattened, learning_rate_gen);
+        this.tconv2.updateParameters(batch3_in_gradient_unflattened, learning_rate_gen);
+        this.batch1.updateParameters(leakyrelu_in_gradient_flattened, learning_rate_gen);
+        this.batch2.updateParameters(leakyrelu2_in_gradient_flattened, learning_rate_gen);
+        this.batch3.updateParameters(leakyrelu3_in_gradient_flattened, learning_rate_gen);
+        this.dense.updateParameters(batch1_in_gradient, learning_rate_gen);
 
         if (verbose) {
             // print out the sum of each gradient by flattening it and summing it up using stream().sum()
@@ -125,31 +131,23 @@ public class Generator_Implementation {
         double[][][] targetOutput = new double[][][]{UTIL.zeroToOneToMinusOneToOne(UTIL.img_to_mat(img))};
 
         double prev_loss = Double.MAX_VALUE, loss;
-        double default_rate = 0.0001;
-        double smallest = 0.00000000001, largest = 1;
-
+        double default_rate = +0.1;
+        double smallest = 0.00000000001, largest = 0.1;
+        generator.verbose = false;
 
         for (int epoch = 0, max_epochs = 20000; epoch < max_epochs; epoch++, prev_loss = loss) {
             output = generator.generateImage();
 
             loss = UTIL.lossMSE(output[0], targetOutput[0]);
 
-            // calculate the new learning rate based on difference in prev and curr loss
-            double learning_rate = default_rate;
-            if (epoch > 10) {
-                double change_in_loss = prev_loss - loss;
-                if (change_in_loss > 0)
-                    learning_rate = 1 / change_in_loss;
-            }
-
-            learning_rate = UTIL.clamp(learning_rate, smallest, largest);
-            System.out.println("loss : " + loss + " learning_rate : " + learning_rate);
+            System.out.println(loss);
 
             UTIL.calculateGradientMSE(outputGradient[0], output[0], targetOutput[0]);
 
-            generator.updateParameters(outputGradient, learning_rate);
+            generator.updateParameters(outputGradient, default_rate);
 
-            UTIL.saveImage(UTIL.getBufferedImage(output), "current_image.png");
+            if(epoch%10 == 0)
+                UTIL.saveImage(UTIL.getBufferedImage(output), "current_image.png");
 
             if (loss < 0.1) break;
         }
@@ -158,3 +156,15 @@ public class Generator_Implementation {
         UTIL.saveImage(UTIL.getBufferedImage(output), "final_image.png");
     }
 }
+/*
+* // calculate the new learning rate based on difference in prev and curr loss
+            double learning_rate = default_rate;
+            if (epoch > 10) {
+                double change_in_loss = prev_loss - loss;
+                if (change_in_loss > 0)
+                    learning_rate = largest / change_in_loss;
+            }
+
+            learning_rate = UTIL.clamp(learning_rate, smallest, largest);
+            System.out.println("loss : " + loss + " learning_rate : " + default_rate);
+* */

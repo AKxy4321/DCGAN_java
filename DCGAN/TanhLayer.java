@@ -13,7 +13,7 @@ public class TanhLayer {
         int depth = input.length;
         int height = input[0].length;
         int width = input[0][0].length;
-        output = new double[depth][height][width];
+        this.output = new double[depth][height][width];
 
         for (int d = 0; d < depth; d++) {
             for (int h = 0; h < height; h++) {
@@ -30,7 +30,7 @@ public class TanhLayer {
         this.input2D = input;
         int height = input.length;
         int width = input[0].length;
-        output2D = new double[height][width];
+        this.output2D = new double[height][width];
 
         for (int h = 0; h < height; h++) {
             for (int w = 0; w < width; w++) {
@@ -53,6 +53,7 @@ public class TanhLayer {
         for (int d = 0; d < depth; d++) {
             for (int h = 0; h < height; h++) {
                 for (int w = 0; w < width; w++) {
+//                    System.out.println(output[d][h][w]);
                     inputGradient[d][h][w] =  (1-output[d][h][w]*output[d][h][w]) * outputGradient[d][h][w];
                 }
             }
@@ -71,6 +72,32 @@ public class TanhLayer {
             }
         }
         return inputGradient;
+    }
+
+    public static void main(String[] args) {
+        double[][][] input = {{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}};
+        TanhLayer tanh = new TanhLayer();
+        double[][][] output = tanh.forward(input);
+        double[][][] outputGradient = {{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}};
+        double[][][] inputGradient = tanh.backward(outputGradient);
+        System.out.println("Output: ");
+        for (int d = 0; d < output.length; d++) {
+            for (int h = 0; h < output[0].length; h++) {
+                for (int w = 0; w < output[0][0].length; w++) {
+                    System.out.print(output[d][h][w] + " ");
+                }
+                System.out.println();
+            }
+        }
+        System.out.println("Input Gradient: ");
+        for (int d = 0; d < inputGradient.length; d++) {
+            for (int h = 0; h < inputGradient[0].length; h++) {
+                for (int w = 0; w < inputGradient[0][0].length; w++) {
+                    System.out.print(inputGradient[d][h][w] + " ");
+                }
+                System.out.println();
+            }
+        }
     }
 
 }

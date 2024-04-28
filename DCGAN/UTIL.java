@@ -11,7 +11,6 @@ public class UTIL {
     public static double epsilon = 1e-5;
 
 
-
     public static double lossMSE(double[] outputs, double[] expectedOutputs) {
         double loss = 0;
         for (int i = 0; i < outputs.length; i++) {
@@ -26,24 +25,27 @@ public class UTIL {
             for (int j = 0; j < outputs[0].length; j++)
                 loss += Math.pow(outputs[i][j] - expectedOutputs[i][j], 2);
         }
-        return (loss / (outputs.length*outputs[0].length));
+        return (loss / (outputs.length * outputs[0].length));
+    }
+
+
+    public static double[] gradientMSE(double[] outputs, double[] expectedOutputs) {
+        double[] gradients = new double[outputs.length];
+        for (int i = 0; i < outputs.length; i++) {
+            gradients[i] = 2 * (outputs[i] - expectedOutputs[i]) / outputs.length;
+        }
+        return gradients;
     }
 
     public static double gradientSquaredError(double output, double expectedOutput) {
         return 2 * (output - expectedOutput);
     }
-    public static double gradientMSE(double[] outputs, double[] expectedOutputs) {
-        double gradient = 0;
-        for (int i = 0; i < outputs.length; i++) {
-            gradient += 2 * (outputs[i] - expectedOutputs[i]);
-        }
-        return gradient / outputs.length;
-    }
 
     public static void calculateGradientMSE(double[][] outputGradient, double[][] output, double[][] targetOutput) {
+        double num_values = output.length * output[0].length;
         for (int i = 0; i < output.length; i++) {
             for (int j = 0; j < output[i].length; j++) {
-                outputGradient[i][j] = gradientSquaredError(output[i][j], targetOutput[i][j]);
+                outputGradient[i][j] = gradientSquaredError(output[i][j], targetOutput[i][j]) / num_values;
             }
         }
     }
@@ -413,7 +415,6 @@ public class UTIL {
                         new_array[i][j][k][l] = array[i][j][k][l] * scalar;
         return new_array;
     }
-
 
 
 }

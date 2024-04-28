@@ -84,10 +84,10 @@ public class TransposeConvolutionalLayer {
 
         for (int d = 0; d < inputDepth; d++) {
 
-            int y = -this.padding;
-            for (int inputY = 0; inputY < inputHeight; y += stride, inputY++) {  // xy_stride
-                int x = -this.padding;
-                for (int inputX = 0; inputX < inputWidth; x += stride, inputX++) {  // xy_stride
+            int y = 0;
+            for (int inputY = this.padding; inputY < inputHeight-this.padding; y += stride, inputY++) {  // xy_stride
+                int x = 0;
+                for (int inputX = this.padding; inputX < inputWidth-this.padding; x += stride, inputX++) {  // xy_stride
 
                     // convolve centered at this particular location
                     double a = 0.0;
@@ -103,8 +103,8 @@ public class TransposeConvolutionalLayer {
                                         double[][][] f = this.filters[k];
 
                                         //calculate the 180 degree rotated filter indices
-                                        int new_fx = filterSize - 1 - fx;
-                                        int new_fy = filterSize - 1 - fy;
+                                        int new_fx = fx;//filterSize - 1 - fx;
+                                        int new_fy = fy;//filterSize - 1 - fy;
 
                                         a += f[fd][new_fy][new_fx] * outputGradient[k][outputY][outputX];
                                     }
@@ -122,8 +122,6 @@ public class TransposeConvolutionalLayer {
 
     public void updateParameters(double[][][] outputGradient, double learningRate) {
         double[][][][] filtersGradient = new double[numFilters][filterDepth][filterSize][filterSize];
-//        double[] biasesGradient = new double[numFilters];
-
 
         for (int k = 0; k < numFilters; k++) {
             for (int c = 0; c < filterDepth; c++) {
@@ -134,9 +132,14 @@ public class TransposeConvolutionalLayer {
                             for (int w = 0; w < outputWidth; w++) {
                                 int inH = h - i * this.stride;
                                 int inW = w - j * this.stride;
-                                if ((0 <= inH && inH < inputHeight)
-                                        && (0 <= inW && inW < inputWidth)) {
-                                    filtersGradient[k][c][i][j] += outputGradient[k][h][w] * input[c][inH][inW];
+
+                                //calculate the 180 degree rotated outputGradient indices
+                                int new_W = w;//outputHeight - 1 - w;
+                                int new_H = h;//outputWidth - 1 - h;
+
+                                if ((this.padding <= inH && inH < inputHeight-this.padding)
+                                        && (this.padding <= inW && inW < inputWidth-this.padding)) {
+                                    filtersGradient[k][c][i][j] += outputGradient[k][new_H][new_W] * input[c][inH][inW];
                                 }
                             }
                         }
@@ -144,11 +147,6 @@ public class TransposeConvolutionalLayer {
                     }
                 }
             }
-//            for (int h = 0; h < outputHeight; h++) {
-//                for (int w = 0; w < outputWidth; w++) {
-//                    biasesGradient[k] += outputGradient[k][h][w];
-//                }
-//            }
         }
 
         for (int k = 0; k < numFilters; k++) {
@@ -159,7 +157,6 @@ public class TransposeConvolutionalLayer {
                     }
                 }
             }
-//            this.biases[k] -= learningRate * biasesGradient[k];
         }
     }
 
