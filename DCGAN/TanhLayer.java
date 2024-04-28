@@ -60,17 +60,17 @@ public class TanhLayer {
         return inputGradient;
     }
 
-    public double[][] backprop(double[][] d_L_d_out) {
-        double[][] d_L_d_input = new double[d_L_d_out.length][d_L_d_out[0].length];
-        int height = d_L_d_out.length;
-        int width = d_L_d_out[0].length;
+    public double[][] backprop(double[][] outputGradient) {
+        double[][] inputGradient = new double[outputGradient.length][outputGradient[0].length];
+        int height = outputGradient.length;
+        int width = outputGradient[0].length;
 
         for (int h = 0; h < height; h++) {
             for (int w = 0; w < width; w++) {
-                d_L_d_input[h][w] = (1-output2D[h][w]*output2D[h][w]) *d_L_d_out[h][w];
+                inputGradient[h][w] = (1-output2D[h][w]*output2D[h][w]) *outputGradient[h][w];
             }
         }
-        return d_L_d_input;
+        return inputGradient;
     }
 
 }

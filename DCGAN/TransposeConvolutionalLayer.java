@@ -1,10 +1,8 @@
 package DCGAN;
 
-import java.awt.image.BufferedImage;
-
 public class TransposeConvolutionalLayer {
     double[][][][] filters;
-//    private double[] biases;
+    //    private double[] biases;
     private final int stride;
     double[][][] input;
     public int numFilters;
@@ -96,10 +94,10 @@ public class TransposeConvolutionalLayer {
                     for (int k = 0; k < numFilters; k++) {
 
                         for (int fy = 0; fy < filterSize; fy++) {
-                            int outputY = y + fy*stride; // coordinates in the original input array coordinates
+                            int outputY = y + fy * stride; // coordinates in the original input array coordinates
                             for (int fx = 0; fx < filterSize; fx++) {
 
-                                int outputX = x + fx*stride;
+                                int outputX = x + fx * stride;
                                 if (outputY >= 0 && outputY < outputHeight && outputX >= 0 && outputX < outputWidth) {
                                     for (int fd = 0; fd < filters[0].length; fd++) {// filter depth
                                         double[][][] f = this.filters[k];
@@ -165,31 +163,7 @@ public class TransposeConvolutionalLayer {
         }
     }
 
-    public static double calculateMSE(double[][] predictedOutput, double[][] targetOutput) {
-        double mse = 0.0;
 
-        for (int b = 0; b < predictedOutput.length; b++) {
-            for (int i = 0; i < predictedOutput[0].length; i++) {
-                mse += Math.pow(predictedOutput[b][i] - targetOutput[b][i], 2); // Calculate MSE
-            }
-        }
-
-        mse /= (predictedOutput.length * predictedOutput.length);
-        return mse;
-    }
-    public static double[][] calculateOutputGradient(double[][] predictedOutput, double[][] targetOutput) {
-        int batchSize = predictedOutput.length;
-        int outputSize = predictedOutput[0].length;
-        double[][] outputGradient = new double[batchSize][outputSize];
-
-        for (int b = 0; b < batchSize; b++) {
-            for (int i = 0; i < outputSize; i++) {
-                outputGradient[b][i] = 2 * (predictedOutput[b][i] - targetOutput[b][i]); // Gradient of MSE loss
-            }
-        }
-
-        return outputGradient;
-    }
 
     public static void main(String[] args) {
 //        output_shape = (input_shape - 1) * stride - 2 * padding + kernel_size + output_padding
@@ -227,8 +201,10 @@ public class TransposeConvolutionalLayer {
 
         for (int epoch = 0; epoch < 5000; epoch++) {
             double[][] res = layer.forward(input)[0];
-            double[][] outputGradient = layer.calculateOutputGradient(res, targetOutput);
-            double mse = layer.calculateMSE(res, targetOutput);
+            double[][] outputGradient = new double[res.length][res[0].length];
+            UTIL.calculateGradientMSE(outputGradient, res, targetOutput);
+            double mse = UTIL.lossMSE(res, targetOutput);
+
             System.out.println("Epoch " + (epoch + 1) + ", MSE: " + mse);
             layer.updateParameters(new double[][][]{outputGradient},0.05);
 
@@ -243,7 +219,6 @@ public class TransposeConvolutionalLayer {
         }
 
         UTIL.saveImage(UTIL.getBufferedImage(output), "output.png");
-
     }
 }
 /*

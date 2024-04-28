@@ -27,25 +27,14 @@ public class Generator_Implementation {
         this.batch1 = new BatchNormalization(this.dense_output_size);
         this.leakyReLU1 = new LeakyReLULayer();
 
-//         output_shape = (input_shape - 1) * stride  + kernel_size - 2 * padding
-//         padding = ((filter_height - 1) * stride + output_height - input_height)
-// if padding = same : ((filter_height - 1) * stride + 0) = (5-1)*1
-        this.tconv1 = new TransposeConvolutionalLayer(5, 5, 1, tconv1_input_width, tconv1_input_height, tconv1_input_depth, 0);
-        //11*11
+        this.tconv1 = new TransposeConvolutionalLayer(5, 16, 1, tconv1_input_width, tconv1_input_height, tconv1_input_depth, 0);
         this.batch2 = new BatchNormalization(tconv1.outputDepth * tconv1.outputHeight * tconv1.outputWidth);
         this.leakyReLU2 = new LeakyReLULayer();
-        this.tconv2 = new TransposeConvolutionalLayer(5, 5, 2, tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth, 3);
+        this.tconv2 = new TransposeConvolutionalLayer(5, 16, 2, tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth, 3);
         this.batch3 = new BatchNormalization(tconv2.outputDepth * tconv2.outputHeight * tconv2.outputWidth);
         this.leakyReLU3 = new LeakyReLULayer();
         this.tconv3 = new TransposeConvolutionalLayer(6, 1, 2, tconv2.outputWidth, tconv2.outputHeight, tconv2.outputDepth, 7);
         this.tanh = new TanhLayer();
-        // size of tanh is supposed to be 64x5*5
-        /*
-         * [128,1,6,6]   [3,3]   2
-         * 128,1,13,13   [4,4]   2
-         *  128,1,28,28
-         * */
-
     }
 
     public double[][][] generateImage() {
@@ -130,24 +119,39 @@ public class Generator_Implementation {
 
         double[][][] outputGradient = new double[output.length][output[0].length][output[0][0].length];
 
-        //loading the first hand written three from the mnist dataset
+        // loading the first handwritten three from the mnist dataset
         BufferedImage img = UTIL.mnist_load_index(3, 0);
 
         double[][][] targetOutput = new double[][][]{UTIL.zeroToOneToMinusOneToOne(UTIL.img_to_mat(img))};
 
-        for (int epoch = 0, max_epochs = 20000; epoch < max_epochs; epoch++) {
+        double prev_loss = Double.MAX_VALUE, loss;
+        double default_rate = 0.0001;
+        double smallest = 0.00000000001, largest = 1;
+
+
+        for (int epoch = 0, max_epochs = 20000; epoch < max_epochs; epoch++, prev_loss = loss) {
             output = generator.generateImage();
 
-            double loss = UTIL.lossMSE(output[0], targetOutput[0]);
-            System.out.println("loss : " + loss);
+            loss = UTIL.lossMSE(output[0], targetOutput[0]);
+
+            // calculate the new learning rate based on difference in prev and curr loss
+            double learning_rate = default_rate;
+            if (epoch > 10) {
+                double change_in_loss = prev_loss - loss;
+                if (change_in_loss > 0)
+                    learning_rate = 1 / change_in_loss;
+            }
+
+            learning_rate = UTIL.clamp(learning_rate, smallest, largest);
+            System.out.println("loss : " + loss + " learning_rate : " + learning_rate);
 
             UTIL.calculateGradientMSE(outputGradient[0], output[0], targetOutput[0]);
 
-            generator.updateParameters(outputGradient, -0.05);
+            generator.updateParameters(outputGradient, learning_rate);
 
             UTIL.saveImage(UTIL.getBufferedImage(output), "current_image.png");
 
-            if(loss < 0.01) break;
+            if (loss < 0.1) break;
         }
 
         output = generator.generateImage();

@@ -11,6 +11,7 @@ public class UTIL {
     public static double epsilon = 1e-5;
 
 
+
     public static double lossMSE(double[] outputs, double[] expectedOutputs) {
         double loss = 0;
         for (int i = 0; i < outputs.length; i++) {
@@ -412,4 +413,7 @@ public class UTIL {
                         new_array[i][j][k][l] = array[i][j][k][l] * scalar;
         return new_array;
     }
+
+
+
 }
