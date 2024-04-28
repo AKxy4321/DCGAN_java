@@ -143,7 +143,7 @@ public class Generator_Implementation {
 
             UTIL.calculateGradientMSE(outputGradient[0], output[0], targetOutput[0]);
 
-            generator.updateParameters(outputGradient, 0.005);
+            generator.updateParameters(outputGradient, -0.05);
 
             UTIL.saveImage(UTIL.getBufferedImage(output), "current_image.png");
 
