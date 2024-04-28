@@ -4,7 +4,7 @@ import java.awt.image.BufferedImage;
 
 public class TransposeConvolutionalLayer {
     double[][][][] filters;
-    private double[] biases;
+//    private double[] biases;
     private final int stride;
     double[][][] input;
     public int numFilters;
@@ -24,13 +24,13 @@ public class TransposeConvolutionalLayer {
         this.numFilters = numFilters;
         this.filterSize = filterSize;
         this.filters = new double[numFilters][inputDepth][filterSize][filterSize];
-        this.biases = new double[numFilters];
+//        this.biases = new double[numFilters];
         this.filterDepth = inputDepth;
 
         this.filters = XavierInitializer.xavierInit4D(numFilters, filterDepth, filterSize);
 
         // TODO: Change to xavier initialization later, cause we aren't currently using bias
-        this.biases = UTIL.multiplyScalar(XavierInitializer.xavierInit1D(numFilters), 0);
+//        this.biases = UTIL.multiplyScalar(XavierInitializer.xavierInit1D(numFilters), 0);
         this.stride = stride;
 
         this.inputWidth = inputWidth;
@@ -39,18 +39,8 @@ public class TransposeConvolutionalLayer {
 
         // output_shape = (input_shape - 1) * stride - 2 * padding + kernel_size + output_padding
 
-//        if (paddingType.equals("same")) {
-//            outputHeight = inputHeight + (filterSize - 1);
-//            outputWidth = inputWidth + (filterSize - 1);
-//        } else if (paddingType.equals("valid")) {
-//            outputHeight = inputHeight - filterSize + 1;
-//            outputWidth = inputWidth - filterSize + 1;
-//        } else {// zero padding
-//            padding = 0;
         outputHeight = this.stride * (inputHeight - 1) + filterSize - 2 * padding;
         outputWidth = this.stride * (inputWidth - 1) + filterSize - 2 * padding;
-//        }
-
         outputDepth = numFilters;
     }
 
@@ -79,7 +69,7 @@ public class TransposeConvolutionalLayer {
                         }
                     }
 
-                    output[k][oy][ox] = sum + this.biases[k];
+                    output[k][oy][ox] = sum;// + this.biases[k];
                 }
             }
         }
@@ -106,10 +96,10 @@ public class TransposeConvolutionalLayer {
                     for (int k = 0; k < numFilters; k++) {
 
                         for (int fy = 0; fy < filterSize; fy++) {
-                            int outputY = y + fy; // coordinates in the original input array coordinates
+                            int outputY = y + fy*stride; // coordinates in the original input array coordinates
                             for (int fx = 0; fx < filterSize; fx++) {
 
-                                int outputX = x + fx;
+                                int outputX = x + fx*stride;
                                 if (outputY >= 0 && outputY < outputHeight && outputX >= 0 && outputX < outputWidth) {
                                     for (int fd = 0; fd < filters[0].length; fd++) {// filter depth
                                         double[][][] f = this.filters[k];
@@ -134,7 +124,7 @@ public class TransposeConvolutionalLayer {
 
     public void updateParameters(double[][][] outputGradient, double learningRate) {
         double[][][][] filtersGradient = new double[numFilters][filterDepth][filterSize][filterSize];
-        double[] biasesGradient = new double[numFilters];
+//        double[] biasesGradient = new double[numFilters];
 
 
         for (int k = 0; k < numFilters; k++) {
@@ -156,11 +146,11 @@ public class TransposeConvolutionalLayer {
                     }
                 }
             }
-            for (int h = 0; h < outputHeight; h++) {
-                for (int w = 0; w < outputWidth; w++) {
-                    biasesGradient[k] += outputGradient[k][h][w];
-                }
-            }
+//            for (int h = 0; h < outputHeight; h++) {
+//                for (int w = 0; w < outputWidth; w++) {
+//                    biasesGradient[k] += outputGradient[k][h][w];
+//                }
+//            }
         }
 
         for (int k = 0; k < numFilters; k++) {
@@ -215,8 +205,8 @@ public class TransposeConvolutionalLayer {
         }};
         layer.filters[0] = filter;
 
-        double[] biases = new double[1];
-        layer.biases = biases;
+//        double[] biases = new double[1];
+//        layer.biases = biases;
 
         double[][][] output = layer.forward(input);
         System.out.println("Output:");
@@ -252,6 +242,7 @@ public class TransposeConvolutionalLayer {
             }
         }
 
+        UTIL.saveImage(UTIL.getBufferedImage(output), "output.png");
 
     }
 }

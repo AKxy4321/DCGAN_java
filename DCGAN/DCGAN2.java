@@ -9,10 +9,13 @@ import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class DCGAN_Implementation {
+import static DCGAN.UTIL.gradientBinaryCrossEntropy;
+import static DCGAN.UTIL.lossBinaryCrossEntropy;
+
+public class DCGAN2 {
 
     public static void main(String[] args) {
-        DCGAN_Implementation dcgan = new DCGAN_Implementation();
+        DCGAN2 dcgan = new DCGAN2();
         dcgan.dcgan_execute();
     }
 
@@ -35,8 +38,8 @@ public class DCGAN_Implementation {
         Logger logger = Logger.getLogger(DCGAN_Implementation.class.getName());
         int train_size = 3200;
         int label = 3;
-        double learning_rate_gen = 1e-4;
-        double learning_rate_disc = 5*1e-4;
+        double learning_rate_gen = -1e-4;
+        double learning_rate_disc = 1e-4;
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
         Generator_Implementation generator = new Generator_Implementation();
         System.out.println("Loading Images");
@@ -135,7 +138,8 @@ public class DCGAN_Implementation {
 
                 // generate image
                 BufferedImage image = DCGAN.UTIL.getBufferedImage(generator.generateImage());
-                DCGAN.UTIL.saveImage(image, "generated_image.png");
+                System.out.println("DCGAN2 saving image");
+                DCGAN.UTIL.saveImage(image, "output2.png");
                 System.out.println("Saved image");
             }
         }
@@ -181,7 +185,7 @@ public class DCGAN_Implementation {
         // loss function : -log(D(G(z)))
         double[] gradient = new double[fake_output.length];
         for(int i = 0;i<fake_output.length;i++){
-            gradient[i] = -1/(fake_output[i] + epsilon);
+            gradient[i] = 1/(fake_output[i] + epsilon);
         }
         return gradient;
     }
@@ -190,22 +194,6 @@ public class DCGAN_Implementation {
         double[] ones = new double[fake_output.length];
         Arrays.fill(ones, 1);
         return gradientBinaryCrossEntropy(fake_output, ones);
-    }
-
-    public double lossBinaryCrossEntropy(double[] outputs, double[] labels) {
-        double loss = 0;
-        for (int i = 0; i < outputs.length; i++) {
-            loss += labels[i] * Math.log(outputs[i] + epsilon) + (1 - labels[i]) * Math.log(1 - outputs[i] + epsilon);
-        }
-        return -loss / outputs.length;
-    }
-
-    public double[] gradientBinaryCrossEntropy(double[] outputs, double[] labels) {
-        double[] gradient = new double[outputs.length];
-        for (int i = 0; i < outputs.length; i++) {
-            gradient[i] = (outputs[i] - labels[i]) / (outputs[i] * (1 - outputs[i]) + epsilon);
-        }
-        return gradient;
     }
 
     public double epsilon = 0.00001;

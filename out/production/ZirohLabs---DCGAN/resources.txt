@@ -1,2 +1,0 @@
-https://abdumhmd.github.io/files/convtranspose2d.html
-https://abdumhmd.github.io/files/conv2d.html

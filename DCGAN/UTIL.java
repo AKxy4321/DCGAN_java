@@ -8,7 +8,10 @@ import java.nio.file.Paths;
 
 public class UTIL {
 
-    public static double lossDiscriminatorMSE(double[] outputs, double[] expectedOutputs) {
+    public static double epsilon = 1e-5;
+
+
+    public static double lossMSE(double[] outputs, double[] expectedOutputs) {
         double loss = 0;
         for (int i = 0; i < outputs.length; i++) {
             loss += Math.pow(outputs[i] - expectedOutputs[i], 2);
@@ -16,12 +19,75 @@ public class UTIL {
         return (loss / outputs.length);
     }
 
-    public static double gradientDiscriminatorMSE(double[] outputs, double[] expectedOutputs) {
+    public static double lossMSE(double[][] outputs, double[][] expectedOutputs) {
+        double loss = 0;
+        for (int i = 0; i < outputs.length; i++) {
+            for (int j = 0; j < outputs[0].length; j++)
+                loss += Math.pow(outputs[i][j] - expectedOutputs[i][j], 2);
+        }
+        return (loss / (outputs.length*outputs[0].length));
+    }
+
+    public static double gradientSquaredError(double output, double expectedOutput) {
+        return 2 * (output - expectedOutput);
+    }
+    public static double gradientMSE(double[] outputs, double[] expectedOutputs) {
         double gradient = 0;
         for (int i = 0; i < outputs.length; i++) {
             gradient += 2 * (outputs[i] - expectedOutputs[i]);
         }
         return gradient / outputs.length;
+    }
+
+    public static void calculateGradientMSE(double[][] outputGradient, double[][] output, double[][] targetOutput) {
+        for (int i = 0; i < output.length; i++) {
+            for (int j = 0; j < output[i].length; j++) {
+                outputGradient[i][j] = gradientSquaredError(output[i][j], targetOutput[i][j]);
+            }
+        }
+    }
+
+    public static double lossBinaryCrossEntropy(double[] outputs, double[] labels) {
+        double loss = 0;
+        for (int i = 0; i < outputs.length; i++) {
+            loss += labels[i] * Math.log(outputs[i] + epsilon) + (1 - labels[i]) * Math.log(1 - outputs[i] + epsilon);
+        }
+        return -loss / outputs.length;
+    }
+
+    public static double lossBinaryCrossEntropy(double[][] outputs, double[][] labels) {
+        double loss = 0;
+        for (int i = 0; i < outputs.length; i++) {
+            for (int j = 0; j < outputs[i].length; j++)
+                loss += lossBinaryCrossEntropy(outputs[i][j], labels[i][j]);
+        }
+        return -loss / (outputs.length * outputs[0].length);
+    }
+
+    public static double lossBinaryCrossEntropy(double output, double label) {
+        double loss = -(label * Math.log(output + epsilon) - (1 - label) * Math.log(1 - output + epsilon));
+        System.out.println(loss + " " + output + " " + label);
+        return loss;
+    }
+
+    public static double[] gradientBinaryCrossEntropy(double[] outputs, double[] labels) {
+        double[] gradient = new double[outputs.length];
+        for (int i = 0; i < outputs.length; i++) {
+            gradient[i] = (outputs[i] - labels[i]) / (outputs[i] * (1 - outputs[i]) + epsilon);
+        }
+        return gradient;
+    }
+
+    public static double gradientBinaryCrossEntropy(double output, double label) {
+        return (output - label) / (output * (1 - output) + epsilon);
+    }
+
+    public static void calculateBinaryCrossEntropyGradient2D(double[][] outputGradient, double[][] output, double[][] targetOutput) {
+        for (int i = 0; i < output.length; i++) {
+            for (int j = 0; j < output[i].length; j++) {
+                outputGradient[i][j] = gradientBinaryCrossEntropy(output[i][j], targetOutput[i][j]);
+            }
+        }
     }
 
     public static BufferedImage load_image(String src) throws IOException {
@@ -92,6 +158,7 @@ public class UTIL {
         }
         return sum;
     }
+
 
     public static double[][] zeroToOneToMinusOneToOne(double[][] array) {
         for (int i = 0; i < array.length; i++) {
@@ -324,12 +391,14 @@ public class UTIL {
         return sum;
     }
 
+
     public static void saveImage(BufferedImage image, String name) {
         File outputImageFile = new File(name);
         try {
             ImageIO.write(image, "png", outputImageFile);
 //                    System.out.println("Image saved successfully to: " + outputImageFile.getAbsolutePath());
-        } catch (IOException e) {
+            System.out.println("Saving image");
+        } catch (Exception e) {
             System.err.println("Error saving image: " + e.getMessage());
         }
     }
