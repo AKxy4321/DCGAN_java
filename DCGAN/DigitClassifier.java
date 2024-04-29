@@ -9,7 +9,7 @@ public class DigitClassifier {
     }
 
     public void discriminator_execute() {
-        DiscriminatorWithBatchNorm discriminator = new DiscriminatorWithBatchNorm();
+        Discriminator_Implementation discriminator = new Discriminator_Implementation();
         int num_images = 100;
         int num_images_test = 100;
         int num_epochs = 1000;

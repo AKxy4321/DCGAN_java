@@ -50,4 +50,15 @@ public class DenseLayer {
         }
     }
 
+    public void updateParameters(double[] outputGradient, double[] input, double learningRate) {
+        for (int i = 0; i < weights.length; i++) {
+            for (int j = 0; j < weights[0].length; j++) {
+                weights[i][j] -= learningRate * outputGradient[j] * input[i];
+            }
+        }
+        for (int j = 0; j < weights[0].length; j++) {
+            biases[j] -= learningRate * outputGradient[j];
+        }
+    }
+
 }

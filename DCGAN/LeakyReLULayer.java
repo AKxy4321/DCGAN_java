@@ -92,25 +92,25 @@ public class LeakyReLULayer {
         return inputGradient;
     }
 
-    public double[][] backward(double[][] d_L_d_out) {
-        double[][] d_L_d_input = new double[d_L_d_out.length][d_L_d_out[0].length];
-        int height = d_L_d_out.length;
-        int width = d_L_d_out[0].length;
+    public double[][] backward(double[][] outputGradient) {
+        double[][] d_L_d_input = new double[outputGradient.length][outputGradient[0].length];
+        int height = outputGradient.length;
+        int width = outputGradient[0].length;
 
         for (int h = 0; h < height; h++) {
             for (int w = 0; w < width; w++) {
-                d_L_d_input[h][w] = output2D[h][w] > 0 ? d_L_d_out[h][w] : k * d_L_d_out[h][w];
+                d_L_d_input[h][w] = output2D[h][w] > 0 ? outputGradient[h][w] : k * outputGradient[h][w];
             }
         }
         return d_L_d_input;
     }
 
-    public double[] backward(double[] d_L_d_out) {
-        double[] d_L_d_input = new double[d_L_d_out.length];
-        int height = d_L_d_out.length;
+    public double[] backward(double[] outputGradient) {
+        double[] d_L_d_input = new double[outputGradient.length];
+        int height = outputGradient.length;
 
         for (int h = 0; h < height; h++) {
-            d_L_d_input[h] = output1D[h] > 0 ? d_L_d_out[h] : k * d_L_d_out[h];
+            d_L_d_input[h] = output1D[h] > 0 ? outputGradient[h] : k * outputGradient[h];
         }
 
         return d_L_d_input;

@@ -1,5 +1,7 @@
 package DCGAN;
 
+import java.util.Arrays;
+
 public class TransposeConvolutionalLayer {
     double[][][][] filters;
     //    private double[] biases;
@@ -85,9 +87,9 @@ public class TransposeConvolutionalLayer {
         for (int d = 0; d < inputDepth; d++) {
 
             int y = 0;
-            for (int inputY = this.padding; inputY < inputHeight-this.padding; y += stride, inputY++) {  // xy_stride
+            for (int inputY = this.padding; inputY < inputHeight - this.padding; y += stride, inputY++) {  // xy_stride
                 int x = 0;
-                for (int inputX = this.padding; inputX < inputWidth-this.padding; x += stride, inputX++) {  // xy_stride
+                for (int inputX = this.padding; inputX < inputWidth - this.padding; x += stride, inputX++) {  // xy_stride
 
                     // convolve centered at this particular location
                     double a = 0.0;
@@ -134,11 +136,11 @@ public class TransposeConvolutionalLayer {
                                 int inW = w - j * this.stride;
 
                                 //calculate the 180 degree rotated outputGradient indices
-                                int new_W = w;//outputHeight - 1 - w;
-                                int new_H = h;//outputWidth - 1 - h;
+                                int new_W = w;//outputWidth - 1 - w;
+                                int new_H = h;//outputHeight - 1 - h;
 
-                                if ((this.padding <= inH && inH < inputHeight-this.padding)
-                                        && (this.padding <= inW && inW < inputWidth-this.padding)) {
+                                if ((this.padding <= inH && inH < inputHeight - this.padding)
+                                        && (this.padding <= inW && inW < inputWidth - this.padding)) {
                                     filtersGradient[k][c][i][j] += outputGradient[k][new_H][new_W] * input[c][inH][inW];
                                 }
                             }
@@ -161,32 +163,14 @@ public class TransposeConvolutionalLayer {
     }
 
 
-
     public static void main(String[] args) {
+
+        DenseLayer dense = new DenseLayer(5, 2 * 2);
+        SigmoidLayer lu = new SigmoidLayer();
+        DenseLayer dense2 = new DenseLayer(2 * 2, 2 * 2);
 //        output_shape = (input_shape - 1) * stride - 2 * padding + kernel_size + output_padding
-        TransposeConvolutionalLayer layer = new TransposeConvolutionalLayer(2, 1, 2, 2, 2, 1, 0);
-        double[][][] input = {{
-                {0, 1},
-                {2, 3}
-        }};
+        TransposeConvolutionalLayer tconv = new TransposeConvolutionalLayer(2, 1, 2, 2, 2, 1, 0);
 
-        double[][][] filter = {{
-                {0, 1},
-                {2, 3}
-        }};
-        layer.filters[0] = filter;
-
-//        double[] biases = new double[1];
-//        layer.biases = biases;
-
-        double[][][] output = layer.forward(input);
-        System.out.println("Output:");
-        for (int i = 0; i < output[0].length; i++) {
-            for (int j = 0; j < output[0][0].length; j++) {
-                System.out.print(output[0][i][j] + " ");
-            }
-            System.out.println();
-        }
 
         double[][] targetOutput = {
                 {0, 0, 0, 1},
@@ -195,27 +179,51 @@ public class TransposeConvolutionalLayer {
                 {4, 6, 6, 9}
         };
 
+        double[] input = XavierInitializer.xavierInit1D(5);
 
         for (int epoch = 0; epoch < 5000; epoch++) {
-            double[][] res = layer.forward(input)[0];
-            double[][] outputGradient = new double[res.length][res[0].length];
-            UTIL.calculateGradientMSE(outputGradient, res, targetOutput);
-            double mse = UTIL.lossMSE(res, targetOutput);
+
+            //forward pass
+            double[] dense_output = dense.forward(input);
+            double[] leaky_output = lu.forward(dense_output);
+            double[] dense2_output = dense2.forward(leaky_output);
+            double[][] tconv_output = tconv.forward(UTIL.unflatten(dense2_output, tconv.inputDepth, tconv.inputHeight, tconv.inputWidth))[0];
+
+
+            double[][] outputGradient = new double[tconv_output.length][tconv_output[0].length];
+            UTIL.calculateGradientMSE(outputGradient, tconv_output, targetOutput);
+            double mse = UTIL.lossMSE(tconv_output, targetOutput);
 
             System.out.println("Epoch " + (epoch + 1) + ", MSE: " + mse);
-            layer.updateParameters(new double[][][]{outputGradient},0.05);
+
+            // backward pass
+            double[][][] tconv_in_gradient = tconv.backward(new double[][][]{outputGradient});
+            double[] dense2_in_gradient = dense2.backward(UTIL.flatten(tconv_in_gradient));
+            double[] lu_in_gradient = lu.backward(dense2_in_gradient);
+            double[] dense_gradient = dense.backward(lu_in_gradient);
+
+            dense.updateParameters(lu_in_gradient, 0.05);
+            dense2.updateParameters(dense2_in_gradient, 0.05);
+            tconv.updateParameters(new double[][][]{outputGradient}, 0.05);
 
 
-            System.out.println("Output:");
-            for (int i = 0; i < output[0].length; i++) {
-                for (int j = 0; j < output[0][0].length; j++) {
-                    System.out.print(res[i][j] + " ");
+//            System.out.println("Sum of values in each gradient :");
+//            System.out.println("Dense gradient: " + Arrays.stream(dense_gradient).sum());
+//            System.out.println("Leaky gradient: " + Arrays.stream(lu_in_gradient).sum());
+//            System.out.println("Dense2 gradient: " + Arrays.stream(dense2_in_gradient).sum());
+//            System.out.println("Tconv gradient: " + Arrays.stream(UTIL.flatten(tconv_in_gradient)).sum());
+
+
+            if (epoch == 4999) {
+                System.out.println("Output:");
+                for (int i = 0; i < tconv_output.length; i++) {
+                    for (int j = 0; j < tconv_output[0].length; j++) {
+                        System.out.print(tconv_output[i][j] + " ");
+                    }
+                    System.out.println();
                 }
-                System.out.println();
             }
         }
-
-        UTIL.saveImage(UTIL.getBufferedImage(output), "output.png");
     }
 }
 /*
