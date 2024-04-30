@@ -5,6 +5,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 public class UTIL {
 
@@ -27,7 +28,6 @@ public class UTIL {
         }
         return (loss / (outputs.length * outputs[0].length));
     }
-
 
 
     public static double gradientSquaredError(double output, double expectedOutput) {
@@ -67,6 +67,21 @@ public class UTIL {
         }
     }
 
+
+    public static void prettyprint(double[][][] arr) {
+        for (int i = 0; i < arr.length; i++) {
+            for (int j = 0; j < arr[0].length; j++) {
+                System.out.println(Arrays.toString(arr[i][j]));
+            }
+            System.out.println();
+        }
+    }
+
+    public static void prettyprint(double[][] arr) {
+        for (int i = 0; i < arr.length; i++) {
+            System.out.println(Arrays.toString(arr[i]));
+        }
+    }
 
 
     public static double lossBinaryCrossEntropy(double[] outputs, double[] labels) {

@@ -14,6 +14,7 @@ public class TransposeConvolutionalLayer {
     public int inputWidth, inputHeight, inputDepth;
     public int outputWidth, outputHeight, outputDepth;
     public int padding = 0;
+    public int output_padding = 0; // for now we don't care about output_padding
 
     public TransposeConvolutionalLayer(int inputDepth, int filterSize, int numFilters, int stride) {
         this(filterSize, numFilters, stride, 28, 28, inputDepth, 0);
@@ -28,8 +29,6 @@ public class TransposeConvolutionalLayer {
         this.filterDepth = inputDepth;
 
         this.filters = XavierInitializer.xavierInit4D(numFilters, filterDepth, filterSize);
-
-        // TODO: Change to xavier initialization later, cause we aren't currently using bias
         this.biases = XavierInitializer.xavierInit1D(numFilters);
         this.stride = stride;
 
@@ -94,15 +93,15 @@ public class TransposeConvolutionalLayer {
 
     public double[][][] backward(double[][][] outputGradient) {
 
-        int paddedOutputHeight = outputHeight + padding * 2;
-        int paddedOutputWidth = outputWidth + padding * 2;
+        int paddedOutputHeight = outputHeight + output_padding * 2;
+        int paddedOutputWidth = outputWidth + output_padding * 2;
 
-        // Pad the output gradient with zeros (assuming zero padding during forward pass)
+        // Pad the output gradient with zeros (assuming zero output_padding during forward pass)
         double[][][] paddedOutput = new double[numFilters][paddedOutputHeight][paddedOutputWidth];
         for (int k = 0; k < numFilters; k++) {
             for (int h = 0; h < outputHeight; h++) {
                 for (int w = 0; w < outputWidth; w++) {
-                    paddedOutput[k][h + padding][w + padding] = outputGradient[k][h][w];
+                    paddedOutput[k][h + output_padding][w + output_padding] = outputGradient[k][h][w];
                 }
             }
         }
@@ -119,15 +118,19 @@ public class TransposeConvolutionalLayer {
 
                         for (int fy = 0; fy < filterSize; fy++) {
                             for (int fx = 0; fx < filterSize; fx++) {
-                                // Consider padding by using valid indices within padded output
+                                // Consider output_padding by using valid indices within padded output
                                 int outputY = inputY + fy * stride;
                                 int outputX = inputX + fx * stride;
-                                int effectiveOutputY = outputY + padding;
-                                int effectiveOutputX = outputX + padding;
+                                int effectiveOutputY = outputY + output_padding;
+                                int effectiveOutputX = outputX + output_padding;
+
+                                // calculating the transposed filter indices
+                                int fx_t = filterSize - 1 - fx;
+                                int fy_t = filterSize - 1 - fy;
 
                                 if ((0 <= effectiveOutputY && effectiveOutputY < paddedOutputHeight)
                                         && (0 <= effectiveOutputX && effectiveOutputX < paddedOutputWidth)) {
-                                    a += this.filters[k][d][filterSize - 1 - fy][filterSize - 1 - fx] * paddedOutput[k][effectiveOutputY][effectiveOutputX];
+                                    a += this.filters[k][d][fy_t][fx_t] * paddedOutput[k][effectiveOutputY][effectiveOutputX];
                                 }
                             }
                         }
@@ -136,6 +139,22 @@ public class TransposeConvolutionalLayer {
                 }
             }
         }
+
+//        System.out.println("paddedOutput");
+//        UTIL.prettyprint(paddedOutput[0]);
+//        System.out.println("InputGradient");
+//        UTIL.prettyprint(inputGradient[0]);
+//        System.out.println("Filter");
+//        UTIL.prettyprint(filters[0][0]);
+
+//        double[][] flipped_filter = new double[filterSize][filterSize];
+//        for (int i = 0; i < filterSize; i++) {
+//            for (int j = 0; j < filterSize; j++) {
+//                flipped_filter[i][j] = filters[0][0][filterSize - 1 - i][filterSize - 1 - j];
+//            }
+//        }
+
+//        Convolution.test(paddedOutput, new double[][][]{flipped_filter});
 
         return inputGradient;
     }
@@ -168,6 +187,13 @@ public class TransposeConvolutionalLayer {
                 }
             }
         }
+//        System.out.println("outputGradient");
+//        UTIL.prettyprint(outputGradient[0]);
+//        System.out.println("input");
+//        UTIL.prettyprint(input[0]);
+//        System.out.println("filterGradient");
+//        UTIL.prettyprint(filtersGradient[0][0]);
+
 
         // Calculate bias gradients
         for (int k = 0; k < numFilters; k++) {
@@ -194,66 +220,15 @@ public class TransposeConvolutionalLayer {
 
 
     public void updateParameters(double[][][] outputGradient, double learningRate) {
-        double[][][][] filtersGradient = new double[numFilters][filterDepth][filterSize][filterSize];
-        double[] biasGradient = new double[numFilters]; // to store bias gradients
-
-        // Calculate filter gradients (same as before)
-        for (int k = 0; k < numFilters; k++) {
-            for (int c = 0; c < filterDepth; c++) {
-                for (int i = 0; i < filterSize; i++) {
-                    for (int j = 0; j < filterSize; j++) {
-
-                        for (int h = 0; h < outputHeight; h++) {
-                            for (int w = 0; w < outputWidth; w++) {
-                                int inH = h - i * this.stride;
-                                int inW = w - j * this.stride;
-                                int effectiveInH = inH + padding; // Consider padding
-                                int effectiveInW = inW + padding;
-
-                                if ((0 <= effectiveInH && effectiveInH < inputHeight + 2 * padding)
-                                        && (0 <= effectiveInW && effectiveInW < inputWidth + 2 * padding)) {
-                                    filtersGradient[k][c][i][j] += outputGradient[k][h][w] * input[c][effectiveInH - padding][effectiveInW - padding];
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Calculate bias gradients
-        for (int k = 0; k < numFilters; k++) {
-            for (int h = 0; h < outputHeight; h++) {
-                for (int w = 0; w < outputWidth; w++) {
-                    biasGradient[k] += outputGradient[k][h][w]; // Sum over output
-                }
-            }
-            biasGradient[k] /= (outputWidth * outputHeight); // Average gradient
-        }
-
-        // Update filters and biases
-        for (int k = 0; k < numFilters; k++) {
-            for (int c = 0; c < filterDepth; c++) {
-                for (int i = 0; i < filterSize; i++) {
-                    for (int j = 0; j < filterSize; j++) {
-                        this.filters[k][c][i][j] -= learningRate * filtersGradient[k][c][i][j];
-                    }
-                }
-            }
-            this.biases[k] -= learningRate * biasGradient[k];
-        }
+        updateParameters(outputGradient, this.input, learningRate);
     }
 
 
     public static void main(String[] args) {
 
-        DenseLayer dense = new DenseLayer(100, 100);
-        SigmoidLayer sigmoidLayer = new SigmoidLayer();
-        DenseLayer dense2 = new DenseLayer(dense.outputSize, 2*2*1);
-        LeakyReLULayer leakyReLULayer = new LeakyReLULayer(0.01);
-//        output_shape = (input_shape - 1) * stride - 2 * padding + kernel_size + output_padding
-        TransposeConvolutionalLayer tconv = new TransposeConvolutionalLayer(2, 5, 2, 2, 2, 1, 0);
-        TransposeConvolutionalLayer tconv2 = new TransposeConvolutionalLayer(1, 1, 1, tconv.outputWidth, tconv.outputHeight, tconv.outputDepth, 0);
+        // output_shape = (input_shape - 1) * stride - 2 * padding + kernel_size + output_padding
+
+        TransposeConvolutionalLayer tconv2 = new TransposeConvolutionalLayer(3, 1, 1, 2,2,1, 0);
 
 //        double[][] targetOutput = {
 //                {0, 0, 0, 0},
@@ -275,21 +250,16 @@ public class TransposeConvolutionalLayer {
                 {10, 10, 10, 10},
                 {10, 10, 10, 10},
         };
-//        targetOutput = UTIL.multiplyScalar(targetOutput, 10);
+        targetOutput = UTIL.multiplyScalar(targetOutput, 0);
 
+        double[][][] input = {{{1.0,1.0},{1.0,1.0}}};
 
-        double learning_rate = 0.0001;
+        double learning_rate = 0.00005;
 
-        for (int epoch = 0; epoch < 5000; epoch++) {
-            double[] input = XavierInitializer.xavierInit1D(dense.inputSize); // {1, 1, 1, 1, 1};
+        for (int epoch = 0; epoch < 5001; epoch++) {
 
             //forward pass
-            double[] dense_output = dense.forward(input);
-            double[] activation_function_output = sigmoidLayer.forward(dense_output);
-            double[] dense2_output = dense2.forward(activation_function_output);
-            double[] leaky_output = leakyReLULayer.forward(dense2_output);
-            double[][][] tconv_output = tconv.forward(UTIL.unflatten(leaky_output, tconv.inputDepth, tconv.inputHeight, tconv.inputWidth));
-            double[][][] tconv2_output = tconv2.forward(tconv_output);
+            double[][][] tconv2_output = tconv2.forward(input);
 
             double[][] outputGradient = new double[tconv2_output[0].length][tconv2_output[0][0].length];
             UTIL.calculateGradientRMSE(outputGradient, tconv2_output[0], targetOutput);
@@ -310,27 +280,19 @@ public class TransposeConvolutionalLayer {
 
             // backward pass
             double[][][] tconv2_in_gradient_tconv_out_gradient = tconv2.backward(new double[][][]{outputGradient});
-            double[][][] tconv_in_gradient_dense2_out_gradient = tconv.backward(tconv2_in_gradient_tconv_out_gradient);
-            double[] leakyrelu_in_gradient_dense2_out_gradient = leakyReLULayer.backward(UTIL.flatten(tconv_in_gradient_dense2_out_gradient));
-            double[] dense2_in_gradient_lu_out_gradient = dense2.backward(leakyrelu_in_gradient_dense2_out_gradient);
-            double[] lu_in_gradient_dense_out_gradient = sigmoidLayer.backward(dense2_in_gradient_lu_out_gradient);
-            double[] dense_in_gradient = dense.backward(lu_in_gradient_dense_out_gradient);
-
-            dense.updateParameters(lu_in_gradient_dense_out_gradient, learning_rate);
-            dense2.updateParameters(leakyrelu_in_gradient_dense2_out_gradient, learning_rate);
-            tconv.updateParameters(tconv2_in_gradient_tconv_out_gradient, learning_rate);
             tconv2.updateParameters(new double[][][]{outputGradient}, learning_rate);
 
             System.out.println("Sum of values in each gradient :");
-            System.out.println("Dense input gradient: " + Arrays.stream(dense_in_gradient).sum());
-            System.out.println("Leaky input gradient: " + Arrays.stream(lu_in_gradient_dense_out_gradient).sum());
-            System.out.println("Dense2 input gradient: " + Arrays.stream(dense2_in_gradient_lu_out_gradient).sum());
-            System.out.println("Tconv input gradient: " + Arrays.stream(UTIL.flatten(tconv_in_gradient_dense2_out_gradient)).sum());
             System.out.println("Tconv2 input gradient: " + Arrays.stream(UTIL.flatten(tconv2_in_gradient_tconv_out_gradient[0])).sum());
 
 
             if (epoch % 5 == 0) {
                 double[][] output = tconv2_output[0];
+
+                double[][] filter = tconv2.filters[0][0];
+                System.out.println("Filters:");
+                UTIL.prettyprint(filter);
+
                 System.out.println("Output:");
                 for (int i = 0; i < output.length; i++) {
                     for (int j = 0; j < output[0].length; j++) {
@@ -341,6 +303,9 @@ public class TransposeConvolutionalLayer {
             }
         }
     }
+
+
+
 }
 /*
 * To test layer:
