@@ -34,7 +34,7 @@ public class Generator_Implementation {
         this.batch1 = new BatchNormalization(this.dense_output_size);
         this.leakyReLU1 = new LeakyReLULayer();
 
-        this.tconv1 = new TransposeConvolutionalLayer(5, 16, 1, tconv1_input_width, tconv1_input_height, tconv1_input_depth, 0);
+        this.tconv1 = new TransposeConvolutionalLayer(5, 32, 1, tconv1_input_width, tconv1_input_height, tconv1_input_depth, 0);
         this.batch2 = new BatchNormalization(tconv1.outputDepth * tconv1.outputHeight * tconv1.outputWidth);
         this.leakyReLU2 = new LeakyReLULayer();
 
@@ -68,10 +68,7 @@ public class Generator_Implementation {
     }
 
     public double[][][] generateImage() {
-//        double[] noise = XavierInitializer.xavierInit1D(100); // generate noise input that we want to pass to the generator
-
-        double[] noise = new double[100];
-        Arrays.fill(noise, 0.5);// TODO: go back to xavier Initialization
+        double[] noise = XavierInitializer.xavierInit1D(100); // generate noise input that we want to pass to the generator
 
         double[] gen_dense_output = this.dense.forward(noise);
         double[] gen_batch1_output = this.batch1.getOutput(gen_dense_output);
@@ -110,7 +107,7 @@ public class Generator_Implementation {
 
         for (int i = 0; i < batchSize; i++) {
             noises[i] = XavierInitializer.xavierInit1D(100); // generate noise input that we want to pass to the generator
-
+//            Arrays.fill(noises[i],0.5);
             gen_dense_outputs[i] = this.dense.forward(noises[i]);
         }
 
@@ -155,6 +152,9 @@ public class Generator_Implementation {
     public void updateParametersBatch(double[][][][] gen_output_gradients, double learning_rate_gen) {
         double[][][][] tanh_in_gradients = new double[batchSize][][][];
         double[][] leakyrelu3_in_gradients_flattened = new double[batchSize][];
+        double[][][][] leakyrelu3_in_gradients = new double[batchSize][][][];
+        double[][][][] leakyrelu2_in_gradients = new double[batchSize][][][];
+        double[][][][] leakyrelu_in_gradients = new double[batchSize][][][];
         double[][][][] batch3_in_gradients_unflattened = new double[batchSize][][][];
         double[][] leakyrelu2_in_gradients_flattened = new double[batchSize][];
         double[][][][] batch2_in_gradients_unflattened = new double[batchSize][][][];
@@ -164,7 +164,9 @@ public class Generator_Implementation {
         for (int i = 0; i < batchSize; i++) {
             tanh_in_gradients[i] = this.tanh.backward(gen_output_gradients[i]);
 
-            leakyrelu3_in_gradients_flattened[i] = UTIL.flatten(this.leakyReLU3.backward(this.tconv3.backward(tanh_in_gradients[i])));
+            leakyrelu3_in_gradients[i] = this.leakyReLU3.backward(this.tconv3.backward(tanh_in_gradients[i]));
+
+            leakyrelu3_in_gradients_flattened[i] = UTIL.flatten(leakyrelu3_in_gradients[i]);
         }
 
         double[][] batch3_in_gradients = this.batch3.backward(leakyrelu3_in_gradients_flattened);
@@ -172,7 +174,9 @@ public class Generator_Implementation {
         for (int i = 0; i < batchSize; i++) {
             batch3_in_gradients_unflattened[i] = UTIL.unflatten(batch3_in_gradients[i], tconv2.outputDepth, tconv2.outputHeight, tconv2.outputWidth);
             double[][][] tconv2_in_gradient = this.tconv2.backward(batch3_in_gradients_unflattened[i]);
-            leakyrelu2_in_gradients_flattened[i] = UTIL.flatten(this.leakyReLU2.backward(tconv2_in_gradient));
+
+            leakyrelu2_in_gradients[i] = this.leakyReLU2.backward(tconv2_in_gradient);
+            leakyrelu2_in_gradients_flattened[i] = UTIL.flatten(leakyrelu2_in_gradients[i]);
         }
 
         double[][] batch2_in_gradients_flattened = this.batch2.backward(leakyrelu2_in_gradients_flattened);
@@ -183,8 +187,8 @@ public class Generator_Implementation {
 
             double[][][] tconv1_in_gradient = this.tconv1.backward(batch2_in_gradients_unflattened[i]);
 
-            double[][][] leakyrelu_in_gradient = this.leakyReLU1.backward(tconv1_in_gradient);
-            leakyrelu_in_gradients_flattened[i] = UTIL.flatten(leakyrelu_in_gradient);
+            leakyrelu_in_gradients[i] = this.leakyReLU1.backward(tconv1_in_gradient);
+            leakyrelu_in_gradients_flattened[i] = UTIL.flatten(leakyrelu_in_gradients[i]);
         }
 
         double[][] batch1_in_gradients = this.batch1.backward(leakyrelu_in_gradients_flattened);
@@ -192,17 +196,38 @@ public class Generator_Implementation {
 //        double[] dense_in_gradient = this.dense.backward(batch1_in_gradients[i]);
 
 
-        this.dense.updateParameters(UTIL.mean_1st_layer(batch1_in_gradients), learning_rate_gen);
+        double[] mean_batch1_in_gradients = UTIL.mean_1st_layer(batch1_in_gradients);
+        double[][][] mean_batch2_in_gradients_unflattened = UTIL.mean_1st_layer(batch2_in_gradients_unflattened);
+        double[][][] mean_batch3_in_gradients_unflattened = UTIL.mean_1st_layer(batch3_in_gradients_unflattened);
+        double[][][] tanh_in_gradients_mean = UTIL.mean_1st_layer(tanh_in_gradients);
+
+        for (int i = 0; i < batchSize; i++)
+            this.dense.updateParameters(mean_batch1_in_gradients, noises[i], learning_rate_gen);
         this.batch1.updateParameters(UTIL.mean_1st_layer(leakyrelu_in_gradients_flattened), learning_rate_gen);
 
-        this.tconv1.updateParameters(UTIL.mean_1st_layer(batch2_in_gradients_unflattened), learning_rate_gen);
+        for (int i = 0; i < batchSize; i++)
+            this.tconv1.updateParameters(mean_batch2_in_gradients_unflattened, leakyrelu_in_gradients[i], learning_rate_gen);
         this.batch2.updateParameters(UTIL.mean_1st_layer(leakyrelu2_in_gradients_flattened), learning_rate_gen);
 
-        this.tconv2.updateParameters(UTIL.mean_1st_layer(batch3_in_gradients_unflattened), learning_rate_gen);
+        for (int i = 0; i < batchSize; i++)
+            this.tconv2.updateParameters(mean_batch3_in_gradients_unflattened, leakyrelu2_in_gradients[i], learning_rate_gen);
         this.batch3.updateParameters(UTIL.mean_1st_layer(leakyrelu3_in_gradients_flattened), learning_rate_gen);
 
-        this.tconv3.updateParameters(UTIL.mean_1st_layer(tanh_in_gradients), learning_rate_gen);
+        for (int i = 0; i < batchSize; i++)
+            this.tconv3.updateParameters(tanh_in_gradients_mean, leakyrelu3_in_gradients[i], learning_rate_gen);
 
+
+        if(verbose){
+            // print out the sum of each gradient by flattening it and summing it up using stream().sum()
+            System.out.println("Sum of each gradient in generator: ");
+            System.out.println("mean_batch1_in_gradients: " + Arrays.stream(mean_batch1_in_gradients).sum());
+            System.out.println("mean_batch2_in_gradients_unflattened: " + Arrays.stream(UTIL.flatten(mean_batch2_in_gradients_unflattened)).sum());
+            System.out.println("mean_batch3_in_gradients_unflattened: " + Arrays.stream(UTIL.flatten(mean_batch3_in_gradients_unflattened)).sum());
+            System.out.println("tanh_in_gradients_mean: " + Arrays.stream(UTIL.flatten(tanh_in_gradients_mean)).sum());
+            System.out.println("leakyrelu_in_gradients_flattened: " + Arrays.stream(UTIL.flatten(leakyrelu_in_gradients_flattened)).sum());
+            System.out.println("leakyrelu2_in_gradients_flattened: " + Arrays.stream(UTIL.flatten(leakyrelu2_in_gradients_flattened)).sum());
+            System.out.println("leakyrelu3_in_gradients_flattened: " + Arrays.stream(UTIL.flatten(leakyrelu3_in_gradients_flattened)).sum());
+        }
     }
 
     public void updateParameters(double[][][] gen_output_gradient, double learning_rate_gen) {
@@ -261,10 +286,7 @@ public class Generator_Implementation {
 
 
     public static void main(String[] args) {
-        Generator_Implementation generator = new Generator_Implementation(3);
-//        double[][][] output = generator.generateImage();
-
-//        UTIL.saveImage(UTIL.getBufferedImage(output), "starting_image.png");
+        Generator_Implementation generator = new Generator_Implementation(8);
 
         // loading the first handwritten three from the mnist dataset
         BufferedImage img = UTIL.mnist_load_index(3, 0);
@@ -276,10 +298,13 @@ public class Generator_Implementation {
         double prev_loss = Double.MAX_VALUE, loss, learning_rate = 0.0001;
         generator.verbose = true;
 
-        for (int epoch = 0, max_epochs = 20000; epoch < max_epochs; epoch++, prev_loss = loss) {
+        for (int epoch = 0, max_epochs = 20000000; epoch < max_epochs; epoch++, prev_loss = loss) {
             double[][][][] outputs = generator.forwardBatch();
 
-            loss = UTIL.lossMSE(outputs[0][0], targetOutput[0]);
+            double[] losses = new double[generator.batchSize];
+            for (int i = 0; i < generator.batchSize; i++)
+                losses[i] = UTIL.lossMSE(outputs[i][0], targetOutput[0]);
+            loss = UTIL.mean(losses);
 
             System.out.println(loss);
 

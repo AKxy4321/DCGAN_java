@@ -122,6 +122,46 @@ public class TransposeConvolutionalLayer {
         return inputGradient;
     }
 
+    public void updateParameters(double[][][] outputGradient, double[][][] input, double learningRate) {
+        double[][][][] filtersGradient = new double[numFilters][filterDepth][filterSize][filterSize];
+
+        for (int k = 0; k < numFilters; k++) {
+            for (int c = 0; c < filterDepth; c++) {
+                for (int i = 0; i < filterSize; i++) {
+                    for (int j = 0; j < filterSize; j++) {
+
+                        for (int h = 0; h < outputHeight; h++) {
+                            for (int w = 0; w < outputWidth; w++) {
+                                int inH = h - i * this.stride;
+                                int inW = w - j * this.stride;
+
+                                //calculate the 180 degree rotated outputGradient indices
+                                int new_W = w;//outputWidth - 1 - w;
+                                int new_H = h;//outputHeight - 1 - h;
+
+                                if ((this.padding <= inH && inH < inputHeight - this.padding)
+                                        && (this.padding <= inW && inW < inputWidth - this.padding)) {
+                                    filtersGradient[k][c][i][j] += outputGradient[k][new_H][new_W] * input[c][inH][inW];
+                                }
+                            }
+                        }
+
+                    }
+                }
+            }
+        }
+
+        for (int k = 0; k < numFilters; k++) {
+            for (int c = 0; c < filterDepth; c++) {
+                for (int i = 0; i < filterSize; i++) {
+                    for (int j = 0; j < filterSize; j++) {
+                        this.filters[k][c][i][j] -= learningRate * filtersGradient[k][c][i][j];
+                    }
+                }
+            }
+        }
+    }
+
     public void updateParameters(double[][][] outputGradient, double learningRate) {
         double[][][][] filtersGradient = new double[numFilters][filterDepth][filterSize][filterSize];
 
