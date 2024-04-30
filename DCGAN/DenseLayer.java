@@ -5,9 +5,14 @@ public class DenseLayer {
     private double[] biases;
     double[] input;
 
+    public int outputSize, inputSize;
+
     public DenseLayer(int inputSize, int outputSize) {
 //        weights = new double[inputSize][outputSize];
 //        biases = new double[outputSize];
+        this.outputSize = outputSize;
+        this.inputSize = inputSize;
+
         this.weights = XavierInitializer.xavierInit2D(inputSize, outputSize);
         this.biases = XavierInitializer.xavierInit1D(outputSize);
     }

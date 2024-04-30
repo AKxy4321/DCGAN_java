@@ -29,13 +29,6 @@ public class UTIL {
     }
 
 
-    public static double[] gradientMSE(double[] outputs, double[] expectedOutputs) {
-        double[] gradients = new double[outputs.length];
-        for (int i = 0; i < outputs.length; i++) {
-            gradients[i] = 2 * (outputs[i] - expectedOutputs[i]) / outputs.length;
-        }
-        return gradients;
-    }
 
     public static double gradientSquaredError(double output, double expectedOutput) {
         return 2 * (output - expectedOutput);
@@ -49,6 +42,32 @@ public class UTIL {
             }
         }
     }
+
+    public static double[] gradientMSE(double[] outputs, double[] expectedOutputs) {
+        double[] gradients = new double[outputs.length];
+        for (int i = 0; i < outputs.length; i++) {
+            gradients[i] = 2 * (outputs[i] - expectedOutputs[i]) / outputs.length;
+        }
+        return gradients;
+    }
+
+
+    public static double lossRMSE(double[][] outputs, double[][] expectedOutputs) {
+        double mse = lossMSE(outputs, expectedOutputs);
+        return Math.sqrt(mse);
+    }
+
+    public static void calculateGradientRMSE(double[][] outputGradient, double[][] output, double[][] targetOutput) {
+        double num_values = output.length * output[0].length;
+        for (int i = 0; i < output.length; i++) {
+            for (int j = 0; j < output[i].length; j++) {
+                double squaredError = output[i][j] - targetOutput[i][j];
+                outputGradient[i][j] = (squaredError / num_values) * 2 * output[i][j]; // Gradient for RMSE
+            }
+        }
+    }
+
+
 
     public static double lossBinaryCrossEntropy(double[] outputs, double[] labels) {
         double loss = 0;

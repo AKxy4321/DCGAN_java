@@ -201,23 +201,21 @@ public class Generator_Implementation {
         double[][][] mean_batch3_in_gradients_unflattened = UTIL.mean_1st_layer(batch3_in_gradients_unflattened);
         double[][][] tanh_in_gradients_mean = UTIL.mean_1st_layer(tanh_in_gradients);
 
-        for (int i = 0; i < batchSize; i++)
-            this.dense.updateParameters(mean_batch1_in_gradients, noises[i], learning_rate_gen);
+//        for (int i = 0; i < batchSize; i++)
+        this.dense.updateParameters(mean_batch1_in_gradients, UTIL.mean_1st_layer(noises), learning_rate_gen);
         this.batch1.updateParameters(UTIL.mean_1st_layer(leakyrelu_in_gradients_flattened), learning_rate_gen);
 
-        for (int i = 0; i < batchSize; i++)
-            this.tconv1.updateParameters(mean_batch2_in_gradients_unflattened, leakyrelu_in_gradients[i], learning_rate_gen);
+//        for (int i = 0; i < batchSize; i++)
+        this.tconv1.updateParameters(mean_batch2_in_gradients_unflattened, UTIL.mean_1st_layer(leakyrelu_in_gradients), learning_rate_gen);
         this.batch2.updateParameters(UTIL.mean_1st_layer(leakyrelu2_in_gradients_flattened), learning_rate_gen);
 
-        for (int i = 0; i < batchSize; i++)
-            this.tconv2.updateParameters(mean_batch3_in_gradients_unflattened, leakyrelu2_in_gradients[i], learning_rate_gen);
+        this.tconv2.updateParameters(mean_batch3_in_gradients_unflattened, UTIL.mean_1st_layer(leakyrelu2_in_gradients), learning_rate_gen);
         this.batch3.updateParameters(UTIL.mean_1st_layer(leakyrelu3_in_gradients_flattened), learning_rate_gen);
 
-        for (int i = 0; i < batchSize; i++)
-            this.tconv3.updateParameters(tanh_in_gradients_mean, leakyrelu3_in_gradients[i], learning_rate_gen);
+        this.tconv3.updateParameters(tanh_in_gradients_mean, UTIL.mean_1st_layer(leakyrelu3_in_gradients), learning_rate_gen);
 
 
-        if(verbose){
+        if (verbose) {
             // print out the sum of each gradient by flattening it and summing it up using stream().sum()
             System.out.println("Sum of each gradient in generator: ");
             System.out.println("mean_batch1_in_gradients: " + Arrays.stream(mean_batch1_in_gradients).sum());
@@ -303,14 +301,14 @@ public class Generator_Implementation {
 
             double[] losses = new double[generator.batchSize];
             for (int i = 0; i < generator.batchSize; i++)
-                losses[i] = UTIL.lossMSE(outputs[i][0], targetOutput[0]);
+                losses[i] = UTIL.lossRMSE(outputs[i][0], targetOutput[0]);
             loss = UTIL.mean(losses);
 
             System.out.println(loss);
 
 
             for (int i = 0; i < generator.batchSize; i++)
-                UTIL.calculateGradientMSE(outputGradients[i][0], outputs[i][0], targetOutput[0]);
+                UTIL.calculateGradientRMSE(outputGradients[i][0], outputs[i][0], targetOutput[0]);
 
             generator.updateParametersBatch(outputGradients, learning_rate);
 

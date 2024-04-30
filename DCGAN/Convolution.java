@@ -37,7 +37,7 @@ public class Convolution {
     }
 
 
-    public double[][][] forward(double[][][] input) {//TODO: recheck logic
+    public double[][][] forward(double[][][] input) {
         this.input3D = input;
 
         double[][][] output = new double[output_depth][output_height][output_width];
@@ -149,4 +149,5 @@ public class Convolution {
         }
 
     }
+
 }
