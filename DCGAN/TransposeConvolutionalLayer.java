@@ -92,24 +92,59 @@ public class TransposeConvolutionalLayer {
 
 
     public double[][][] backward(double[][][] outputGradient) {
+        /**
+         * Consider implementing the convolution by multiplying matrices. Given an input vector x and a weight
+         * matrix W, the forward propagation function of the convolution can be implemented by multiplying its
+         * input with the weight matrix and outputting a vector y = W x Since backpropagation follows the
+         * chain rule and delta_x y =  W , the backpropagation function of the convolution can be implemented by
+         * multiplying its input with the transposed weight matrix W . Therefore, the transposed convolutional
+         * layer can just exchange the forward propagation function and the backpropagation function of the
+         * convolutional layer: its forward propagation and backpropagation functions multiply their input vector
+         * with W and W, respectively.
+         * */
 
-        int paddedOutputHeight = outputHeight + output_padding * 2;
-        int paddedOutputWidth = outputWidth + output_padding * 2;
+//        int paddedOutputHeight = outputHeight + output_padding * 2;
+//        int paddedOutputWidth = outputWidth + output_padding * 2;
 
-        // Pad the output gradient with zeros (assuming zero output_padding during forward pass)
-        double[][][] paddedOutput = new double[numFilters][paddedOutputHeight][paddedOutputWidth];
-        for (int k = 0; k < numFilters; k++) {
-            for (int h = 0; h < outputHeight; h++) {
-                for (int w = 0; w < outputWidth; w++) {
-                    paddedOutput[k][h + output_padding][w + output_padding] = outputGradient[k][h][w];
-                }
-            }
-        }
+//        // flipping the filters
+//        double[][][][] flipped_filters = new double[numFilters][filterDepth][filterSize][filterSize];
+//        for (int k = 0; k < numFilters; k++) {
+//            for (int c = 0; c < filterDepth; c++) {
+//                for (int i = 0; i < filterSize; i++) {
+//                    for (int j = 0; j < filterSize; j++) {
+//                        flipped_filters[k][c][i][j] = this.filters[k][c][filterSize - 1 - i][filterSize - 1 - j];
+//                    }
+//                }
+//            }
+//        }
+
+
+//        // Pad the output gradient with zeros (assuming zero output_padding during forward pass)
+//        double[][][] paddedOutput = new double[numFilters][paddedOutputHeight][paddedOutputWidth];
+//        for (int k = 0; k < numFilters; k++) {
+//            for (int h = 0; h < outputHeight; h++) {
+//                for (int w = 0; w < outputWidth; w++) {
+//                    paddedOutput[k][h + output_padding][w + output_padding] = outputGradient[k][h][w];
+//                }
+//            }
+//        }
 
         double[][][] inputGradient = new double[inputDepth][inputHeight][inputWidth];
 
-        for (int d = 0; d < inputDepth; d++) {
+        /*
+        * output_width = (int) Math.floor((double) (input_width - filterWidth + 2p) / x_stride + 1);
+        *
+        *
+        * */
+//        for(int d=0;d<inputDepth;d++){
+//            inputGradient[d] = Convolution.convolve3d(outputGradient[d], flipped_filters[d], 1, stride, stride, 0, 0, 0)[0];
+//            System.out.println("Shape : " + inputGradient[d].length + " " + inputGradient[d][0].length);
+//            System.out.println("Supposed to be of shape : " + inputHeight + "x" + inputWidth);
+//        }
 
+        for (int d = 0; d < inputDepth; d++) {
+            // we know that convolution of outputGradient with one filter will return 1xoutputHeightxoutputWidth, so we reshape it to outputHeightxoutputWidth
+//            inputGradient[filter_idx] = Convolution.convolve3d(outputGradient, flipped_filters[filter_idx], stride, 0)[0];
             for (int inputY = 0; inputY < inputHeight; inputY++) {
                 for (int inputX = 0; inputX < inputWidth; inputX++) {
 
@@ -128,9 +163,9 @@ public class TransposeConvolutionalLayer {
                                 int fx_t = filterSize - 1 - fx;
                                 int fy_t = filterSize - 1 - fy;
 
-                                if ((0 <= effectiveOutputY && effectiveOutputY < paddedOutputHeight)
-                                        && (0 <= effectiveOutputX && effectiveOutputX < paddedOutputWidth)) {
-                                    a += this.filters[k][d][fy_t][fx_t] * paddedOutput[k][effectiveOutputY][effectiveOutputX];
+                                if ((0 <= effectiveOutputY && effectiveOutputY < outputHeight)
+                                        && (0 <= effectiveOutputX && effectiveOutputX < outputWidth)) {
+                                    a += this.filters[k][d][fy_t][fx_t] * outputGradient[k][effectiveOutputY][effectiveOutputX];
                                 }
                             }
                         }
@@ -147,13 +182,6 @@ public class TransposeConvolutionalLayer {
 //        System.out.println("Filter");
 //        UTIL.prettyprint(filters[0][0]);
 
-//        double[][] flipped_filter = new double[filterSize][filterSize];
-//        for (int i = 0; i < filterSize; i++) {
-//            for (int j = 0; j < filterSize; j++) {
-//                flipped_filter[i][j] = filters[0][0][filterSize - 1 - i][filterSize - 1 - j];
-//            }
-//        }
-
 //        Convolution.test(paddedOutput, new double[][][]{flipped_filter});
 
         return inputGradient;
@@ -161,49 +189,75 @@ public class TransposeConvolutionalLayer {
 
 
     public void updateParameters(double[][][] outputGradient, double[][][] input, double learningRate) {
+        /** calculates the filter gradients and bias gradients and updates the filters and biases
+
+         apparently, filterGradients = convolve(input, outputGradient[k]) and biasGradients = sum(outputGradient[k])
+
+         so that the output of convolution is of the same shape as the filterGradients, we have to pad the input accordingly
+
+         in convolution : output_width = (int) Math.floor((double) (input_width - filterWidth + 2p) / x_stride + 1);
+         but we want output dimension of convolution to be equal to filter dimensions, and the filter being used here will be the outputGradient
+         substituting : filter_width = (int) Math.floor((double) (input_width - outputGradientWidth + 2p) / x_stride + 1);
+         (stride * (filterSize - 1) + outputGradient_width - input_width)/2 = p;*/
+
         double[][][][] filtersGradient = new double[numFilters][filterDepth][filterSize][filterSize];
         double[] biasGradient = new double[numFilters]; // to store bias gradients
 
-        // Calculate filter gradients (same as before)
+
+        int hp = (int) Math.ceil((stride * (filterSize - 1) + outputHeight - inputHeight)/2.0);
+        int wp = (int) Math.ceil((stride * (filterSize - 1) + outputWidth - inputWidth)/2.0);
+        int dp = 0;//(int) Math.ceil((1 * (filterDepth - 1) + outputDepth - inputDepth)/2.0);// z_stride = 1
+        System.out.println("hp : " + hp + " wp : " + wp + " dp : " + dp);
+
         for (int k = 0; k < numFilters; k++) {
-            for (int c = 0; c < filterDepth; c++) {
-                for (int i = 0; i < filterSize; i++) {
-                    for (int j = 0; j < filterSize; j++) {
-
-                        for (int h = 0; h < outputHeight; h++) {
-                            for (int w = 0; w < outputWidth; w++) {
-                                int inH = h - i * this.stride;
-                                int inW = w - j * this.stride;
-                                int effectiveInH = inH + padding; // Consider padding
-                                int effectiveInW = inW + padding;
-
-                                if ((0 <= effectiveInH && effectiveInH < inputHeight + 2 * padding)
-                                        && (0 <= effectiveInW && effectiveInW < inputWidth + 2 * padding)) {
-                                    filtersGradient[k][c][i][j] += outputGradient[k][h][w] * input[c][effectiveInH - padding][effectiveInW - padding];
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+            filtersGradient[k] = Convolution.convolve3d(Convolution.pad3d(input, dp, hp, wp), new double[][][]{outputGradient[k]}, 1, stride, stride, 0, 0, 0);
+//            UTIL.prettyprint(filtersGradient[k]);
+            biasGradient[k] = UTIL.sum(outputGradient[k]) / (outputGradient[k].length * outputGradient[k][0].length);
         }
+        System.out.println("Shape : " + filtersGradient[0].length + " " + filtersGradient[0][0].length + " " + filtersGradient[0][0][0].length);
+        System.out.println("Supposed to be of shape : " + filterDepth + "x" + filterSize + "x" + filterSize);
+//
+//        // Calculate filter gradients (same as before)
+//        System.out.println("c : " + inputDepth);
+//        for (int k = 0; k < numFilters; k++) {
+//            for (int c = 0; c < filterDepth; c++) {
+//                for (int i = 0; i < filterSize; i++) {
+//                    for (int j = 0; j < filterSize; j++) {
+//
+//                        for (int h = 0; h < outputHeight; h++) {
+//                            for (int w = 0; w < outputWidth; w++) {
+//                                int inH = h + i * this.stride;
+//                                int inW = w + j * this.stride;
+//                                int effectiveInH = inH; // Consider padding
+//                                int effectiveInW = inW;
+//
+//                                if ((0 <= effectiveInH && effectiveInH < inputHeight)
+//                                        && (0 <= effectiveInW && effectiveInW < inputWidth)) {
+//                                    filtersGradient[k][c][i][j] += outputGradient[k][h][w] * input[c][effectiveInH][effectiveInW];
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//            }
+//        }
 //        System.out.println("outputGradient");
 //        UTIL.prettyprint(outputGradient[0]);
 //        System.out.println("input");
 //        UTIL.prettyprint(input[0]);
 //        System.out.println("filterGradient");
 //        UTIL.prettyprint(filtersGradient[0][0]);
-
-
-        // Calculate bias gradients
-        for (int k = 0; k < numFilters; k++) {
-            for (int h = 0; h < outputHeight; h++) {
-                for (int w = 0; w < outputWidth; w++) {
-                    biasGradient[k] += outputGradient[k][h][w]; // Sum over output
-                }
-            }
-            biasGradient[k] /= (outputWidth * outputHeight); // Average gradient
-        }
+//
+//
+//        // Calculate bias gradients
+//        for (int k = 0; k < numFilters; k++) {
+//            for (int h = 0; h < outputHeight; h++) {
+//                for (int w = 0; w < outputWidth; w++) {
+//                    biasGradient[k] += outputGradient[k][h][w]; // Sum over output
+//                }
+//            }
+//            biasGradient[k] /= (outputWidth * outputHeight); // Average gradient
+//        }
 
         // Update filters and biases
         for (int k = 0; k < numFilters; k++) {
@@ -228,7 +282,7 @@ public class TransposeConvolutionalLayer {
 
         // output_shape = (input_shape - 1) * stride - 2 * padding + kernel_size + output_padding
 
-        TransposeConvolutionalLayer tconv2 = new TransposeConvolutionalLayer(3, 1, 1, 2,2,1, 0);
+        TransposeConvolutionalLayer tconv2 = new TransposeConvolutionalLayer(2, 1, 1, 2, 2, 1, 0);
 
 //        double[][] targetOutput = {
 //                {0, 0, 0, 0},
@@ -244,17 +298,11 @@ public class TransposeConvolutionalLayer {
 //                {0, 0, 0, 0},
 //        };
 
-        double[][] targetOutput = {
-                {10, 10, 10, 10},
-                {10, 10, 10, 10},
-                {10, 10, 10, 10},
-                {10, 10, 10, 10},
-        };
-        targetOutput = UTIL.multiplyScalar(targetOutput, 0);
+        double[][] targetOutput = new double[tconv2.outputHeight][tconv2.outputWidth];
 
-        double[][][] input = {{{1.0,1.0},{1.0,1.0}}};
+        double[][][] input = {{{1.0, 1.0}, {1.0, 1.0}}};
 
-        double learning_rate = 0.00005;
+        double learning_rate = 0.0005;
 
         for (int epoch = 0; epoch < 5001; epoch++) {
 
@@ -303,7 +351,6 @@ public class TransposeConvolutionalLayer {
             }
         }
     }
-
 
 
 }

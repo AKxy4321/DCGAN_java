@@ -451,4 +451,11 @@ public class UTIL {
     }
 
 
+    public static double sum(double[][] array) {
+        double sum = 0;
+        for(int i=0;i<array.length;i++)
+            for(int j=0;j<array[0].length;j++)
+                sum += array[i][j];
+        return sum;
+    }
 }

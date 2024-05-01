@@ -18,7 +18,7 @@ public class Convolution {
 
     private static Logger logger = Logger.getLogger(Convolution.class.getName());
 
-    Convolution(int filterSize, int numFilters, int stride, int input_width, int input_height, int input_depth){
+    Convolution(int filterSize, int numFilters, int stride, int input_width, int input_height, int input_depth) {
         this(filterSize, numFilters, stride, input_width, input_height, input_depth, 0, 0, 0);
     }
 
@@ -77,8 +77,13 @@ public class Convolution {
 
     public double[][][] backprop(double[][][] output_gradients) {
 
-        double[][][] inputGradient = new double[input_depth][input_height][input_width];
+        /**
+         returns the input Gradient. Input gradient is calculated using the formula:
+         inputGradient = transpose_convolution(output_gradients, filters)
+         *
+         * */
 
+        double[][][] inputGradient = new double[input_depth][input_height][input_width];
 
         for (int d = 0; d < this.output_depth; d++) {
             double[][][] f = this.filters[d];
@@ -97,7 +102,6 @@ public class Convolution {
                             if (input_y >= 0 && input_y < input_height && input_x >= 0 && input_x < input_width) {
                                 for (int fd = 0; fd < f.length; fd++) {
                                     inputGradient[fd][input_y][input_x] += f[fd][fy][fx] * chain_grad;
-
                                 }
                             }
                         }
@@ -110,6 +114,12 @@ public class Convolution {
     }
 
     public void updateParameters(double[][][] output_gradients, double learning_rate) {
+        /**
+         * updates the filter weights and the biases
+         * the filterGradients are calculated using the formula : df = convolution(input, output_gradients)
+         *
+         * biasGradient[d] = sum(output_gradients[d])
+         * */
 
         double[][][][] filterGradients = new double[numFilters][filter_depth][filterSize][filterSize];
         double[] biasGradients = new double[numFilters];
@@ -202,14 +212,14 @@ public class Convolution {
     }
 
     public static double[][][] convolve3d(double[][][] input, double[][][] filter, int stride) {
-        return convolve3d(input, filter, stride, 0, 0, 0);
+        return convolve3d(input, filter, stride, stride, stride, 0, 0, 0);
     }
 
     public static double[][][] convolve3d(double[][][] input, double[][][] filter, int stride, int padding) {
-        return convolve3d(input, filter, stride, padding, padding, padding);
+        return convolve3d(input, filter, stride, stride, stride, padding, padding, padding);
     }
 
-    public static double[][][] convolve3d(double[][][] input, double[][][] filter, int stride, int depthPadding, int heightPadding, int widthPadding) {
+    public static double[][][] convolve3d(double[][][] input, double[][][] filter, int z_stride, int y_stride, int x_stride, int depthPadding, int heightPadding, int widthPadding) {
 //        System.out.println("Input before padding:");
 //        UTIL.prettyprint(input);
 
@@ -229,19 +239,19 @@ public class Convolution {
 
         // output_shape = ((input_height - kernel_size + 2 * padding) / stride) + 1
         // padding is already applied, so we can omit it in the below formula
-        int output_width = (int) Math.floor((double) (input_width - filterWidth) / stride + 1);
-        int output_height = (int) Math.floor((double) (input_height - filterHeight) / stride + 1);
-        int output_depth = (int) Math.floor((double) (input_depth - filterDepth) / stride + 1);
+        int output_width = (int) Math.floor((double) (input_width - filterWidth) / x_stride + 1);
+        int output_height = (int) Math.floor((double) (input_height - filterHeight) / y_stride + 1);
+        int output_depth = (int) Math.floor((double) (input_depth - filterDepth) / z_stride + 1);
 
         double[][][] output = new double[output_depth][output_height][output_width];
 
 
         int z = 0;
-        for (int output_z = 0; output_z < output_depth; output_z++) {
+        for (int output_z = 0; output_z < output_depth; z+= z_stride, output_z++) {
             int y = 0;
-            for (int output_y = 0; output_y < output_height; y += stride, output_y++) {  // xy_stride
+            for (int output_y = 0; output_y < output_height; y += y_stride, output_y++) {  // xy_stride
                 int x = 0;
-                for (int output_x = 0; output_x < output_width; x += stride, output_x++) {  // xy_stride
+                for (int output_x = 0; output_x < output_width; x += x_stride, output_x++) {  // xy_stride
 
                     // Here we are taking dot product with the filter and the overlapping input region
                     // convolve centered at this particular location
@@ -273,6 +283,7 @@ public class Convolution {
     public static double[][] convolve2d(double[][] input, double[][] filter, int stride) {
         return convolve2d(input, filter, stride, 0, 0);
     }
+
     public static double[][] convolve2d(double[][] input, double[][] filter, int stride, int inputPadding) {
         return convolve2d(input, filter, stride, inputPadding, inputPadding);
     }
