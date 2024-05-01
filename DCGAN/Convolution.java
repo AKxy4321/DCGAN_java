@@ -233,6 +233,7 @@ public class Convolution {
 //        System.out.println("Padded input : ");
 //        UTIL.prettyprint(input);
 
+
         int filterHeight = filter[0].length;
         int filterWidth = filter[0][0].length;
         int filterDepth = filter.length;
@@ -246,11 +247,11 @@ public class Convolution {
         double[][][] output = new double[output_depth][output_height][output_width];
 
 
-        int z = 0;
-        for (int output_z = 0; output_z < output_depth; z+= z_stride, output_z++) {
-            int y = 0;
+        int z = -depthPadding;
+        for (int output_z = 0; output_z < output_depth; z += z_stride, output_z++) {
+            int y = -heightPadding;
             for (int output_y = 0; output_y < output_height; y += y_stride, output_y++) {  // xy_stride
-                int x = 0;
+                int x = -widthPadding;
                 for (int output_x = 0; output_x < output_width; x += x_stride, output_x++) {  // xy_stride
 
                     // Here we are taking dot product with the filter and the overlapping input region

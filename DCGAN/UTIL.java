@@ -458,4 +458,14 @@ public class UTIL {
                 sum += array[i][j];
         return sum;
     }
+
+
+    public static double[][] rotate180(double[][] array){
+        double[][] rotated = new double[array.length][array[0].length];
+        for(int i=0;i<array.length;i++)
+            for(int j=0;j<array[0].length;j++)
+                rotated[i][j] = array[array.length-i-1][array[0].length-j-1];
+        return rotated;
+    }
+
 }
