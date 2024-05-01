@@ -1,6 +1,7 @@
 package DCGAN;
 
 import java.util.Arrays;
+import java.util.logging.Logger;
 
 public class Convolution {
     public int numFilters;
@@ -13,8 +14,15 @@ public class Convolution {
     public int input_width, input_height, input_depth;
 
     public int filter_depth;
+    public int inputPaddingX, inputPaddingY, inputPaddingZ;
 
-    Convolution(int filterSize, int numFilters, int stride, int input_width, int input_height, int input_depth) {
+    private static Logger logger = Logger.getLogger(Convolution.class.getName());
+
+    Convolution(int filterSize, int numFilters, int stride, int input_width, int input_height, int input_depth){
+        this(filterSize, numFilters, stride, input_width, input_height, input_depth, 0, 0, 0);
+    }
+
+    Convolution(int filterSize, int numFilters, int stride, int input_width, int input_height, int input_depth, int inputPaddingX, int inputPaddingY, int inputPaddingZ) {
         this.numFilters = numFilters;
         this.filterSize = filterSize;
         this.stride = stride;
@@ -26,14 +34,17 @@ public class Convolution {
         this.output_height = (int) Math.floor((double) (input_height - filterSize) / stride + 1);
         this.output_depth = this.numFilters;
 
+        // since filterDepth isn't mentioned, its convention to assume that the filter depth is equal to the input depth,
+        // although it makes sense to make its depth 1, that goes against convention,
+        // but usually we want 3d output, although if you put filter_depth to something smaller, you will get a 4d output which we don't really wanna work with
         this.filter_depth = input_depth;
 
-//        this.filters = new double[numFilters][input_depth][filterSize][filterSize];
-//        this.biases = new double[numFilters];
-
         this.filters = XavierInitializer.xavierInit4D(numFilters, filter_depth, filterSize);
-
         this.biases = XavierInitializer.xavierInit1D(numFilters);
+
+        this.inputPaddingX = inputPaddingX;
+        this.inputPaddingY = inputPaddingY;
+        this.inputPaddingZ = inputPaddingZ;
     }
 
 
@@ -42,29 +53,21 @@ public class Convolution {
 
         double[][][] output = new double[output_depth][output_height][output_width];
 
+        // preprocessing : pad the input
+        input = pad3d(input, 0, 0, 0);
+
         for (int d = 0; d < this.output_depth; d++) {
-            double[][][] f = this.filters[d];
+            // we know the convolution result will have a depth of 1 because we are convolving a 3d input with a filter of the same depth
+            // od = (id-f
+            // od = ((id - fd) / stride_in_z) + 1 = ((id - id) / stride_in_z) + 1 = 0 + 1 = 1
 
-            int y = 0; //-this.padding;
-            for (int output_y = 0; output_y < this.output_height; y += stride, output_y++) {  // xy_stride
-                int x = 0; // -this.padding;
-                for (int output_x = 0; output_x < this.output_width; x += stride, output_x++) {  // xy_stride
+            // we take this 1xoutput_heightxoutput_width and reshape it to 2d : output_heightxoutput_width
+            output[d] = convolve3d(input, filters[d], stride, 0)[0];
 
-                    // convolve centered at this particular location
-                    double a = 0.0;
-                    for (int fy = 0; fy < filterSize; fy++) {
-                        int input_y = y + fy; // coordinates in the original input array coordinates
-                        for (int fx = 0; fx < filterSize; fx++) {
-                            int input_x = x + fx;
-                            if (input_y >= 0 && input_y < input_height && input_x >= 0 && input_x < input_width) {
-                                for (int fd = 0; fd < f.length; fd++) {
-                                    a += f[fd][fy][fx] * input[fd][input_y][input_x];
-                                }
-                            }
-                        }
-                    }
-                    a += this.biases[d];
-                    output[d][output_y][output_x] = a;
+            // if we are using bias as well
+            for (int y = 0; y < output_height; y++) {
+                for (int x = 0; x < output_width; x++) {
+                    output[d][y][x] += biases[d];
                 }
             }
         }
@@ -80,9 +83,9 @@ public class Convolution {
         for (int d = 0; d < this.output_depth; d++) {
             double[][][] f = this.filters[d];
 
-            int y = 0; //-this.padding;
+            int y = 0;
             for (int output_y = 0; output_y < this.output_height; y += stride, output_y++) {
-                int x = 0; // -this.padding;
+                int x = 0;
                 for (int output_x = 0; output_x < this.output_width; x += stride, output_x++) {
 
                     // convolve centered at this particular location
@@ -150,18 +153,18 @@ public class Convolution {
     }
 
 
-    public static double[][] pad2d(double[][] input, int heightPadding, int depthPadding) {
+    public static double[][] pad2d(double[][] input, int heightPadding, int widthPadding) {
         int input_width = input[0].length;
         int input_height = input.length;
 
         int paddedInputHeight = input_height + heightPadding * 2;
-        int paddedInputWidth = input_width + depthPadding * 2;
+        int paddedInputWidth = input_width + widthPadding * 2;
 
         // Pad the input with zeros
         double[][] paddedInput = new double[paddedInputHeight][paddedInputWidth];
         for (int h = 0; h < input_height; h++) {
             for (int w = 0; w < input_width; w++) {
-                paddedInput[h + heightPadding][w + depthPadding] = input[h][w];
+                paddedInput[h + heightPadding][w + widthPadding] = input[h][w];
             }
         }
 
@@ -202,13 +205,13 @@ public class Convolution {
         return convolve3d(input, filter, stride, 0, 0, 0);
     }
 
-    public static double[][][] convolve3d(double[][][] input, double[][][] filter, int padding, int stride) {
+    public static double[][][] convolve3d(double[][][] input, double[][][] filter, int stride, int padding) {
         return convolve3d(input, filter, stride, padding, padding, padding);
     }
 
     public static double[][][] convolve3d(double[][][] input, double[][][] filter, int stride, int depthPadding, int heightPadding, int widthPadding) {
-        System.out.println("Input before padding:");
-        UTIL.prettyprint(input);
+//        System.out.println("Input before padding:");
+//        UTIL.prettyprint(input);
 
         if (depthPadding > 0 || heightPadding > 0 || widthPadding > 0)
             input = pad3d(input, depthPadding, heightPadding, widthPadding);
@@ -217,8 +220,8 @@ public class Convolution {
         int input_height = input[0].length;
         int input_depth = input.length;
 
-        System.out.println("Padded input : ");
-        UTIL.prettyprint(input);
+//        System.out.println("Padded input : ");
+//        UTIL.prettyprint(input);
 
         int filterHeight = filter[0].length;
         int filterWidth = filter[0][0].length;
@@ -275,8 +278,8 @@ public class Convolution {
     }
 
     public static double[][] convolve2d(double[][] input, double[][] filter, int stride, int heightPadding, int widthPadding) {
-        System.out.println("Input before padding:");
-        UTIL.prettyprint(input);
+//        System.out.println("Input before padding:");
+//        UTIL.prettyprint(input);
 
         if (widthPadding > 0 || heightPadding > 0)
             input = pad2d(input, heightPadding, widthPadding);
@@ -284,8 +287,8 @@ public class Convolution {
         int input_width = input[0].length;
         int input_height = input.length;
 
-        System.out.println("Padded input : ");
-        UTIL.prettyprint(input);
+//        System.out.println("Padded input : ");
+//        UTIL.prettyprint(input);
 
         int filterSize = filter[0].length;
 
