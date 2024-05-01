@@ -147,68 +147,186 @@ public class Convolution {
             }
             this.biases[k] -= learning_rate * biasGradients[k];
         }
-
     }
 
 
-    public static void test(double[][][] input, double[][][] filter){
-        Convolution conv = new Convolution(filter[0].length, 1, 1, input[0][0].length, input[0].length, input.length);
-        conv.filters[0] = filter;
-        conv.biases[0] = 0.0;
-        System.out.println("convolution output:");
-        UTIL.prettyprint(conv.forward(input));
+    public static double[][] pad2d(double[][] input, int heightPadding, int depthPadding) {
+        int input_width = input[0].length;
+        int input_height = input.length;
+
+        int paddedInputHeight = input_height + heightPadding * 2;
+        int paddedInputWidth = input_width + depthPadding * 2;
+
+        // Pad the input with zeros
+        double[][] paddedInput = new double[paddedInputHeight][paddedInputWidth];
+        for (int h = 0; h < input_height; h++) {
+            for (int w = 0; w < input_width; w++) {
+                paddedInput[h + heightPadding][w + depthPadding] = input[h][w];
+            }
+        }
+
+        return paddedInput;
     }
+
+    public static double[][][] pad3d(double[][][] input, int depthPadding, int heightPadding, int widthPadding) {
+        int input_width = input[0][0].length;
+        int input_height = input[0].length;
+        int input_depth = input.length;
+
+        int paddedInputWidth = input_width + widthPadding * 2;
+        int paddedInputHeight = input_height + heightPadding * 2;
+        int paddedInputDepth = input_depth + depthPadding * 2;
+
+        double[][][] paddedInput = new double[paddedInputDepth][paddedInputHeight][paddedInputWidth];
+
+        for (int d = 0; d < input_depth; d++) {
+            for (int h = 0; h < input_height; h++) {
+                for (int w = 0; w < input_width; w++) {
+                    paddedInput[d + depthPadding][h + heightPadding][w + widthPadding] = input[d][h][w];
+                }
+            }
+        }
+
+        return paddedInput;
+    }
+
+    public static double[][][] pad3d(double[][][] input, int padding) {
+        return pad3d(input, padding, padding, padding);
+    }
+
+    public static double[][] pad2d(double[][] input, int padding) {
+        return pad2d(input, padding, padding);
+    }
+
+    public static double[][][] convolve3d(double[][][] input, double[][][] filter, int stride) {
+        return convolve3d(input, filter, stride, 0, 0, 0);
+    }
+
+    public static double[][][] convolve3d(double[][][] input, double[][][] filter, int padding, int stride) {
+        return convolve3d(input, filter, stride, padding, padding, padding);
+    }
+
+    public static double[][][] convolve3d(double[][][] input, double[][][] filter, int stride, int depthPadding, int heightPadding, int widthPadding) {
+        System.out.println("Input before padding:");
+        UTIL.prettyprint(input);
+
+        if (depthPadding > 0 || heightPadding > 0 || widthPadding > 0)
+            input = pad3d(input, depthPadding, heightPadding, widthPadding);
+
+        int input_width = input[0][0].length;
+        int input_height = input[0].length;
+        int input_depth = input.length;
+
+        System.out.println("Padded input : ");
+        UTIL.prettyprint(input);
+
+        int filterHeight = filter[0].length;
+        int filterWidth = filter[0][0].length;
+        int filterDepth = filter.length;
+
+        // output_shape = ((input_height - kernel_size + 2 * padding) / stride) + 1
+        // padding is already applied, so we can omit it in the below formula
+        int output_width = (int) Math.floor((double) (input_width - filterWidth) / stride + 1);
+        int output_height = (int) Math.floor((double) (input_height - filterHeight) / stride + 1);
+        int output_depth = (int) Math.floor((double) (input_depth - filterDepth) / stride + 1);
+
+        double[][][] output = new double[output_depth][output_height][output_width];
+
+
+        int z = 0;
+        for (int output_z = 0; output_z < output_depth; output_z++) {
+            int y = 0;
+            for (int output_y = 0; output_y < output_height; y += stride, output_y++) {  // xy_stride
+                int x = 0;
+                for (int output_x = 0; output_x < output_width; x += stride, output_x++) {  // xy_stride
+
+                    // Here we are taking dot product with the filter and the overlapping input region
+                    // convolve centered at this particular location
+                    double a = 0.0;
+                    for (int fz = 0; fz < filterDepth; fz++) {
+                        int input_z = z + fz;
+                        for (int fy = 0; fy < filterHeight; fy++) {
+                            int input_y = y + fy; // coordinates in the original input array coordinates
+                            for (int fx = 0; fx < filterWidth; fx++) {
+                                int input_x = x + fx;
+                                if (input_y >= 0 && input_y < input_height &&
+                                        input_x >= 0 && input_x < input_width &&
+                                        input_z >= 0 && input_z < input_depth) {
+                                    a += filter[fz][fy][fx] * input[input_z][input_y][input_x];
+                                }
+                            }
+                        }
+                    }
+
+                    output[output_z][output_y][output_x] = a;
+
+                }
+            }
+        }
+
+        return output;
+    }
+
+    public static double[][] convolve2d(double[][] input, double[][] filter, int stride) {
+        return convolve2d(input, filter, stride, 0, 0);
+    }
+    public static double[][] convolve2d(double[][] input, double[][] filter, int stride, int inputPadding) {
+        return convolve2d(input, filter, stride, inputPadding, inputPadding);
+    }
+
+    public static double[][] convolve2d(double[][] input, double[][] filter, int stride, int heightPadding, int widthPadding) {
+        System.out.println("Input before padding:");
+        UTIL.prettyprint(input);
+
+        if (widthPadding > 0 || heightPadding > 0)
+            input = pad2d(input, heightPadding, widthPadding);
+
+        int input_width = input[0].length;
+        int input_height = input.length;
+
+        System.out.println("Padded input : ");
+        UTIL.prettyprint(input);
+
+        int filterSize = filter[0].length;
+
+        // output_shape = ((input_height - kernel_size + 2 * padding) / stride) + 1
+        // padding is already applied, so we can omit it in the below formula
+        int output_width = (int) Math.floor((double) (input_width - filterSize) / stride + 1);
+        int output_height = (int) Math.floor((double) (input_height - filterSize) / stride + 1);
+        double[][] output = new double[output_height][output_width];
+
+
+        int y = 0;
+        for (int output_y = 0; output_y < output_height; y += stride, output_y++) {  // xy_stride
+            int x = 0;
+            for (int output_x = 0; output_x < output_width; x += stride, output_x++) {  // xy_stride
+
+                // convolve centered at this particular location
+                double a = 0.0;
+                for (int fy = 0; fy < filterSize; fy++) {
+                    int input_y = y + fy; // coordinates in the original input array coordinates
+                    for (int fx = 0; fx < filterSize; fx++) {
+                        int input_x = x + fx;
+                        if (input_y >= 0 && input_y < input_height && input_x >= 0 && input_x < input_width) {
+                            a += filter[fy][fx] * input[input_y][input_x];
+                        }
+                    }
+                }
+                output[output_y][output_x] = a;
+            }
+        }
+
+        return output;
+    }
+
     public static void main(String[] args) {
-        Convolution conv = new Convolution(2, 1, 1, 4, 4, 1);
-        double[][][] input = new double[][][]{{{0.30817199884474633, 0.46007586122875466, 0.21450701335303385, 0.11559490853249392},
-                {0.20504174993982818, 0.19859653628612528, 0.018425067092649523, 0.020424015094034804},
-                {0.09712189525746204, 3.375814623831309E-4, 0.032548058921766605, 0.01273730366496365},
-                {0.171363639635987, 0.0630113410210414, 0.021608778257684216, 0.09606253244241483}}};
-        conv.filters[0][0] = new double[][]{{-0.5624438919050452, -0.34838378252869157 , 0.04610379248030185},
-                {0.28937128145669205, 0.3686168439781439 , 0.5574219252868703},
-                {-0.1631085894638904, 0.4608589364400626 , 0.1311166708761941}};
-        conv.biases[0] = 0.0;
-        /*
-        * outputGradient
-{0.05317230973804788, 0.059228707518354434, 0.0717510057086238, 0.06506861852353718},
-{0.23209021166063673, 0.13446081861270737, 0.01012569918377766, 2.0856825422670703E-4},
-{0.12118979940981606, 0.005367829964930401, 0.20792565550237252, 0.032808395675822014},
-{0.009400669754009633, 0.00250540600013088, 0.007655959853797619, 0.003541766208192948}
-*
-*
-*
-{{0.005935862539757215, 0.014767443339451937 ,0.009909938388943176 ,0.00303290895296782 },
-{0.06920737939169946, 0.04120547600111788 ,0.0010202652801449734 ,0.008468274157925167 },
-{0.016703371369955897, 1.822085349390881E-4 ,0.005620206829124786 ,0.04739678470843118 },
-{0.003224749972755033, 0.009018999713874725 ,0.020327664981810344 ,0.03267296750775934 },}
-InputGradient
--0.005467486424117771 0.017382150242758028
-0.029815899652575212 0.042605585788895166
-input
-1.0 1.0
-1.0 1.0
-filterGradient
-0.4789520475297464 0.2755662310234633 0.14715389167016535
-0.4931086596480906 0.35788000326378794 0.2510683186161989
-0.13846370512888698 0.2234548513212314 0.25193177724018506
-*
-*
-*
-* paddedOutput
-{{0.30817199884474633, 0.46007586122875466, 0.21450701335303385, 0.11559490853249392}
-{0.20504174993982818, 0.19859653628612528, 0.018425067092649523, 0.020424015094034804}
-{0.09712189525746204, 3.375814623831309E-4, 0.032548058921766605, 0.01273730366496365}
-{0.171363639635987, 0.0630113410210414, 0.021608778257684216, 0.09606253244241483}}
-InputGradient
-0.3963510184628816 0.24525358098179723
-0.15289114590001063 -0.011571234609882429
-Filters
-{{-0.5624438919050452, -0.34838378252869157 , 0.04610379248030185}
-{0.28937128145669205, 0.3686168439781439 , 0.5574219252868703}
-{-0.1631085894638904, 0.4608589364400626 , 0.1311166708761941}}
-        * */
-
-        UTIL.prettyprint(conv.forward(input));
+        UTIL.prettyprint(
+                convolve2d(new double[][]{
+                                {1, 1},
+                                {1, 1}},
+                        new double[][]{
+                                {1, 1},
+                                {1, 1}},
+                        1, 1));
     }
-
 }
