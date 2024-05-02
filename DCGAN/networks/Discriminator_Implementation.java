@@ -1,4 +1,10 @@
-package DCGAN;
+package DCGAN.networks;
+
+import DCGAN.UTIL;
+import DCGAN.layers.Convolution;
+import DCGAN.layers.DenseLayer;
+import DCGAN.layers.LeakyReLULayer;
+import DCGAN.layers.SigmoidLayer;
 
 import java.util.Arrays;
 

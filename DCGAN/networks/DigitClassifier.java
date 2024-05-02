@@ -1,4 +1,6 @@
-package DCGAN;
+package DCGAN.networks;
+
+import DCGAN.UTIL;
 
 import java.util.Arrays;
 

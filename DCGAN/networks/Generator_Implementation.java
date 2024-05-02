@@ -1,4 +1,8 @@
-package DCGAN;
+package DCGAN.networks;
+
+import DCGAN.UTIL;
+import DCGAN.XavierInitializer;
+import DCGAN.layers.*;
 
 import java.awt.image.BufferedImage;
 import java.util.Arrays;

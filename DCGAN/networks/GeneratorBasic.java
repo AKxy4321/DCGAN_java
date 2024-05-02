@@ -1,4 +1,9 @@
-package DCGAN;
+package DCGAN.networks;
+
+import DCGAN.UTIL;
+import DCGAN.layers.DenseLayer;
+import DCGAN.layers.SigmoidLayer;
+import DCGAN.layers.TransposeConvolutionalLayer;
 
 import java.util.Arrays;
 
@@ -49,13 +54,14 @@ public class GeneratorBasic {
         System.out.println("Target output :");
         UTIL.prettyprint(targetOutput);
 
-        for (int epoch = 0; epoch < 1000; epoch++) {
+        for (int epoch = 0; epoch < 100000; epoch++) {
             double[][][] output = generator.forward(input);
             double[][][] gradOutput = UTIL.gradientMSE(output, targetOutput);
             double loss = UTIL.lossMSE(output, targetOutput);
             System.err.println("loss : " + loss);
-            generator.updateParameters(gradOutput, 0.01);
+            generator.updateParameters(gradOutput, 0.001);
+            if(epoch % 1000 == 0)
+                UTIL.prettyprint(output);
         }
-
     }
 }

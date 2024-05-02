@@ -14,7 +14,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package DCGAN;
+package DCGAN.layers;
+
+import DCGAN.Mat;
 
 public class MaxPool {
         public double[][][] input;

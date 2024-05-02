@@ -79,14 +79,35 @@ public class UTIL {
 
     public static void calculateGradientRMSE(double[][] outputGradient, double[][] output, double[][] targetOutput) {
         double num_values = output.length * output[0].length;
-        for (int i = 0; i < output.length; i++) {
-            for (int j = 0; j < output[i].length; j++) {
-                double squaredError = output[i][j] - targetOutput[i][j];
-                outputGradient[i][j] = (squaredError / num_values) * 2 * output[i][j]; // Gradient for RMSE
+        double sqrt_mse = Math.sqrt(lossMSE(output, targetOutput));
+        for (int i = 0; i < outputGradient.length; i++) {
+            for (int j = 0; j < outputGradient[0].length; j++) {
+                outputGradient[i][j] = (1 / (num_values * sqrt_mse)) * (output[i][j] - targetOutput[i][j]);
             }
         }
     }
 
+
+    public static double lossRMSE(double[][][] output, double[][][] targetOutput) {
+        double loss = 0;
+        for (int i = 0; i < output.length; i++)
+            for (int j = 0; j < output[0].length; j++)
+                for (int k = 0; k < output[0][0].length; k++)
+                    loss += Math.pow(output[i][j][k] - targetOutput[i][j][k], 2);
+        return Math.sqrt(loss / (output.length * output[0].length * output[0][0].length));
+    }
+
+    public static void calculateGradientRMSE(double[][][] outputGradient, double[][][] output, double[][][] targetOutput) {
+        double num_values = output.length * output[0].length;
+        double sqrt_mse = Math.sqrt(lossMSE(output, targetOutput));
+        for (int i = 0; i < outputGradient.length; i++) {
+            for (int j = 0; j < outputGradient[0].length; j++) {
+                for (int k = 0; k < outputGradient[0].length; k++) {
+                    outputGradient[i][j][k] = (1 / (num_values * sqrt_mse)) * (output[i][j][k] - targetOutput[i][j][k]);
+                }
+            }
+        }
+    }
 
     public static void prettyprint(double[][][] arr) {
         for (int i = 0; i < arr.length; i++) {
@@ -139,7 +160,8 @@ public class UTIL {
         return (output - label) / (output * (1 - output) + epsilon);
     }
 
-    public static void calculateBinaryCrossEntropyGradient2D(double[][] outputGradient, double[][] output, double[][] targetOutput) {
+    public static void calculateBinaryCrossEntropyGradient2D(double[][] outputGradient, double[][] output,
+                                                             double[][] targetOutput) {
         for (int i = 0; i < output.length; i++) {
             for (int j = 0; j < output[i].length; j++) {
                 outputGradient[i][j] = gradientBinaryCrossEntropy(output[i][j], targetOutput[i][j]);

@@ -1,10 +1,8 @@
-package DCGAN;
+package DCGAN.networks;
 
-import javax.imageio.ImageIO;
+import DCGAN.UTIL;
+
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;

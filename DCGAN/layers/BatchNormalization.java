@@ -1,4 +1,6 @@
-package DCGAN;
+package DCGAN.layers;
+
+import DCGAN.UTIL;
 
 public class BatchNormalization {
     private final double epsilon = 1e-5;

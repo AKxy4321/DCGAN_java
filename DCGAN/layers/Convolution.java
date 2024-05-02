@@ -1,6 +1,8 @@
-package DCGAN;
+package DCGAN.layers;
 
-import java.util.Arrays;
+import DCGAN.UTIL;
+import DCGAN.XavierInitializer;
+
 import java.util.logging.Logger;
 
 public class Convolution {

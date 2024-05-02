@@ -1,4 +1,6 @@
-package DCGAN;
+package DCGAN.layers;
+
+import DCGAN.XavierInitializer;
 
 public class DenseLayer {
     private double[][] weights;
