@@ -223,6 +223,9 @@ public class Convolution {
 //        System.out.println("Input before padding:");
 //        UTIL.prettyprint(input);
 
+        if(depthPadding < 0 || heightPadding < 0 || widthPadding < 0)
+            throw new IllegalArgumentException("Padding cannot be negative");
+
         if (depthPadding > 0 || heightPadding > 0 || widthPadding > 0)
             input = pad3d(input, depthPadding, heightPadding, widthPadding);
 

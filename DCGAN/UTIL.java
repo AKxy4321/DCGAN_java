@@ -29,6 +29,14 @@ public class UTIL {
         return (loss / (outputs.length * outputs[0].length));
     }
 
+    public static double lossMSE(double[][][] output, double[][][] targetOutput) {
+        double loss = 0;
+        for (int i = 0; i < output.length; i++)
+            for (int j = 0; j < output[0].length; j++)
+                for (int k = 0; k < output[0][0].length; k++)
+                    loss += Math.pow(output[i][j][k] - targetOutput[i][j][k], 2);
+        return loss / (output.length * output[0].length * output[0][0].length);
+    }
 
     public static double gradientSquaredError(double output, double expectedOutput) {
         return 2 * (output - expectedOutput);
@@ -47,6 +55,18 @@ public class UTIL {
         double[] gradients = new double[outputs.length];
         for (int i = 0; i < outputs.length; i++) {
             gradients[i] = 2 * (outputs[i] - expectedOutputs[i]) / outputs.length;
+        }
+        return gradients;
+    }
+
+    public static double[][][] gradientMSE(double[][][] outputs, double[][][] expectedOutputs) {
+        double[][][] gradients = new double[outputs.length][outputs[0].length][outputs[0][0].length];
+        for (int i = 0; i < outputs.length; i++) {
+            for (int j = 0; j < outputs[0].length; j++) {
+                for (int k = 0; k < outputs[0][0].length; k++) {
+                    gradients[i][j][k] = 2 * (outputs[i][j][k] - expectedOutputs[i][j][k]) / (outputs.length * outputs[0].length * outputs[0][0].length);
+                }
+            }
         }
         return gradients;
     }
@@ -453,19 +473,64 @@ public class UTIL {
 
     public static double sum(double[][] array) {
         double sum = 0;
-        for(int i=0;i<array.length;i++)
-            for(int j=0;j<array[0].length;j++)
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
                 sum += array[i][j];
         return sum;
     }
 
 
-    public static double[][] rotate180(double[][] array){
+    public static double[][] rotate180(double[][] array) {
         double[][] rotated = new double[array.length][array[0].length];
-        for(int i=0;i<array.length;i++)
-            for(int j=0;j<array[0].length;j++)
-                rotated[i][j] = array[array.length-i-1][array[0].length-j-1];
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                rotated[i][j] = array[array.length - i - 1][array[0].length - j - 1];
         return rotated;
     }
 
+    public static double[][][] rotate180(double[][][] array) {
+        double[][][] rotated = new double[array.length][array[0].length][array[0][0].length];
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                for (int k = 0; k < array[0][0].length; k++)
+                    rotated[i][j][k] = array[i][array[0].length - j - 1][array[0][0].length - k - 1];
+        return rotated;
+    }
+
+    public static double[][] transpose(double[][] array) {
+        double[][] transposed = new double[array[0].length][array.length];
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                transposed[j][i] = array[i][j];
+        return transposed;
+    }
+
+    public static double[][][] transpose(double[][][] array) {
+        double[][][] transposed = new double[array.length][array[0][0].length][array[0].length];
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                for (int k = 0; k < array[0][0].length; k++)
+                    transposed[i][k][j] = array[i][j][k];
+        return transposed;
+    }
+
+    public static void incrementArrayByArray(double[][][] resultArray, double[][][] array) {
+        /**
+         * Adds the values of array to resultArray. No new array is made for this
+         * */
+        for (int i = 0; i < resultArray.length; i++)
+            for (int j = 0; j < resultArray[0].length; j++)
+                for (int k = 0; k < resultArray[0][0].length; k++)
+                    resultArray[i][j][k] += array[i][j][k];
+    }
+
+
+    public static double[][][] multiplyScalar(double[][][] array, double scalar) {
+        double[][][] new_array = new double[array.length][array[0].length][array[0][0].length];
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                for (int k = 0; k < array[0][0].length; k++)
+                    new_array[i][j][k] = array[i][j][k] * scalar;
+        return new_array;
+    }
 }

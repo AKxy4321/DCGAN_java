@@ -28,21 +28,22 @@ public class Generator_Implementation {
         this.batchSize = batchSize;
 
         int noise_length = 100;
-        int tconv1_input_width = 7, tconv1_input_height = 7, tconv1_input_depth = 5;
+        int tconv1_input_width = 7, tconv1_input_height = 7, tconv1_input_depth = 33;
         this.dense_output_size = tconv1_input_width * tconv1_input_height * tconv1_input_depth;
         this.dense = new DenseLayer(noise_length, this.dense_output_size);
         this.batch1 = new BatchNormalization(this.dense_output_size);
         this.leakyReLU1 = new LeakyReLULayer();
 
-        this.tconv1 = new TransposeConvolutionalLayer(5, 32, 1, tconv1_input_width, tconv1_input_height, tconv1_input_depth, 0);
+        this.tconv1 = new TransposeConvolutionalLayer(5, 32, 1, tconv1_input_width, tconv1_input_height, tconv1_input_depth, 0, false);
         this.batch2 = new BatchNormalization(tconv1.outputDepth * tconv1.outputHeight * tconv1.outputWidth);
         this.leakyReLU2 = new LeakyReLULayer();
 
-        this.tconv2 = new TransposeConvolutionalLayer(5, 16, 2, tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth, 3);
+        this.tconv2 = new TransposeConvolutionalLayer(5, 8, 2, tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth, 3, false);
         this.batch3 = new BatchNormalization(tconv2.outputDepth * tconv2.outputHeight * tconv2.outputWidth);
         this.leakyReLU3 = new LeakyReLULayer();
 
-        this.tconv3 = new TransposeConvolutionalLayer(6, 1, 2, tconv2.outputWidth, tconv2.outputHeight, tconv2.outputDepth, 7);
+        System.out.println("tconv2 output shape : " + tconv2.outputDepth + " " + tconv2.outputHeight + " " + tconv2.outputWidth);
+        this.tconv3 = new TransposeConvolutionalLayer(6, 1, 2, tconv2.outputWidth, tconv2.outputHeight, tconv2.outputDepth, 7, false);
         this.tanh = new TanhLayer();
 
 
@@ -293,22 +294,23 @@ public class Generator_Implementation {
 
         double[][][][] outputGradients = new double[generator.batchSize][1][28][28];
 
-        double prev_loss = Double.MAX_VALUE, loss, learning_rate = 0.00001;
+        double prev_loss = Double.MAX_VALUE, loss, learning_rate = 0.00002;
         generator.verbose = true;
 
         for (int epoch = 0, max_epochs = 20000000; epoch < max_epochs; epoch++, prev_loss = loss) {
             double[][][][] outputs = generator.forwardBatch();
+            UTIL.saveImage(UTIL.getBufferedImage(generator.generateImage()),"starting_image.png");
 
             double[] losses = new double[generator.batchSize];
             for (int i = 0; i < generator.batchSize; i++)
-                losses[i] = UTIL.lossRMSE(outputs[i][0], targetOutput[0]);
+                losses[i] = UTIL.lossMSE(outputs[i][0], targetOutput[0]);
             loss = UTIL.mean(losses);
 
             System.out.println("loss : " + loss);
 
 
             for (int i = 0; i < generator.batchSize; i++)
-                UTIL.calculateGradientRMSE(outputGradients[i][0], outputs[i][0], targetOutput[0]);
+                UTIL.calculateGradientMSE(outputGradients[i][0], outputs[i][0], targetOutput[0]);
 
             generator.updateParametersBatch(outputGradients, learning_rate);
 

@@ -84,7 +84,6 @@ public class BatchNormalization {
         double[] dMean = new double[inputDim];
         double invBatchSize = 1.0 / batchSize; // Calculate 1/batchSize
 
-        // TODO : fix
         for (int i = 0; i < dout.length; i++) {
             for (int j = 0; j < dout[0].length; j++) {
                 dVar[j] += dout[i][j] * (gamma[j] * (1 - epsilon) * Math.pow(runningVar[j] + epsilon, -1.5));
@@ -106,7 +105,7 @@ public class BatchNormalization {
         double invBatchSize = 1.0 / batchSize; // Calculate 1/batchSize
 
         for (int i = 0; i < dout.length; i++) {
-            dGamma[i] += dout[i] * xNormalized[i];// dout[i] *
+            dGamma[i] += dout[i] * xNormalized[i]; // dout[i] *
             dBeta[i] += dout[i];
         }
 
