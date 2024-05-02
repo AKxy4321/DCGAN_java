@@ -46,6 +46,7 @@ public class GeneratorBasic {
     }
 
     public static void main(String[] args) {
+
         GeneratorBasic generator = new GeneratorBasic();
         double[] input = new double[100];
         Arrays.fill(input, 1);

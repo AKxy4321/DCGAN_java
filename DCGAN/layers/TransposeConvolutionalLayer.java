@@ -108,19 +108,7 @@ public class TransposeConvolutionalLayer {
          * with W^T and W, respectively.
          * */
 
-//        // flipping the filters
-        double[][][][] flipped_filters = new double[numFilters][filterDepth][filterSize][filterSize];
-        for (int k = 0; k < numFilters; k++) {
-            for (int c = 0; c < filterDepth; c++) {
-                for (int i = 0; i < filterSize; i++) {
-                    for (int j = 0; j < filterSize; j++) {
-                        flipped_filters[k][c][i][j] = this.filters[k][c][filterSize - 1 - i][filterSize - 1 - j];
-                    }
-                }
-            }
-        }
 
-        double[][][] inputGradient = new double[inputDepth][inputHeight][inputWidth];
 
 //        int paddedOutputHeight = outputHeight + output_padding * 2;
 //        int paddedOutputWidth = outputWidth + output_padding * 2;
@@ -171,6 +159,20 @@ public class TransposeConvolutionalLayer {
 //        }
 
 
+        // flipping the filters
+        double[][][][] flipped_filters = new double[numFilters][filterDepth][filterSize][filterSize];
+        for (int k = 0; k < numFilters; k++) {
+            for (int c = 0; c < filterDepth; c++) {
+                for (int i = 0; i < filterSize; i++) {
+                    for (int j = 0; j < filterSize; j++) {
+                        flipped_filters[k][c][i][j] = this.filters[k][c][filterSize - 1 - i][filterSize - 1 - j];
+                    }
+                }
+            }
+        }
+
+        double[][][] inputGradient = new double[inputDepth][inputHeight][inputWidth];
+
         System.out.println("dp supposed to be : " + (1 * (inputDepth - 1) + filterDepth - outputDepth) / 2.0);
         int dp = (int) Math.ceil((1 * (inputDepth - 1) + filterDepth - outputDepth) / 2.0); // z_stride = 1
         int hp = (int) Math.ceil((stride * (inputHeight - 1) + filterSize - outputHeight) / 2.0);
@@ -186,7 +188,7 @@ public class TransposeConvolutionalLayer {
             double[][][] inputGradientPerFilter = Convolution.convolve3d(UTIL.rotate180(outputGradient), flipped_filters[filter_idx], 1, stride, stride, dp, hp, wp);
             System.out.println("inputGradientPerFilter Shape : " + inputGradientPerFilter.length + " " + inputGradientPerFilter[0].length + " " + inputGradientPerFilter[0][0].length);
 
-            UTIL.incrementArrayByArray(inputGradient, UTIL.multiplyScalar(inputGradientPerFilter, 1.0 / numFilters));
+            UTIL.incrementArrayByArray(inputGradient,inputGradientPerFilter);
             if (filter_idx == 0 && (inputGradientPerFilter.length != inputGradient.length || inputGradientPerFilter[0].length != inputGradient[0].length || inputGradientPerFilter[0][0].length != inputGradient[0][0].length)) {
                 // warning
                 System.out.println("Warning : inputGradient shape is not as expected. Please change layer dimensions to avoid errors.");
@@ -199,48 +201,6 @@ public class TransposeConvolutionalLayer {
                 System.out.println("inputGradientPerFilter Shape : " + inputGradientPerFilter.length + " " + inputGradientPerFilter[0].length + " " + inputGradientPerFilter[0][0].length);
             }
         }
-
-//        for (int d = 0; d < inputDepth; d++) {
-//            // we know that convolution of outputGradient with one filter will return 1xoutputHeightxoutputWidth, so we reshape it to outputHeightxoutputWidth
-////            inputGradient[filter_idx] = Convolution.convolve3d(outputGradient, flipped_filters[filter_idx], stride, 0)[0];
-//            for (int inputY = 0; inputY < inputHeight; inputY++) {
-//                for (int inputX = 0; inputX < inputWidth; inputX++) {
-//
-//                    double a = 0.0;
-//                    for (int k = 0; k < numFilters; k++) {
-//
-//                        for (int fy = 0; fy < filterSize; fy++) {
-//                            for (int fx = 0; fx < filterSize; fx++) {
-//                                // Consider output_padding by using valid indices within padded output
-//                                int outputY = inputY + fy * stride;
-//                                int outputX = inputX + fx * stride;
-//                                int effectiveOutputY = outputY + output_padding;
-//                                int effectiveOutputX = outputX + output_padding;
-//
-//                                // calculating the 180 degree rotated filter indices
-//                                int fx_t = filterSize - 1 - fx;
-//                                int fy_t = filterSize - 1 - fy;
-//
-//                                if ((0 <= effectiveOutputY && effectiveOutputY < outputHeight)
-//                                        && (0 <= effectiveOutputX && effectiveOutputX < outputWidth)) {
-//                                    a += this.filters[k][d][fy_t][fx_t] * outputGradient[k][effectiveOutputY][effectiveOutputX];
-//                                }
-//                            }
-//                        }
-//                    }
-//                    inputGradient[d][inputY][inputX] = a;
-//                }
-//            }
-//        }
-
-//        System.out.println("paddedOutput");
-//        UTIL.prettyprint(paddedOutput[0]);
-//        System.out.println("InputGradient");
-//        UTIL.prettyprint(inputGradient[0]);
-//        System.out.println("Filter");
-//        UTIL.prettyprint(filters[0][0]);
-
-//        Convolution.test(paddedOutput, new double[][][]{flipped_filter});
 
         return inputGradient;
     }
@@ -278,7 +238,7 @@ public class TransposeConvolutionalLayer {
         System.out.println("hp : " + hp + " wp : " + wp + " dp : " + dp);
 
         for (int k = 0; k < numFilters; k++) {
-            filtersGradient[k] = Convolution.convolve3d(input, new double[][][]{UTIL.rotate180(outputGradient[k])}, 1, stride, stride, dp, hp, wp);
+            filtersGradient[k] = Convolution.convolve3d(input, new double[][][]{outputGradient[k]}, 1, stride, stride, dp, hp, wp);
 //            UTIL.prettyprint(filtersGradient[k]);
             biasGradient[k] = UTIL.sum(outputGradient[k]) / (outputGradient[k].length * outputGradient[k][0].length);
         }

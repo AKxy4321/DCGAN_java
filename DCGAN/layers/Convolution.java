@@ -103,7 +103,7 @@ public class Convolution {
                             int input_x = x + fx;
                             if (input_y >= 0 && input_y < input_height && input_x >= 0 && input_x < input_width) {
                                 for (int fd = 0; fd < f.length; fd++) {
-                                    inputGradient[fd][input_y][input_x] += f[fd][fy][fx] * chain_grad;
+                                    inputGradient[fd][input_y][input_x] += f[fd][filterSize - 1- fy][filterSize-1-fx] * chain_grad;
                                 }
                             }
                         }
