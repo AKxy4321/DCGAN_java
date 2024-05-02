@@ -54,7 +54,7 @@ public class GeneratorBasic {
             double[][][] gradOutput = UTIL.gradientMSE(output, targetOutput);
             double loss = UTIL.lossMSE(output, targetOutput);
             System.err.println("loss : " + loss);
-            generator.updateParameters(gradOutput, 0.0001);
+            generator.updateParameters(gradOutput, 0.01);
         }
 
     }

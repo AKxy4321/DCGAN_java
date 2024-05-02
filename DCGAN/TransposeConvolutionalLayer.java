@@ -170,8 +170,8 @@ public class TransposeConvolutionalLayer {
 
         System.out.println("dp supposed to be : " + (1 * (inputDepth - 1) + filterDepth - outputDepth) / 2.0);
         int dp = (int) Math.ceil((1 * (inputDepth - 1) + filterDepth - outputDepth) / 2.0); // z_stride = 1
-        int hp = 0; // (int) Math.ceil((stride * (inputHeight - 1) + filterSize - outputHeight) / 2.0);
-        int wp = 0; // (int) Math.ceil((stride * (inputWidth - 1) + filterSize - outputWidth) / 2.0);
+        int hp = (int) Math.ceil((stride * (inputHeight - 1) + filterSize - outputHeight) / 2.0);
+        int wp = (int) Math.ceil((stride * (inputWidth - 1) + filterSize - outputWidth) / 2.0);
 
         System.out.println("hp : " + hp + " wp : " + wp + " dp : " + dp);
         System.out.println("filterSize : " + filterSize + " filterDepth : " + filterDepth);
@@ -180,7 +180,7 @@ public class TransposeConvolutionalLayer {
         System.out.println("Update Parameters method:");
         System.out.println("inputGradientPerFilter is supposed to be of shape : " + inputDepth + "x" + inputHeight + "x" + inputWidth);
         for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
-            double[][][] inputGradientPerFilter = Convolution.convolve3d(outputGradient, flipped_filters[filter_idx], 1, stride, stride, dp, hp, wp);
+            double[][][] inputGradientPerFilter = Convolution.convolve3d(outputGradient, filters[filter_idx], 1, stride, stride, dp, hp, wp);
             System.out.println("inputGradientPerFilter Shape : " + inputGradientPerFilter.length + " " + inputGradientPerFilter[0].length + " " + inputGradientPerFilter[0][0].length);
 
             UTIL.incrementArrayByArray(inputGradient, UTIL.multiplyScalar(inputGradientPerFilter, 1.0 / numFilters));
