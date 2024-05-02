@@ -16,7 +16,7 @@ public class LeakyReLULayer {
     LeakyReLULayer(double k){
         this.k = k;
     }
-    LeakyReLULayer(){
+    public LeakyReLULayer(){
         this.k = 0.01;
     }
 

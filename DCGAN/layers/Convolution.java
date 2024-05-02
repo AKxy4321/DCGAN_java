@@ -20,7 +20,7 @@ public class Convolution {
 
     private static Logger logger = Logger.getLogger(Convolution.class.getName());
 
-    Convolution(int filterSize, int numFilters, int stride, int input_width, int input_height, int input_depth) {
+    public Convolution(int filterSize, int numFilters, int stride, int input_width, int input_height, int input_depth) {
         this(filterSize, numFilters, stride, input_width, input_height, input_depth, 0, 0, 0);
     }
 
