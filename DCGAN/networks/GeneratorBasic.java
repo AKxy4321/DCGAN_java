@@ -3,6 +3,7 @@ package DCGAN.networks;
 import DCGAN.UTIL;
 import DCGAN.layers.DenseLayer;
 import DCGAN.layers.SigmoidLayer;
+import DCGAN.layers.TanhLayer;
 import DCGAN.layers.TransposeConvolutionalLayer;
 
 import java.util.Arrays;
@@ -10,10 +11,11 @@ import java.util.Arrays;
 public class GeneratorBasic {
     DenseLayer dense1 = new DenseLayer(100, 128);
     SigmoidLayer sigmoid1 = new SigmoidLayer();
-    DenseLayer dense2 = new DenseLayer(dense1.outputSize, 49*7);
-    TransposeConvolutionalLayer transposeConv1 = new TransposeConvolutionalLayer(3, 3, 1, 7, 7, 7, 0, false);
+    DenseLayer dense2 = new DenseLayer(dense1.outputSize, 49 * 7);
+    TransposeConvolutionalLayer transposeConv1 = new TransposeConvolutionalLayer(3, 7, 1, 7, 7, 7, 0, false);
 
     TransposeConvolutionalLayer tconv2 = new TransposeConvolutionalLayer(1, 1, 1, transposeConv1.outputWidth, transposeConv1.outputHeight, transposeConv1.outputDepth, 0, false);
+    TanhLayer tanh = new TanhLayer();
 
     public double[][][] forward(double[] input) {
         double[] dense1Out = dense1.forward(input);
@@ -23,17 +25,19 @@ public class GeneratorBasic {
         double[][][] transposeConv1Out = transposeConv1.forward(dense2OutUnflattened);
         System.out.println("transposeConv1Out Shape : " + transposeConv1Out.length + " " + transposeConv1Out[0].length + " " + transposeConv1Out[0][0].length);
         double[][][] tconv2Out = tconv2.forward(transposeConv1Out);
-        return tconv2Out;
+        double[][][] tanhOut = tanh.forward(tconv2Out);
+        return tanhOut;
     }
 
     public void updateParameters(double[][][] gradOutput, double learningRate) {
-        double[][][] grad_tconv2_inputgrad_tconv1_outputgrad = tconv2.backward(gradOutput);
+        double[][][] grad_tanh_inputgrad_tconv2_outputgrad = tanh.backward(gradOutput);
+        double[][][] grad_tconv2_inputgrad_tconv1_outputgrad = tconv2.backward(grad_tanh_inputgrad_tconv2_outputgrad);
         double[][][] gradTransposeConv1_inputgrad_dense2_outputgrad = transposeConv1.backward(grad_tconv2_inputgrad_tconv1_outputgrad);
         double[] gradDense2_inputgrad_sigmoid1_outputgrad = dense2.backward(UTIL.flatten(gradTransposeConv1_inputgrad_dense2_outputgrad));
         double[] gradSigmoid1_inputgrad_dense1_outputgrad = sigmoid1.backward(gradDense2_inputgrad_sigmoid1_outputgrad);
         double[] gradDense1 = dense1.backward(gradSigmoid1_inputgrad_dense1_outputgrad);
 
-        tconv2.updateParameters(gradOutput, learningRate);
+        tconv2.updateParameters(grad_tanh_inputgrad_tconv2_outputgrad, learningRate);
         transposeConv1.updateParameters(grad_tconv2_inputgrad_tconv1_outputgrad, learningRate);
         dense2.updateParameters(UTIL.flatten(gradTransposeConv1_inputgrad_dense2_outputgrad), learningRate);
         dense1.updateParameters(gradSigmoid1_inputgrad_dense1_outputgrad, learningRate);
@@ -51,18 +55,46 @@ public class GeneratorBasic {
         double[] input = new double[100];
         Arrays.fill(input, 1);
         double[][][] targetOutput = new double[generator.tconv2.outputDepth][generator.tconv2.outputHeight][generator.tconv2.outputWidth];
+        for (int i = 0; i < targetOutput.length; i++)
+            for (int j = 0; j < targetOutput[0].length; j++)
+                Arrays.fill(targetOutput[i][j], 1);
+        targetOutput = new double[][][]{
+                {
+                        {0, 0, 0, 1, 1, 1, 0, 0, 0},
+                        {0, 0, 1, 1, 1, 1, 1, 1, 0},
+                        {0, 1, 1, 0, 0, 0, 1, 1, 0},
+                        {0, 1, 1, 0, 0, 0, 1, 1, 0},
+                        {0, 1, 1, 0, 0, 1, 1, 1, 0},
+                        {0, 0, 1, 1, 1, 1, 1, 1, 0},
+                        {0, 0, 0, 0, 0, 0, 0, 1, 0},
+                        {0, 0, 0, 0, 0, 1, 1, 1, 0},
+                        {0, 0, 0, 0, 1, 1, 1, 1, 0},
+                }
+        };
+        UTIL.saveImage(UTIL.getBufferedImage(targetOutput[0]), "targetOutput.png");
+        // replace all 0s with -1s
+        for (int i = 0; i < targetOutput.length; i++)
+            for (int j = 0; j < targetOutput[0].length; j++)
+                for (int k = 0; k < targetOutput[0][0].length; k++)
+                    if (targetOutput[i][j][k] == 0)
+                        targetOutput[i][j][k] = -1;
 
-        System.out.println("Target output :");
+//        System.out.println("Target output :");
         UTIL.prettyprint(targetOutput);
 
+        System.out.println(targetOutput.length + " " + targetOutput[0].length + " " + targetOutput[0][0].length);
         for (int epoch = 0; epoch < 100000; epoch++) {
             double[][][] output = generator.forward(input);
-            double[][][] gradOutput = UTIL.gradientMSE(output, targetOutput);
-            double loss = UTIL.lossMSE(output, targetOutput);
+            double[][][] gradOutput = UTIL.gradientRMSE(output, targetOutput);
+            double loss = UTIL.lossRMSE(output, targetOutput);
             System.err.println("loss : " + loss);
             generator.updateParameters(gradOutput, 0.001);
-            if(epoch % 1000 == 0)
+            if (epoch % 1000 == 0) {
                 UTIL.prettyprint(output);
+                UTIL.saveImage(UTIL.getBufferedImage(generator.forward(input)[0]), "output.png");
+            }
         }
+
+
     }
 }

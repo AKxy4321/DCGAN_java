@@ -42,7 +42,7 @@ public class Generator_Implementation {
         this.batch2 = new BatchNormalization(tconv1.outputDepth * tconv1.outputHeight * tconv1.outputWidth);
         this.leakyReLU2 = new LeakyReLULayer();
 
-        this.tconv2 = new TransposeConvolutionalLayer(5, 8, 2, tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth, 3, false);
+        this.tconv2 = new TransposeConvolutionalLayer(5, 32, 2, tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth, 3, false);
         this.batch3 = new BatchNormalization(tconv2.outputDepth * tconv2.outputHeight * tconv2.outputWidth);
         this.leakyReLU3 = new LeakyReLULayer();
 

@@ -1,4 +1,4 @@
-package DCGAN;
+package DCGAN.layers;
 
 public class InstanceNormalisation {
     double[] mean;

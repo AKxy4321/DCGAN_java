@@ -555,4 +555,10 @@ public class UTIL {
                     new_array[i][j][k] = array[i][j][k] * scalar;
         return new_array;
     }
+
+    public static double[][][] gradientRMSE(double[][][] output, double[][][] targetOutput) {
+        double[][][] gradientArray = new double[output.length][output[0].length][output[0][0].length];
+        calculateGradientRMSE(gradientArray, output, targetOutput);
+        return gradientArray;
+    }
 }
