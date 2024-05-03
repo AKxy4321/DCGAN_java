@@ -208,14 +208,14 @@ public class Generator_Implementation {
 
 //        for (int i = 0; i < batchSize; i++)
         this.dense.updateParameters(mean_batch1_in_gradients, UTIL.mean_1st_layer(noises), learning_rate_gen);
-        this.batch1.updateParameters(UTIL.mean_1st_layer(leakyrelu_in_gradients_flattened), learning_rate_gen);
+        this.batch1.updateParameters(leakyrelu_in_gradients_flattened, learning_rate_gen);
 
 //        for (int i = 0; i < batchSize; i++)
         this.tconv1.updateParameters(mean_batch2_in_gradients_unflattened, UTIL.mean_1st_layer(gen_leakyrelu1_outputs), learning_rate_gen);
-        this.batch2.updateParameters(UTIL.mean_1st_layer(leakyrelu2_in_gradients_flattened), learning_rate_gen);
+        this.batch2.updateParameters(leakyrelu2_in_gradients_flattened, learning_rate_gen);
 
         this.tconv2.updateParameters(mean_batch3_in_gradients_unflattened, UTIL.mean_1st_layer(gen_leakyrelu2_outputs), learning_rate_gen);
-        this.batch3.updateParameters(UTIL.mean_1st_layer(leakyrelu3_in_gradients_flattened), learning_rate_gen);
+        this.batch3.updateParameters(leakyrelu3_in_gradients_flattened, learning_rate_gen);
 
         this.tconv3.updateParameters(tanh_in_gradients_mean, UTIL.mean_1st_layer(gen_leakyrelu3_outputs), learning_rate_gen);
 
@@ -298,7 +298,7 @@ public class Generator_Implementation {
 
         double[][][][] outputGradients = new double[generator.batchSize][1][28][28];
 
-        double prev_loss = Double.MAX_VALUE, loss, learning_rate = 0.00002;
+        double prev_loss = Double.MAX_VALUE, loss, learning_rate = 0.001;
         generator.verbose = true;
 
         for (int epoch = 0, max_epochs = 20000000; epoch < max_epochs; epoch++, prev_loss = loss) {
@@ -307,14 +307,14 @@ public class Generator_Implementation {
 
             double[] losses = new double[generator.batchSize];
             for (int i = 0; i < generator.batchSize; i++)
-                losses[i] = UTIL.lossMSE(outputs[i][0], targetOutput[0]);
+                losses[i] = UTIL.lossRMSE(outputs[i][0], targetOutput[0]);
             loss = UTIL.mean(losses);
 
             System.out.println("loss : " + loss);
 
 
             for (int i = 0; i < generator.batchSize; i++)
-                UTIL.calculateGradientMSE(outputGradients[i][0], outputs[i][0], targetOutput[0]);
+                UTIL.calculateGradientRMSE(outputGradients[i][0], outputs[i][0], targetOutput[0]);
 
             generator.updateParametersBatch(outputGradients, learning_rate);
 

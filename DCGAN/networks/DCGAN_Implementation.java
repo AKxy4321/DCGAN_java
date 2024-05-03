@@ -1,6 +1,7 @@
 package DCGAN.networks;
 
 import DCGAN.UTIL;
+import DCGAN.XavierInitializer;
 
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
@@ -37,7 +38,7 @@ public class DCGAN_Implementation {
         double learning_rate_gen = 1e-4;
         double learning_rate_disc = 5 * 1e-4;
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
-        Generator_Implementation generator = new Generator_Implementation();
+        GeneratorBasic generator = new GeneratorBasic();
         System.out.println("Loading Images");
 
         int batch_size = 8;
@@ -148,7 +149,6 @@ public class DCGAN_Implementation {
                     double[] disc_output_gradient = UTIL.mean_1st_layer(disc_output_gradients);
                     double[][][] generatorOutputGradient = discriminator.backward(disc_output_gradient);
                     generator.updateParameters(generatorOutputGradient, learning_rate_gen);
-
 
                     System.out.println("Generator loss function gradient: " + Arrays.toString(disc_output_gradient));
                 }

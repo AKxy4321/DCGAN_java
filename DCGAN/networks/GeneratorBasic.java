@@ -1,6 +1,7 @@
 package DCGAN.networks;
 
 import DCGAN.UTIL;
+import DCGAN.XavierInitializer;
 import DCGAN.layers.DenseLayer;
 import DCGAN.layers.SigmoidLayer;
 import DCGAN.layers.TanhLayer;
@@ -11,8 +12,8 @@ import java.util.Arrays;
 public class GeneratorBasic {
     DenseLayer dense1 = new DenseLayer(100, 128);
     SigmoidLayer sigmoid1 = new SigmoidLayer();
-    DenseLayer dense2 = new DenseLayer(dense1.outputSize, 49 * 7);
-    TransposeConvolutionalLayer transposeConv1 = new TransposeConvolutionalLayer(3, 7, 1, 7, 7, 7, 0, false);
+    DenseLayer dense2 = new DenseLayer(dense1.outputSize, 7*7*19);
+    TransposeConvolutionalLayer transposeConv1 = new TransposeConvolutionalLayer(3, 21, 1, 7, 7, 19, 0, false);
 
     TransposeConvolutionalLayer tconv2 = new TransposeConvolutionalLayer(1, 1, 1, transposeConv1.outputWidth, transposeConv1.outputHeight, transposeConv1.outputDepth, 0, false);
     TanhLayer tanh = new TanhLayer();
@@ -84,17 +85,19 @@ public class GeneratorBasic {
 
         System.out.println(targetOutput.length + " " + targetOutput[0].length + " " + targetOutput[0][0].length);
         for (int epoch = 0; epoch < 100000; epoch++) {
-            double[][][] output = generator.forward(input);
+            double[][][] output = generator.forward(XavierInitializer.xavierInit1D(generator.dense1.inputSize));
             double[][][] gradOutput = UTIL.gradientRMSE(output, targetOutput);
             double loss = UTIL.lossRMSE(output, targetOutput);
             System.err.println("loss : " + loss);
             generator.updateParameters(gradOutput, 0.001);
-            if (epoch % 1000 == 0) {
-                UTIL.prettyprint(output);
+            if (epoch % 100 == 0) {
+//                UTIL.prettyprint(output);
                 UTIL.saveImage(UTIL.getBufferedImage(generator.forward(input)[0]), "output.png");
             }
         }
+    }
 
-
+    public double[][][] generateImage() {
+        return forward(XavierInitializer.xavierInit1D(dense1.inputSize));
     }
 }
