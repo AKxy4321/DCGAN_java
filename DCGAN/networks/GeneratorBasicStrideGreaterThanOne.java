@@ -7,7 +7,7 @@ import DCGAN.layers.*;
 import java.util.Arrays;
 
 public class GeneratorBasicStrideGreaterThanOne {
-    DenseLayer dense1 = new DenseLayer(100, 128);
+    DenseLayer dense1 = new DenseLayer(100, 1280);
     SigmoidLayer sigmoid1 = new SigmoidLayer();
     DenseLayer dense2 = new DenseLayer(dense1.outputSize, 7*7*19);
     TransposeConvolutionalLayer transposeConv1 = new TransposeConvolutionalLayer(2, 21, 2, 7, 7, 19, 4, false);
