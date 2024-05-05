@@ -15,17 +15,14 @@ public class Discriminator_Implementation {
     Convolution conv2;
 //    BatchNormalization batch2;
     LeakyReLULayer leakyReLULayer2;
-//    MaxPool maxPool;
     DenseLayer dense;
     SigmoidLayer sigmoidLayer;
 
     public Discriminator_Implementation() {
         int inputWidth = 28, inputHeight = 28;
         this.conv1 = new Convolution(5, 64, 3, inputWidth, inputHeight, 1);
-//        this.batch1 = new BatchNormalization();
         this.leakyReLULayer1 = new LeakyReLULayer();
         this.conv2 = new Convolution(5, 64, 3, conv1.output_width, conv1.output_height, conv1.output_depth);
-//        this.batch2 = new BatchNormalization();
         this.leakyReLULayer2 = new LeakyReLULayer();
         this.dense = new DenseLayer(conv2.output_depth * conv2.output_width * conv2.output_height, 1);
         this.sigmoidLayer = new SigmoidLayer();
@@ -36,15 +33,9 @@ public class Discriminator_Implementation {
         input[0] = img;
 
         double[][][] output_conv1 = this.conv1.forward(input);
-//        double[] output_conv1_flattened = UTIL.flatten(output_conv1);
-//        double[] output_batch1 = this.batch1.forward(output_conv1_flattened, true);
-//        double[][][] output_batch1_unflattened = UTIL.unflatten(output_batch1,conv1.output_depth, conv1.output_height, conv1.output_width);
         double[][][] output_leakyRELU1 = this.leakyReLULayer1.forward(output_conv1);
 
         double[][][] output_conv2 = this.conv2.forward(output_leakyRELU1);
-//        double[] output_conv2_flattened = UTIL.flatten(output_conv2);
-//        double[] output_batch2 = this.batch2.forward(output_conv2_flattened, true);
-//        double[][][] output_batch2_unflattened = UTIL.unflatten(output_batch2, conv2.output_depth, conv2.output_height, conv2.output_width);
         double[][][] output_leakyRELU2 = this.leakyReLULayer2.forward(output_conv2);
 
         double[] output_leakyRELU_flattened = UTIL.flatten(output_leakyRELU2);
@@ -59,16 +50,11 @@ public class Discriminator_Implementation {
 
         double[][][] disc_in_gradient_dense_unflattened = UTIL.unflatten(disc_in_gradient_dense, leakyReLULayer2.output.length, leakyReLULayer2.output[0].length, leakyReLULayer2.output[0][0].length);
         double[][][] disc_in_gradient_leakyrelu2 = this.leakyReLULayer2.backward(disc_in_gradient_dense_unflattened);
-//        double[] disc_in_gradient_leakyrelu2_flattened = UTIL.flatten(disc_in_gradient_leakyrelu2);
-//        double[] disc_in_batch2 = this.batch2.backward(disc_in_gradient_leakyrelu2_flattened);
-//        double[][][] disc_in_batch2_unflattened = UTIL.unflatten(disc_in_batch2, conv2.output_depth, conv2.output_height, conv2.output_width);
         double[][][] disc_in_gradient_conv2 = this.conv2.backprop(disc_in_gradient_leakyrelu2);
 
         double[][][] disc_in_gradient_leakyrelu1 = this.leakyReLULayer1.backward(disc_in_gradient_conv2);
-//        double[] disc_in_gradient_leakyrelu1_flattened = UTIL.flatten(disc_in_gradient_leakyrelu1);
-//        double[] disc_in_batch1 = this.batch1.backward(disc_in_gradient_leakyrelu1_flattened);
-//        double[][][] disc_in_batch1_unflattened = UTIL.unflatten(disc_in_batch1, conv1.output_depth, conv1.output_height, conv1.output_width );
         double[][][] disc_in_gradient_conv1 = this.conv1.backprop(disc_in_gradient_leakyrelu1);
+
         // now we have the gradient of the loss function for the generated output wrt to the generator output(which is nothing but dou J / dou image)
         return disc_in_gradient_conv1; // this is the inputGradient
     }
@@ -79,30 +65,15 @@ public class Discriminator_Implementation {
 
         double[][][] disc_in_gradient_dense_unflattened = UTIL.unflatten(disc_in_gradient_dense, leakyReLULayer2.output.length, leakyReLULayer2.output[0].length, leakyReLULayer2.output[0][0].length);
         double[][][] disc_in_gradient_leakyrelu2 = this.leakyReLULayer2.backward(disc_in_gradient_dense_unflattened);
-//        double[] disc_in_gradient_leakyrelu2_flattened = UTIL.flatten(disc_in_gradient_leakyrelu2);
-//        double[] disc_in_batch2 = this.batch2.backward(disc_in_gradient_leakyrelu2_flattened);
-//        double[][][] disc_in_batch2_unflattened = UTIL.unflatten(disc_in_batch2, conv2.output_depth, conv2.output_height, conv2.output_width);
-        double[][][] disc_in_gradient_conv2 = this.conv2.backprop(disc_in_gradient_leakyrelu2);
 
+        double[][][] disc_in_gradient_conv2 = this.conv2.backprop(disc_in_gradient_leakyrelu2);
         double[][][] disc_in_gradient_leakyrelu1 = this.leakyReLULayer1.backward(disc_in_gradient_conv2);
-//        double[] disc_in_gradient_leakyrelu1_flattened = UTIL.flatten(disc_in_gradient_leakyrelu1);
-//        double[] disc_in_batch1 = this.batch1.backward(disc_in_gradient_leakyrelu1_flattened);
-//        double[][][] disc_in_batch1_unflattened = UTIL.unflatten(disc_in_batch1, conv1.output_depth, conv1.output_height, conv1.output_width );
+
         double[][][] disc_in_gradient_conv1 = this.conv1.backprop(disc_in_gradient_leakyrelu1);
 
         conv1.updateParameters(disc_in_gradient_leakyrelu1, learning_rate_disc);
         conv2.updateParameters(disc_in_gradient_leakyrelu2, learning_rate_disc);
         dense.updateParameters(disc_in_gradient_sigmoid, learning_rate_disc);
-//        batch1.updateParameters(disc_in_gradient_leakyrelu1_flattened, learning_rate_disc);
-//        batch2.updateParameters(disc_in_gradient_leakyrelu2_flattened, learning_rate_disc);
-
-//        // print the first filter weights
-//        double[][][][] filters = conv1.filters;
-//        for(int i=0;i<filters[0].length;i++){
-//            for(int j=0;j<filters[0][0].length;j++){
-//                System.out.println(Arrays.toString(filters[0][i][j]));
-//            }
-//        }
 
         // print the sum of all the gradients
         System.out.println("Sum of all gradients in discriminator: "

@@ -561,4 +561,25 @@ public class UTIL {
         calculateGradientRMSE(gradientArray, output, targetOutput);
         return gradientArray;
     }
+
+    public static double[][][] addZeroesInBetween(double[][][] input, int dz, int hz, int wz) {
+
+        double[][][] output = new double
+                [input.length + (input.length - 1) * (dz)]
+                [input[0].length + (input.length - 1) * (hz)]
+                [input[0][0].length + (input.length - 1) * (wz)];
+
+        for (int i = 0; i < input.length; i++) {
+            for (int j = 0; j < input[0].length; j++) {
+                for (int k = 0; k < input[0][0].length; k++) {
+
+                    output[i + i * dz][j + j * hz][k + k * wz] = input[i][j][k];
+
+                }
+            }
+        }
+
+        return output;
+
+    }
 }
