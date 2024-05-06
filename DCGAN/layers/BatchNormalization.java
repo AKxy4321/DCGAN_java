@@ -179,6 +179,7 @@ public class BatchNormalization {
         for (int i = 0; i < runningMean.length; i++)
             runningMean[i] = momentum * runningMean[i] + (1 - momentum) * mean[i];
     }
+    // new_coeff = prev_coeff * momentum + (1 - momentum) * new_coeff
 
     private void updateRunningVar(double[] var) {
         for (int i = 0; i < runningVar.length; i++)

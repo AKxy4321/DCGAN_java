@@ -7,13 +7,13 @@ import DCGAN.layers.*;
 import java.util.Arrays;
 
 public class GeneratorBasicStrideGreaterThanOne {
-    DenseLayer dense1 = new DenseLayer(100, 1280);
+    DenseLayer dense1 = new DenseLayer(100, 128);
     SigmoidLayer sigmoid1 = new SigmoidLayer();
-    DenseLayer dense2 = new DenseLayer(dense1.outputSize, 7*7*19);
-    TransposeConvolutionalLayer transposeConv1 = new TransposeConvolutionalLayer(2, 21, 2, 7, 7, 19, 4, false);
+    DenseLayer dense2 = new DenseLayer(dense1.outputSize, 7*7*47);
+    TransposeConvolutionalLayer transposeConv1 = new TransposeConvolutionalLayer(3, 43, 2, 7, 7, 47, 4, false);
     // this.stride * (inputHeight - 1) + filterSize - 2 * padding; = 2 * (7 - 1) + 2 - 4 = 9
     LeakyReLULayer leakyReLU = new LeakyReLULayer();
-    TransposeConvolutionalLayer tconv2 = new TransposeConvolutionalLayer(1, 1, 1, transposeConv1.outputWidth, transposeConv1.outputHeight, transposeConv1.outputDepth, 0, false);
+    TransposeConvolutionalLayer tconv2 = new TransposeConvolutionalLayer(3, 1, 1, transposeConv1.outputWidth, transposeConv1.outputHeight, transposeConv1.outputDepth, 0, false);
     TanhLayer tanh = new TanhLayer();
 
     public double[][][] forward(double[] input) {
@@ -72,7 +72,6 @@ public class GeneratorBasicStrideGreaterThanOne {
                         {0, 0, 0, 0, 1, 1, 1, 1, 0},
                 }
         };
-        UTIL.saveImage(UTIL.getBufferedImage(targetOutput[0]), "targetOutput.png");
         // replace all 0s with -1s
         for (int i = 0; i < targetOutput.length; i++)
             for (int j = 0; j < targetOutput[0].length; j++)
@@ -82,6 +81,7 @@ public class GeneratorBasicStrideGreaterThanOne {
 
 //        System.out.println("Target output :");
         UTIL.prettyprint(targetOutput);
+        UTIL.saveImage(UTIL.getBufferedImage(targetOutput[0]), "targetOutput.png");
 
         System.out.println(targetOutput.length + " " + targetOutput[0].length + " " + targetOutput[0][0].length);
         for (int epoch = 0; epoch < 100000; epoch++) {
@@ -90,10 +90,10 @@ public class GeneratorBasicStrideGreaterThanOne {
             double[][][] gradOutput = UTIL.gradientRMSE(output, targetOutput);
             double loss = UTIL.lossRMSE(output, targetOutput);
             System.err.println("loss : " + loss);
-            generator.updateParameters(gradOutput, 0.01);
+            generator.updateParameters(gradOutput, 0.1);
             if (epoch % 100 == 0) {
 //                UTIL.prettyprint(output);
-                UTIL.saveImage(UTIL.getBufferedImage(generator.forward(input)[0]), "output.png");
+                UTIL.saveImage(UTIL.getBufferedImage(generator.forward(input)[0]), "actual_output_non_one_stride.png");
             }
         }
     }

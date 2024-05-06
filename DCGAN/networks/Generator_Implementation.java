@@ -11,7 +11,7 @@ public class Generator_Implementation {
     int dense_output_size;
     DenseLayer dense;
     BatchNormalization batch1;
-    LeakyReLULayer leakyReLU1;
+    SigmoidLayer leakyReLU1;
     TransposeConvolutionalLayer tconv1;
     BatchNormalization batch2;
     LeakyReLULayer leakyReLU2;
@@ -36,13 +36,13 @@ public class Generator_Implementation {
         this.dense_output_size = tconv1_input_width * tconv1_input_height * tconv1_input_depth;
         this.dense = new DenseLayer(noise_length, this.dense_output_size);
         this.batch1 = new BatchNormalization(this.dense_output_size);
-        this.leakyReLU1 = new LeakyReLULayer();
+        this.leakyReLU1 = new SigmoidLayer();
 
-        this.tconv1 = new TransposeConvolutionalLayer(5, 32, 1, tconv1_input_width, tconv1_input_height, tconv1_input_depth, 0, false);
+        this.tconv1 = new TransposeConvolutionalLayer(5, 33, 1, tconv1_input_width, tconv1_input_height, tconv1_input_depth, 0, false);
         this.batch2 = new BatchNormalization(tconv1.outputDepth * tconv1.outputHeight * tconv1.outputWidth);
         this.leakyReLU2 = new LeakyReLULayer();
 
-        this.tconv2 = new TransposeConvolutionalLayer(5, 32, 2, tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth, 3, false);
+        this.tconv2 = new TransposeConvolutionalLayer(5, 33, 2, tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth, 3, false);
         this.batch3 = new BatchNormalization(tconv2.outputDepth * tconv2.outputHeight * tconv2.outputWidth);
         this.leakyReLU3 = new LeakyReLULayer();
 
@@ -298,7 +298,7 @@ public class Generator_Implementation {
 
         double[][][][] outputGradients = new double[generator.batchSize][1][28][28];
 
-        double prev_loss = Double.MAX_VALUE, loss, learning_rate = 0.001;
+        double prev_loss = Double.MAX_VALUE, loss, learning_rate = 0.0001;
         generator.verbose = true;
 
         for (int epoch = 0, max_epochs = 20000000; epoch < max_epochs; epoch++, prev_loss = loss) {
@@ -319,7 +319,7 @@ public class Generator_Implementation {
             generator.updateParametersBatch(outputGradients, learning_rate);
 
             if (epoch % 10 == 0)
-                UTIL.saveImage(UTIL.getBufferedImage(generator.generateImage()), "current_image.png");
+                UTIL.saveImage(UTIL.getBufferedImage(generator.generateImage()), "current_image_main.png");
 
             if (loss < 0.1) break;
         }

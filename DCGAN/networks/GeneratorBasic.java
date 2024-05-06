@@ -2,19 +2,16 @@ package DCGAN.networks;
 
 import DCGAN.UTIL;
 import DCGAN.XavierInitializer;
-import DCGAN.layers.DenseLayer;
-import DCGAN.layers.SigmoidLayer;
-import DCGAN.layers.TanhLayer;
-import DCGAN.layers.TransposeConvolutionalLayer;
+import DCGAN.layers.*;
 
 import java.util.Arrays;
 
 public class GeneratorBasic {
-    DenseLayer dense1 = new DenseLayer(100, 128);
-    SigmoidLayer sigmoid1 = new SigmoidLayer();
-    DenseLayer dense2 = new DenseLayer(dense1.outputSize, 7*7*19);
-    TransposeConvolutionalLayer transposeConv1 = new TransposeConvolutionalLayer(3, 21, 1, 7, 7, 19, 0, false);
-
+    DenseLayer dense1 = new DenseLayer(100, 256);
+    LeakyReLULayer sigmoid1 = new LeakyReLULayer();
+    DenseLayer dense2 = new DenseLayer(dense1.outputSize, 7*7*43);
+    TransposeConvolutionalLayer transposeConv1 = new TransposeConvolutionalLayer(3, 43, 1, 7, 7, 43, 0, false);
+    // output_shape = (input_shape - 1) * stride - 2 * padding + kernel_size + output_padding
     TransposeConvolutionalLayer tconv2 = new TransposeConvolutionalLayer(1, 1, 1, transposeConv1.outputWidth, transposeConv1.outputHeight, transposeConv1.outputDepth, 0, false);
     TanhLayer tanh = new TanhLayer();
 
@@ -92,7 +89,7 @@ public class GeneratorBasic {
             generator.updateParameters(gradOutput, 0.001);
             if (epoch % 100 == 0) {
 //                UTIL.prettyprint(output);
-                UTIL.saveImage(UTIL.getBufferedImage(generator.forward(input)[0]), "output.png");
+                UTIL.saveImage(UTIL.getBufferedImage(generator.forward(input)[0]), "actual_output.png");
             }
         }
     }
