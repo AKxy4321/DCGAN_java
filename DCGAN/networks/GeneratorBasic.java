@@ -8,9 +8,9 @@ import java.util.Arrays;
 
 public class GeneratorBasic {
     DenseLayer dense1 = new DenseLayer(100, 256);
-    LeakyReLULayer sigmoid1 = new LeakyReLULayer();
-    DenseLayer dense2 = new DenseLayer(dense1.outputSize, 7*7*43);
-    TransposeConvolutionalLayer transposeConv1 = new TransposeConvolutionalLayer(3, 43, 1, 7, 7, 43, 0, false);
+    SigmoidLayer sigmoid1 = new SigmoidLayer();
+    DenseLayer dense2 = new DenseLayer(dense1.outputSize, 7*7*9);
+    TransposeConvolutionalLayer transposeConv1 = new TransposeConvolutionalLayer(3, 3, 1, 7, 7, 9, 0, false);
     // output_shape = (input_shape - 1) * stride - 2 * padding + kernel_size + output_padding
     TransposeConvolutionalLayer tconv2 = new TransposeConvolutionalLayer(1, 1, 1, transposeConv1.outputWidth, transposeConv1.outputHeight, transposeConv1.outputDepth, 0, false);
     TanhLayer tanh = new TanhLayer();
@@ -70,12 +70,12 @@ public class GeneratorBasic {
                 }
         };
         UTIL.saveImage(UTIL.getBufferedImage(targetOutput[0]), "targetOutput.png");
-        // replace all 0s with -1s
-        for (int i = 0; i < targetOutput.length; i++)
-            for (int j = 0; j < targetOutput[0].length; j++)
-                for (int k = 0; k < targetOutput[0][0].length; k++)
-                    if (targetOutput[i][j][k] == 0)
-                        targetOutput[i][j][k] = -1;
+//        // replace all 0s with -1s
+//        for (int i = 0; i < targetOutput.length; i++)
+//            for (int j = 0; j < targetOutput[0].length; j++)
+//                for (int k = 0; k < targetOutput[0][0].length; k++)
+//                    if (targetOutput[i][j][k] == 0)
+//                        targetOutput[i][j][k] = -1;
 
 //        System.out.println("Target output :");
         UTIL.prettyprint(targetOutput);
@@ -83,6 +83,8 @@ public class GeneratorBasic {
         System.out.println(targetOutput.length + " " + targetOutput[0].length + " " + targetOutput[0][0].length);
         for (int epoch = 0; epoch < 100000; epoch++) {
             double[][][] output = generator.forward(XavierInitializer.xavierInit1D(generator.dense1.inputSize));
+            System.out.println("output shape : " + output.length + " " + output[0].length + " " + output[0][0].length);
+            System.out.println("targetOutput shape : " + targetOutput.length + " " + targetOutput[0].length + " " + targetOutput[0][0].length);
             double[][][] gradOutput = UTIL.gradientRMSE(output, targetOutput);
             double loss = UTIL.lossRMSE(output, targetOutput);
             System.err.println("loss : " + loss);
