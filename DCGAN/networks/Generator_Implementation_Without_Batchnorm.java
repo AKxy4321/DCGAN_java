@@ -10,7 +10,7 @@ import java.util.Arrays;
 public class Generator_Implementation_Without_Batchnorm {
     int dense_output_size;
     DenseLayer dense;
-    SigmoidLayer leakyReLU1;
+    LeakyReLULayer leakyReLU1;
     TransposeConvolutionalLayer tconv1;
     LeakyReLULayer leakyReLU2;
     TransposeConvolutionalLayer tconv2;
@@ -29,18 +29,18 @@ public class Generator_Implementation_Without_Batchnorm {
         this.batchSize = batchSize;
 
         int noise_length = 500;
-        int tconv1_input_width = 22, tconv1_input_height = 22, tconv1_input_depth = 127;
+        int tconv1_input_width = 22, tconv1_input_height = 22, tconv1_input_depth = 9;
         this.dense_output_size = tconv1_input_width * tconv1_input_height * tconv1_input_depth;
         this.dense = new DenseLayer(noise_length, this.dense_output_size);
-        this.leakyReLU1 = new SigmoidLayer();
+        this.leakyReLU1 = new LeakyReLULayer();
 
-        this.tconv1 = new TransposeConvolutionalLayer(3, 33, 1,
+        this.tconv1 = new TransposeConvolutionalLayer(3, 3, 1,
                 tconv1_input_width, tconv1_input_height, tconv1_input_depth, 0, false);
         // this.stride * (inputHeight - 1) + filterSize - 2 * padding; = 1 * (7 - 1) + 5 - 0 = 11
         // 1 * (i-1) + 3 - 0 = i + 2
         this.leakyReLU2 = new LeakyReLULayer();
 
-        this.tconv2 = new TransposeConvolutionalLayer(3, 11, 1,
+        this.tconv2 = new TransposeConvolutionalLayer(3, 3, 1,
                 tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth, 0, false);
         // (i + 2 - 1) + 3 - 2*0 = i + 4
         this.leakyReLU3 = new LeakyReLULayer();
@@ -120,19 +120,24 @@ public class Generator_Implementation_Without_Batchnorm {
         BufferedImage img = UTIL.mnist_load_index(3, 0);
 
         double[][][] targetOutput = new double[][][]{UTIL.zeroToOneToMinusOneToOne(UTIL.img_to_mat(img))};
-//        targetOutput = UTIL.multiplyScalar(targetOutput, -1);
+
+        // training it to give null input to the transpose convolution layer
+        // by not updating the filters at all and setting target output to null.
+//        targetOutput = UTIL.multiplyScalar(targetOutput, 0);
         UTIL.prettyprint(targetOutput);
         UTIL.saveImage(UTIL.getBufferedImage(targetOutput), "target_image.png");
 
         double[][][] outputGradients = new double[1][28][28];
 
-        double prev_loss = Double.MAX_VALUE, loss, learning_rate = 0.1;
+        double prev_loss = Double.MAX_VALUE, loss, learning_rate = 0.01;
         generator.verbose = true;
 
         for (int epoch = 0, max_epochs = 20000000; epoch < max_epochs; epoch++, prev_loss = loss) {
             double[][][] output = generator.generateImage();
 
             UTIL.saveImage(UTIL.getBufferedImage(generator.generateImage()),"starting_image.png");
+//            if(epoch == 0)
+//                break;
 
             loss = UTIL.lossRMSE(output, targetOutput);
 
