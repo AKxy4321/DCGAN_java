@@ -566,8 +566,10 @@ public class UTIL {
 
         double[][][] output = new double
                 [input.length + (input.length - 1) * (dz)]
-                [input[0].length + (input.length - 1) * (hz)]
-                [input[0][0].length + (input.length - 1) * (wz)];
+                [input[0].length + (input[0].length - 1) * (hz)]
+                [input[0][0].length + (input[0][0].length - 1) * (wz)];
+
+//        UTIL.prettyprint(output);
 
         for (int i = 0; i < input.length; i++) {
             for (int j = 0; j < input[0].length; j++) {
