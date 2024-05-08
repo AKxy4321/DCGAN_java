@@ -10,19 +10,21 @@ import java.util.Arrays;
 
 public class Discriminator_Implementation {
     Convolution conv1;
-//    BatchNormalization batch1;
+    //    BatchNormalization batch1;
     LeakyReLULayer leakyReLULayer1;
     Convolution conv2;
-//    BatchNormalization batch2;
+    //    BatchNormalization batch2;
     LeakyReLULayer leakyReLULayer2;
     DenseLayer dense;
     SigmoidLayer sigmoidLayer;
+
+    boolean verbose = false;
 
     public Discriminator_Implementation() {
         int inputWidth = 28, inputHeight = 28;
         this.conv1 = new Convolution(5, 64, 3, inputWidth, inputHeight, 1);
         this.leakyReLULayer1 = new LeakyReLULayer();
-        this.conv2 = new Convolution(5, 64, 3, conv1.output_width, conv1.output_height, conv1.output_depth);
+        this.conv2 = new Convolution(5, 128, 3, conv1.output_width, conv1.output_height, conv1.output_depth);
         this.leakyReLULayer2 = new LeakyReLULayer();
         this.dense = new DenseLayer(conv2.output_depth * conv2.output_width * conv2.output_height, 1);
         this.sigmoidLayer = new SigmoidLayer();
@@ -75,12 +77,15 @@ public class Discriminator_Implementation {
         conv2.updateParameters(disc_in_gradient_leakyrelu2, learning_rate_disc);
         dense.updateParameters(disc_in_gradient_sigmoid, learning_rate_disc);
 
-        // print the sum of all the gradients
-        System.out.println("Sum of all gradients in discriminator: "
-                + "\ndisc_in_gradient_dense : " + Arrays.stream(disc_in_gradient_dense).sum()
-                + "\ndisc_in_gradient_leakyrelu2 : " + Arrays.stream(UTIL.flatten(disc_in_gradient_leakyrelu2)).sum()
-                + "\ndisc_in_gradient_conv2 : " + Arrays.stream(UTIL.flatten(disc_in_gradient_conv2)).sum()
-                + "\ndisc_in_gradient_leakyrelu1 : " + Arrays.stream(UTIL.flatten(disc_in_gradient_leakyrelu1)).sum()
-                + "\ndisc_in_gradient_conv1 : " + Arrays.stream(UTIL.flatten(disc_in_gradient_conv1)).sum());
+
+        if (verbose) {
+            // print the sum of all the gradients
+            System.out.println("Sum of all gradients in discriminator: "
+                    + "\ndisc_in_gradient_dense : " + Arrays.stream(disc_in_gradient_dense).sum()
+                    + "\ndisc_in_gradient_leakyrelu2 : " + Arrays.stream(UTIL.flatten(disc_in_gradient_leakyrelu2)).sum()
+                    + "\ndisc_in_gradient_conv2 : " + Arrays.stream(UTIL.flatten(disc_in_gradient_conv2)).sum()
+                    + "\ndisc_in_gradient_leakyrelu1 : " + Arrays.stream(UTIL.flatten(disc_in_gradient_leakyrelu1)).sum()
+                    + "\ndisc_in_gradient_conv1 : " + Arrays.stream(UTIL.flatten(disc_in_gradient_conv1)).sum());
+        }
     }
 }

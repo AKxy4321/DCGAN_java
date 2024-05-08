@@ -12,6 +12,7 @@ public class DigitClassifier {
 
     public void discriminator_execute() {
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
+        discriminator.verbose = false;
         int num_images = 100;
         int num_images_test = 100;
         int num_epochs = 1000;

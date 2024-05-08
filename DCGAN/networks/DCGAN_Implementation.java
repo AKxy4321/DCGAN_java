@@ -31,21 +31,34 @@ public class DCGAN_Implementation {
     }
 
 
+    /*
+    * tanh_in_gradient: 0.004388311190731719
+leakyrelu3_in_gradient: 0.795224583610218
+tconv2_in_gradient: -3.9007676460698053
+leakyrelu2_in_gradient: 0.6127335342649229
+tconv1_in_gradient: 10.430742366071163
+leakyrelu_in_gradient: 9.043740669077065
+leakyrelu_in_gradient_flattened: 9.043740669077065
+dense_in_gradient: 1.1095968969529342
+Generator loss function gradient: [3.2944894818692116]
+    * */
+
     public void dcgan_execute() {
         Logger logger = Logger.getLogger(DCGAN_Implementation.class.getName());
-        int train_size = 3200;
-        int label = 3;
-        double learning_rate_gen = -1 * 1e-3;
+        int train_size = 1;
+        int label = 1;
+        double learning_rate_gen = -1 * 1e-1;
         double learning_rate_disc = 1 * 1e-4;
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
         Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm();
         generator.verbose = true;
+        discriminator.verbose = false;
         System.out.println("Loading Images");
 
-        int batch_size = 8;
+        int batch_size = 1;
         // minibatch gradient descent
-        for (int epochs = 0; epochs < 50; epochs++) {
-            int[] index = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        for (int epochs = 0; epochs < 1000000; epochs++) {
+            int[] index = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
             logger.log(Level.INFO, "Epoch " + epochs);
             for (int batch_idx = 0; batch_idx < train_size / batch_size; batch_idx++) {
