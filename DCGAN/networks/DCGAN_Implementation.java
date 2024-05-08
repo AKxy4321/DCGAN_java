@@ -35,10 +35,11 @@ public class DCGAN_Implementation {
         Logger logger = Logger.getLogger(DCGAN_Implementation.class.getName());
         int train_size = 3200;
         int label = 3;
-        double learning_rate_gen = 1e-4;
-        double learning_rate_disc = 5 * 1e-4;
+        double learning_rate_gen = -1 * 1e-3;
+        double learning_rate_disc = 1 * 1e-4;
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
-        GeneratorBasic generator = new GeneratorBasic();
+        Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm();
+        generator.verbose = true;
         System.out.println("Loading Images");
 
         int batch_size = 8;
@@ -78,7 +79,7 @@ public class DCGAN_Implementation {
 
                         accuracy += calculateAccuracy(discriminator_output_real, discriminator_output_fake);
 
-                        gen_losses[img_idx] = generatorLoss(discriminator_output_fake);
+                        gen_losses[img_idx] = generatorLossNew(discriminator_output_fake);
                         disc_losses[img_idx] = discriminatorLoss(discriminator_output_real, discriminator_output_fake);
 
                         System.out.print(img_idx + " ");
@@ -91,7 +92,6 @@ public class DCGAN_Implementation {
                 }
 
                 double[][] disc_output_gradients = new double[batch_size][1];
-                double[][][][] gen_output_gradients = new double[batch_size][1][28][28];
 
                 double[] expected_real_output = {1.0};
                 double[] expected_fake_output = {0.0};
@@ -195,14 +195,14 @@ public class DCGAN_Implementation {
 
     public double generatorLossNew(double[] fake_output) {
         // loss function : -log(D(G(z))
-        return -Math.log(fake_output[0] + epsilon);
+        return Math.log(fake_output[0] + epsilon);
     }
 
     public double[] generatorLossGradientNew(double[] fake_output) {
         // loss function : -log(D(G(z)))
         double[] gradient = new double[fake_output.length];
         for (int i = 0; i < fake_output.length; i++) {
-            gradient[i] = -1 / (fake_output[i] + epsilon);
+            gradient[i] = 1 / (fake_output[i] + epsilon);
         }
         return gradient;
     }

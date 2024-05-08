@@ -9,11 +9,12 @@ import java.util.Arrays;
 public class GeneratorBasicStrideGreaterThanOne {
     DenseLayer dense1 = new DenseLayer(100, 128);
     SigmoidLayer sigmoid1 = new SigmoidLayer();
-    DenseLayer dense2 = new DenseLayer(dense1.outputSize, 7*7*47);
-    TransposeConvolutionalLayer transposeConv1 = new TransposeConvolutionalLayer(3, 43, 2, 7, 7, 47, 4, false);
-    // this.stride * (inputHeight - 1) + filterSize - 2 * padding; = 2 * (7 - 1) + 2 - 4 = 9
+    DenseLayer dense2 = new DenseLayer(dense1.outputSize, 7 * 7 * 47);
+    TransposeConvolutionalLayer transposeConv1 = new TransposeConvolutionalLayer(3, 43, 2, 7, 7, 47, 0, false);
+    // this.stride * (inputHeight - 1) + filterSize - 2 * padding; = 2 * (7 - 1) + 3 - 2 * 0 = 15
     LeakyReLULayer leakyReLU = new LeakyReLULayer();
     TransposeConvolutionalLayer tconv2 = new TransposeConvolutionalLayer(3, 1, 1, transposeConv1.outputWidth, transposeConv1.outputHeight, transposeConv1.outputDepth, 0, false);
+    // (15-1) * 1 + 3 - 2 * 0 = 17
     TanhLayer tanh = new TanhLayer();
 
     public double[][][] forward(double[] input) {
@@ -59,33 +60,42 @@ public class GeneratorBasicStrideGreaterThanOne {
         for (int i = 0; i < targetOutput.length; i++)
             for (int j = 0; j < targetOutput[0].length; j++)
                 Arrays.fill(targetOutput[i][j], 1);
-        targetOutput = new double[][][]{
-                {
-                        {0, 0, 0, 1, 1, 1, 0, 0, 0},
-                        {0, 0, 1, 1, 1, 1, 1, 1, 0},
-                        {0, 1, 1, 0, 0, 0, 1, 1, 0},
-                        {0, 1, 1, 0, 0, 0, 1, 1, 0},
-                        {0, 1, 1, 0, 0, 1, 1, 1, 0},
-                        {0, 0, 1, 1, 1, 1, 1, 1, 0},
-                        {0, 0, 0, 0, 0, 0, 0, 1, 0},
-                        {0, 0, 0, 0, 0, 1, 1, 1, 0},
-                        {0, 0, 0, 0, 1, 1, 1, 1, 0},
-                }
-        };
+        targetOutput = new double[][][]{{
+                {0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+                {0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}};
         // replace all 0s with -1s
         for (int i = 0; i < targetOutput.length; i++)
             for (int j = 0; j < targetOutput[0].length; j++)
                 for (int k = 0; k < targetOutput[0][0].length; k++)
-                    if (targetOutput[i][j][k] == 0)
-                        targetOutput[i][j][k] = -1;
+                    if (targetOutput[i][j][k] == 0) targetOutput[i][j][k] = -1;
 
 //        System.out.println("Target output :");
         UTIL.prettyprint(targetOutput);
         UTIL.saveImage(UTIL.getBufferedImage(targetOutput[0]), "targetOutput.png");
 
+        System.out.println("targetOutput Shape : " + targetOutput.length + " " + targetOutput[0].length + " " + targetOutput[0][0].length);
+
         System.out.println(targetOutput.length + " " + targetOutput[0].length + " " + targetOutput[0][0].length);
         for (int epoch = 0; epoch < 100000; epoch++) {
             double[][][] output = generator.forward(XavierInitializer.xavierInit1D(generator.dense1.inputSize));
+
+            System.out.println("output Shape : " + output.length + " " + output[0].length + " " + output[0][0].length);
+            System.out.println("output shape according to formula : " + generator.tconv2.outputDepth + "x" + generator.tconv2.outputHeight + "x" + generator.tconv2.outputWidth);
 
             double[][][] gradOutput = UTIL.gradientRMSE(output, targetOutput);
             double loss = UTIL.lossRMSE(output, targetOutput);
@@ -96,6 +106,7 @@ public class GeneratorBasicStrideGreaterThanOne {
                 UTIL.saveImage(UTIL.getBufferedImage(generator.forward(input)[0]), "actual_output_non_one_stride.png");
             }
         }
+
     }
 
     public double[][][] generateImage() {
