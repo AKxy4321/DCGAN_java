@@ -9,8 +9,8 @@ import java.util.Arrays;
 public class GeneratorBasic {
     DenseLayer dense1 = new DenseLayer(100, 256);
     SigmoidLayer sigmoid1 = new SigmoidLayer();
-    DenseLayer dense2 = new DenseLayer(dense1.outputSize, 7*7*9);
-    TransposeConvolutionalLayer transposeConv1 = new TransposeConvolutionalLayer(3, 3, 1, 7, 7, 9, 0, false);
+    DenseLayer dense2 = new DenseLayer(dense1.outputSize, 7*7*29);
+    TransposeConvolutionalLayer transposeConv1 = new TransposeConvolutionalLayer(3, 17, 1, 7, 7, 29, 0, false);
     // output_shape = (input_shape - 1) * stride - 2 * padding + kernel_size + output_padding
     TransposeConvolutionalLayer tconv2 = new TransposeConvolutionalLayer(1, 1, 1, transposeConv1.outputWidth, transposeConv1.outputHeight, transposeConv1.outputDepth, 0, false);
     TanhLayer tanh = new TanhLayer();

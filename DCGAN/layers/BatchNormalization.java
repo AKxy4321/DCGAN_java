@@ -96,11 +96,19 @@ public class BatchNormalization {
             }
         }
 
+        for(int i=0;i<dVar.length;i++) {
+            dVar[i] /= batchSize;
+        }
+
         for (int i = 0; i < dout.length; i++) {
             for (int j = 0; j < dout[0].length; j++) {
                 dMean[j] += -1 * (dxNormalized[i][j] / (runningVar[j]+epsilon)
                         + 2 * (x[i][j] - runningMean[j]) * dVar[j] / batchSize);
             }
+        }
+
+        for(int i=0;i<dVar.length;i++) {
+            dMean[i] /= batchSize;
         }
 
         for (int i = 0; i < dout.length; i++) {
@@ -117,7 +125,6 @@ public class BatchNormalization {
         double[][] dxNormalized = new double[batchSize][inputDim];
         double[] dVar = new double[inputDim];
         double[] dMean = new double[inputDim];
-        double invBatchSize = 1.0 / batchSize;
 
         int m = dout.length; // Number of samples in the batch
         int n = dout[0].length; // Number of features

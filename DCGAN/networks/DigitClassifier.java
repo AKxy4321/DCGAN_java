@@ -16,7 +16,7 @@ public class DigitClassifier {
         int num_images = 100;
         int num_images_test = 100;
         int num_epochs = 1000;
-        double learning_rate = 1*1e-4;
+        double learning_rate = 1*1e-2;
         int batch_size = 8;
 
         double[][][] fakeImages_train = new double[num_images][28][28];
