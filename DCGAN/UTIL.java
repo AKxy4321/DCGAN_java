@@ -98,12 +98,12 @@ public class UTIL {
     }
 
     public static void calculateGradientRMSE(double[][][] outputGradient, double[][][] output, double[][][] targetOutput) {
-        double num_values = output.length * output[0].length;
+        double num_values = output.length * output[0].length * output[0][0].length;
         double sqrt_mse = Math.sqrt(lossMSE(output, targetOutput));
         for (int i = 0; i < outputGradient.length; i++) {
             for (int j = 0; j < outputGradient[0].length; j++) {
                 for (int k = 0; k < outputGradient[0].length; k++) {
-                    outputGradient[i][j][k] = (1 / (num_values * sqrt_mse)) * (output[i][j][k] - targetOutput[i][j][k]);
+                    outputGradient[i][j][k] = (1 / (num_values * sqrt_mse + epsilon)) * (output[i][j][k] - targetOutput[i][j][k]);
                 }
             }
         }
@@ -379,45 +379,51 @@ public class UTIL {
     }
 
     public static void main(String[] args) {
-        double[][][] array = new double[][][]{
-                {
-                        {1, 2, 3},
-                        {4, 5, 6},
-                        {7, 8, 9}
-                },
-                {
-                        {10, 11, 12},
-                        {13, 14, 15},
-                        {16, 17, 18}
-                }
-        };
-        double[] flatten = flatten(array);
-        double[][][] unflatten = unflatten(flatten, 2, 3, 3);
+        UTIL.prettyprint(UTIL.rotate180(new double[][]{
+                {1, 2, 3, 1},
+                {4, 5, 6, 1},
+                {7, 8, 9, 1},
+                {2, 2, 2, 2}}));
 
-        System.out.println("Actual array : ");
-        for (double[][] doubles : array) {
-            for (double[] aDouble : doubles) {
-                for (double v : aDouble) {
-                    System.out.print(v + " ");
-                }
-                System.out.println();
-            }
-            System.out.println();
-        }
-
-        System.out.println("Flattened array : ");
-        System.out.println(java.util.Arrays.toString(flatten));
-
-        System.out.println("Unflattened version of flattened array : ");
-        for (double[][] doubles : unflatten) {
-            for (double[] aDouble : doubles) {
-                for (double v : aDouble) {
-                    System.out.print(v + " ");
-                }
-                System.out.println();
-            }
-            System.out.println();
-        }
+//        double[][][] array = new double[][][]{
+//                {
+//                        {1, 2, 3},
+//                        {4, 5, 6},
+//                        {7, 8, 9}
+//                },
+//                {
+//                        {10, 11, 12},
+//                        {13, 14, 15},
+//                        {16, 17, 18}
+//                }
+//        };
+//        double[] flatten = flatten(array);
+//        double[][][] unflatten = unflatten(flatten, 2, 3, 3);
+//
+//        System.out.println("Actual array : ");
+//        for (double[][] doubles : array) {
+//            for (double[] aDouble : doubles) {
+//                for (double v : aDouble) {
+//                    System.out.print(v + " ");
+//                }
+//                System.out.println();
+//            }
+//            System.out.println();
+//        }
+//
+//        System.out.println("Flattened array : ");
+//        System.out.println(java.util.Arrays.toString(flatten));
+//
+//        System.out.println("Unflattened version of flattened array : ");
+//        for (double[][] doubles : unflatten) {
+//            for (double[] aDouble : doubles) {
+//                for (double v : aDouble) {
+//                    System.out.print(v + " ");
+//                }
+//                System.out.println();
+//            }
+//            System.out.println();
+//        }
 
     }
 
@@ -507,6 +513,14 @@ public class UTIL {
         for (int i = 0; i < array.length; i++)
             for (int j = 0; j < array[0].length; j++)
                 rotated[i][j] = array[array.length - i - 1][array[0].length - j - 1];
+        return rotated;
+    }
+
+    public static double[][] rotate90(double[][] array) {
+        double[][] rotated = new double[array[0].length][array.length];
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                rotated[j][array.length - i - 1] = array[i][j];
         return rotated;
     }
 
