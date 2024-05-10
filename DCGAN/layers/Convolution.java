@@ -64,12 +64,12 @@ public class Convolution {
             // od = ((id - fd) / stride_in_z) + 1 = ((id - id) / stride_in_z) + 1 = 0 + 1 = 1
 
             // we take this 1xoutput_heightxoutput_width and reshape it to 2d : output_heightxoutput_width
-            output[d] = convolve3d(input, filters[d], stride, 0)[0];
+            output[d] = convolve3d(input, filters[d], 1, stride, stride)[0];
 
             // if we are using bias as well
             for (int y = 0; y < output_height; y++) {
                 for (int x = 0; x < output_width; x++) {
-                    output[d][y][x] += biases[d];
+//                    output[d][y][x] += biases[d];
                 }
             }
         }
@@ -103,7 +103,7 @@ public class Convolution {
                             int input_x = x + fx;
                             if (input_y >= 0 && input_y < input_height && input_x >= 0 && input_x < input_width) {
                                 for (int fd = 0; fd < f.length; fd++) {
-                                    inputGradient[fd][input_y][input_x] += f[fd][filterSize - 1- fy][filterSize-1-fx] * chain_grad;
+                                    inputGradient[fd][input_y][input_x] += f[fd][filterSize - 1 - fy][filterSize - 1 - fx] * chain_grad;
                                 }
                             }
                         }
@@ -214,22 +214,13 @@ public class Convolution {
     }
 
     public static double[][][] convolve3d(double[][][] input, double[][][] filter, int stride) {
-        return convolve3d(input, filter, stride, stride, stride, 0, 0, 0);
+        return convolve3d(input, filter, stride, stride, stride);
     }
 
-    public static double[][][] convolve3d(double[][][] input, double[][][] filter, int stride, int padding) {
-        return convolve3d(input, filter, stride, stride, stride, padding, padding, padding);
-    }
 
-    public static double[][][] convolve3d(double[][][] input, double[][][] filter, int z_stride, int y_stride, int x_stride, int depthPadding, int heightPadding, int widthPadding) {
+    public static double[][][] convolve3d(double[][][] input, double[][][] filter, int z_stride, int y_stride, int x_stride) {
 //        System.out.println("Input before padding:");
 //        UTIL.prettyprint(input);
-
-        if(depthPadding < 0 || heightPadding < 0 || widthPadding < 0)
-            throw new IllegalArgumentException("Padding cannot be negative");
-
-        if (depthPadding > 0 || heightPadding > 0 || widthPadding > 0)
-            input = pad3d(input, depthPadding, heightPadding, widthPadding);
 
         int input_width = input[0][0].length;
         int input_height = input[0].length;
@@ -252,11 +243,11 @@ public class Convolution {
         double[][][] output = new double[output_depth][output_height][output_width];
 
 
-        int z = -depthPadding;
+        int z = 0;
         for (int output_z = 0; output_z < output_depth; z += z_stride, output_z++) {
-            int y = -heightPadding;
+            int y = 0;
             for (int output_y = 0; output_y < output_height; y += y_stride, output_y++) {  // xy_stride
-                int x = -widthPadding;
+                int x = 0;
                 for (int output_x = 0; output_x < output_width; x += x_stride, output_x++) {  // xy_stride
 
                     // Here we are taking dot product with the filter and the overlapping input region
