@@ -126,7 +126,7 @@ public class TransposeConvolutionalLayer {
             for (int c = 0; c < inputDepth; c++) {
                 for (int i = 0; i < inputHeight; i++) {
                     for (int j = 0; j < inputWidth; j++) {
-                        inputGradient[c][i][j] += inputGradientSlice[c][i][j];
+                        inputGradient[inputDepth - 1 - c][i][j] += inputGradientSlice[c][i][j];
                     }
                 }
             }
