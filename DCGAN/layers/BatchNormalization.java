@@ -1,8 +1,12 @@
 package DCGAN.layers;
 
+import DCGAN.UTIL;
+
+import java.util.Arrays;
+
 public class BatchNormalization {
     private final double epsilon = 1e-5;
-    private final double momentum = 0.9;
+    private final double momentum = 0.8;
     private double[] runningMean;
     private double[] runningVar;
     private double[] gamma;
@@ -188,6 +192,6 @@ public class BatchNormalization {
 
     private void updateRunningVar(double[] var) {
         for (int i = 0; i < runningVar.length; i++)
-            runningVar[i] = momentum * runningVar[i] + (1 - momentum) * var[i];
+            runningVar[i] = Math.max(momentum * runningVar[i] + (1 - momentum) * var[i], epsilon);
     }
 }
