@@ -70,7 +70,12 @@ public class LeakyReLULayer {
         return output2D;
     }
 
+    @Deprecated
     public double[][][] backward(double[][][] outputGradient) {
+        return backward(output, outputGradient);
+    }
+
+        public double[][][] backward(double[][][] output, double[][][] outputGradient) {
         double[][][] inputGradient = new double[outputGradient.length][outputGradient[0].length][outputGradient[0][0].length];
         int depth = outputGradient.length;
         int height = outputGradient[0].length;

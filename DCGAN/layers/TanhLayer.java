@@ -40,7 +40,13 @@ public class TanhLayer {
         return output2D;
     }
 
+
+    @Deprecated
     public double[][][] backward(double[][][] outputGradient) {
+        return backward(output, outputGradient);
+    }
+
+    public double[][][] backward(double[][][] output, double[][][] outputGradient) {
         double[][][] inputGradient = new double[outputGradient.length][outputGradient[0].length][outputGradient[0][0].length];
         int depth = outputGradient.length;
         int height = outputGradient[0].length;
@@ -54,7 +60,7 @@ public class TanhLayer {
             for (int h = 0; h < height; h++) {
                 for (int w = 0; w < width; w++) {
 //                    System.out.println(output[d][h][w]);
-                    inputGradient[d][h][w] =  (1-output[d][h][w]*output[d][h][w]) * outputGradient[d][h][w];
+                    inputGradient[d][h][w] = (1 - output[d][h][w] * output[d][h][w]) * outputGradient[d][h][w];
                 }
             }
         }
@@ -68,7 +74,7 @@ public class TanhLayer {
 
         for (int h = 0; h < height; h++) {
             for (int w = 0; w < width; w++) {
-                inputGradient[h][w] = (1-output2D[h][w]*output2D[h][w]) *outputGradient[h][w];
+                inputGradient[h][w] = (1 - output2D[h][w] * output2D[h][w]) * outputGradient[h][w];
             }
         }
         return inputGradient;
