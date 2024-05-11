@@ -46,8 +46,8 @@ Generator loss function gradient: [3.2944894818692116]
     public void dcgan_execute() {
         Logger logger = Logger.getLogger(DCGAN_Implementation.class.getName());
         int train_size = 1;
-        int label = 1;
-        double learning_rate_gen = -1 * 1e-1;
+        int label = 9;
+        double learning_rate_gen = 1 * 1e-2;
         double learning_rate_disc = 1 * 1e-4;
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
         Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm();
@@ -55,7 +55,7 @@ Generator loss function gradient: [3.2944894818692116]
         discriminator.verbose = false;
         System.out.println("Loading Images");
 
-        int batch_size = 1;
+        int batch_size = 1; // batch size of 1 for sgd
         // minibatch gradient descent
         for (int epochs = 0; epochs < 1000000; epochs++) {
             int[] index = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -68,6 +68,7 @@ Generator loss function gradient: [3.2944894818692116]
                 double[][][][] realImages = new double[batch_size][1][28][28];
                 for (int real_idx = 0; real_idx < batch_size; real_idx++) {
                     BufferedImage img = DCGAN.UTIL.mnist_load_index(label, index[label]);
+                    UTIL.saveImage(img, "real_image.png");
                     realImages[real_idx] = new double[][][]{UTIL.zeroToOneToMinusOneToOne(DCGAN.UTIL.img_to_mat(img))};
                     index[label] += 1;
                 }
@@ -80,6 +81,9 @@ Generator loss function gradient: [3.2944894818692116]
 
                 double accuracy = 0.0;
 
+
+                double disc_loss = 0.0;
+                double gen_loss = 0.0;
                 // calculate losses
                 calc_losses:
                 {
@@ -98,9 +102,12 @@ Generator loss function gradient: [3.2944894818692116]
                         System.out.print(img_idx + " ");
                     }
 
+                    disc_loss = UTIL.mean(disc_losses);
+                    gen_loss = UTIL.mean(gen_losses);
+
                     logger.log(Level.INFO, "Epoch:" + epochs + " batch:" + batch_idx);
-                    logger.log(Level.INFO, "Gen_Loss " + DCGAN.UTIL.mean(gen_losses));
-                    logger.log(Level.INFO, "Disc_Loss " + DCGAN.UTIL.mean(disc_losses));
+                    logger.log(Level.INFO, "Gen_Loss " + gen_loss);
+                    logger.log(Level.INFO, "Disc_Loss " + disc_loss);
                     logger.log(Level.INFO, "Accuracy " + accuracy / (batch_size * 2));
                 }
 
@@ -109,41 +116,45 @@ Generator loss function gradient: [3.2944894818692116]
                 double[] expected_real_output = {1.0};
                 double[] expected_fake_output = {0.0};
 
-                // train on real images
-                train_disc_on_real:
-                {
-                    for (int img_idx = 0; img_idx < batch_size; img_idx++) {
-                        double[] discriminator_output_real = discriminator.getOutput(realImages[img_idx][0]);
+                double min_disc_loss = 0.5;
+                if (disc_loss > min_disc_loss) {
+                    // train on real images
+                    train_disc_on_real:
+                    {
+                        for (int img_idx = 0; img_idx < batch_size; img_idx++) {
+                            double[] discriminator_output_real = discriminator.getOutput(realImages[img_idx][0]);
 
-                        double[] output_gradient = gradientBinaryCrossEntropy(discriminator_output_real, expected_real_output);
-                        disc_output_gradients[img_idx] = output_gradient;
+                            double[] output_gradient = gradientBinaryCrossEntropy(discriminator_output_real, expected_real_output);
+                            disc_output_gradients[img_idx] = output_gradient;
 
-                        if (img_idx == batch_size - 1) {
-                            System.out.println("Discriminator output real: " + Arrays.toString(discriminator_output_real));
+                            if (img_idx == batch_size - 1) {
+                                System.out.println("Discriminator output real: " + Arrays.toString(discriminator_output_real));
+                            }
                         }
+
+                        double[] disc_output_gradient = UTIL.mean_1st_layer(disc_output_gradients);
+                        discriminator.updateParameters(disc_output_gradient, learning_rate_disc);
                     }
 
-                    double[] disc_output_gradient = UTIL.mean_1st_layer(disc_output_gradients);
-                    discriminator.updateParameters(disc_output_gradient, learning_rate_disc);
-                }
+                    // train with fake images
+                    train_disc_on_fake:
+                    {
+                        for (int img_idx = 0; img_idx < batch_size; img_idx++) {
+                            double[] discriminator_output_fake = discriminator.getOutput(fakeImages[img_idx][0]);
 
-                // train with fake images
-                train_disc_on_fake:
-                {
-                    for (int img_idx = 0; img_idx < batch_size; img_idx++) {
-                        double[] discriminator_output_fake = discriminator.getOutput(fakeImages[img_idx][0]);
+                            double[] output_gradient = gradientBinaryCrossEntropy(discriminator_output_fake, expected_fake_output);
+                            disc_output_gradients[img_idx] = output_gradient;
 
-                        double[] output_gradient = gradientBinaryCrossEntropy(discriminator_output_fake, expected_fake_output);
-                        disc_output_gradients[img_idx] = output_gradient;
-
-                        if (img_idx == batch_size - 1) {
-                            System.out.println("Discriminator output fake: " + Arrays.toString(discriminator_output_fake));
+                            if (img_idx == batch_size - 1) {
+                                System.out.println("Discriminator output fake: " + Arrays.toString(discriminator_output_fake));
+                            }
                         }
-                    }
 
-                    double[] disc_output_gradient = UTIL.mean_1st_layer(disc_output_gradients);
-                    discriminator.updateParameters(disc_output_gradient, learning_rate_disc);
-                }
+                        double[] disc_output_gradient = UTIL.mean_1st_layer(disc_output_gradients);
+                        discriminator.updateParameters(disc_output_gradient, learning_rate_disc);
+                    }
+                } else
+                    logger.info("Discriminator loss is less than " + min_disc_loss +", freezing discriminator training temporarily");
 
                 // train generator
                 train_generator:
@@ -208,14 +219,14 @@ Generator loss function gradient: [3.2944894818692116]
 
     public double generatorLossNew(double[] fake_output) {
         // loss function : -log(D(G(z))
-        return Math.log(fake_output[0] + epsilon);
+        return -Math.log(fake_output[0] + epsilon);
     }
 
     public double[] generatorLossGradientNew(double[] fake_output) {
         // loss function : -log(D(G(z)))
         double[] gradient = new double[fake_output.length];
         for (int i = 0; i < fake_output.length; i++) {
-            gradient[i] = 1 / (fake_output[i] + epsilon);
+            gradient[i] = -1 / (fake_output[i] + epsilon);
         }
         return gradient;
     }
