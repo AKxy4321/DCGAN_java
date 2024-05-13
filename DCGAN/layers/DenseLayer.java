@@ -1,6 +1,7 @@
 package DCGAN.layers;
 
 import DCGAN.XavierInitializer;
+import DCGAN.AdamOptimizer;
 
 public class DenseLayer {
     private double[][] weights;
