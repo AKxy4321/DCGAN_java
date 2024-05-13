@@ -50,6 +50,7 @@ public class Convolution {
     }
 
 
+
     public double[][][] forward(double[][][] input) {
         this.input3D = input;
 
@@ -204,6 +205,29 @@ public class Convolution {
 
         return paddedInput;
     }
+
+    public static double[][][] pad3d(double[][][] paddedAndStretchedInput, int front, int back, int up, int bottom, int left, int right) {
+        int input_depth = paddedAndStretchedInput.length;
+        int input_height = paddedAndStretchedInput[0].length;
+        int input_width = paddedAndStretchedInput[0][0].length;
+
+        int paddedInputDepth = input_depth + front + back;
+        int paddedInputHeight = input_height + up + bottom;
+        int paddedInputWidth = input_width + left + right;
+
+        double[][][] paddedInput = new double[paddedInputDepth][paddedInputHeight][paddedInputWidth];
+
+        for (int d = 0; d < input_depth; d++) {
+            for (int h = 0; h < input_height; h++) {
+                for (int w = 0; w < input_width; w++) {
+                    paddedInput[d + front][h + up][w + left] = paddedAndStretchedInput[d][h][w];
+                }
+            }
+        }
+
+        return paddedInput;
+    }
+
 
     public static double[][][] pad3d(double[][][] input, int padding) {
         return pad3d(input, padding, padding, padding);

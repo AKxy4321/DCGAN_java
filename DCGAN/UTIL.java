@@ -379,11 +379,25 @@ public class UTIL {
     }
 
     public static void main(String[] args) {
-        UTIL.prettyprint(UTIL.rotate180(new double[][]{
-                {1, 2, 3, 1},
-                {4, 5, 6, 1},
-                {7, 8, 9, 1},
-                {2, 2, 2, 2}}));
+        double[][][] input = {
+                {{1, 2}, {3, 4}},
+                {{5, 6}, {7, 8}}
+        };
+        int dz = 1, hz = 1, wz = 1;
+        UTIL.prettyprint(input);
+
+//        UTIL.prettyprint(UTIL.addZeroesInBetween(input, dz, hz, wz));
+
+        double[] flattened = flatten(input);
+        System.out.println(Arrays.toString(flattened));
+        double[][][] unflattened = unflatten(flattened, 2, 2, 2);
+        UTIL.prettyprint(unflattened);
+
+//        UTIL.prettyprint(UTIL.rotate180(new double[][]{
+//                {1, 2, 3, 1},
+//                {4, 5, 6, 1},
+//                {7, 8, 9, 1},
+//                {2, 2, 2, 2}}));
 
 //        double[][][] array = new double[][][]{
 //                {
