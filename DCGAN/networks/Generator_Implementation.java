@@ -38,16 +38,16 @@ public class Generator_Implementation {
         this.batch1 = new BatchNormalization(this.dense_output_size);
         this.leakyReLU1 = new SigmoidLayer();
 
-        this.tconv1 = new TransposeConvolutionalLayer(5, 33, 1, tconv1_input_width, tconv1_input_height, tconv1_input_depth, 0, false);
+        this.tconv1 = new TransposeConvolutionalLayer(5, 33, 1, tconv1_input_width, tconv1_input_height, tconv1_input_depth, (5 - 1) / 2, 0,0,false);
         this.batch2 = new BatchNormalization(tconv1.outputDepth * tconv1.outputHeight * tconv1.outputWidth);
         this.leakyReLU2 = new LeakyReLULayer();
 
-        this.tconv2 = new TransposeConvolutionalLayer(5, 33, 2, tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth, 3, false);
+        this.tconv2 = new TransposeConvolutionalLayer(5, 33, 2, tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth, (5 - 1) / 2,0,1, false);
         this.batch3 = new BatchNormalization(tconv2.outputDepth * tconv2.outputHeight * tconv2.outputWidth);
         this.leakyReLU3 = new LeakyReLULayer();
 
         System.out.println("tconv2 output shape : " + tconv2.outputDepth + " " + tconv2.outputHeight + " " + tconv2.outputWidth);
-        this.tconv3 = new TransposeConvolutionalLayer(6, 1, 2, tconv2.outputWidth, tconv2.outputHeight, tconv2.outputDepth, 7, false);
+        this.tconv3 = new TransposeConvolutionalLayer(5, 1, 2, tconv2.outputWidth, tconv2.outputHeight, tconv2.outputDepth, (5 - 1) / 2,0,1, false);
         this.tanh = new TanhLayer();
 
 
@@ -89,6 +89,8 @@ public class Generator_Implementation {
         double[] gen_batch3_output = this.batch3.getOutput(UTIL.flatten(outputTconv2));
         double[][][] gen_batch3_output_unflattened = UTIL.unflatten(gen_batch3_output, outputTconv2.length, outputTconv2[0].length, outputTconv2[0][0].length);
         double[][][] gen_leakyrelu_output3 = this.leakyReLU3.forward(gen_batch3_output_unflattened);
+
+
 
         double[][][] gen_tconv3_output = this.tconv3.forward(gen_leakyrelu_output3);
         double[][][] fakeImage = this.tanh.forward(gen_tconv3_output);
@@ -291,19 +293,26 @@ public class Generator_Implementation {
     public static void main(String[] args) {
         Generator_Implementation generator = new Generator_Implementation(8);
 
+        System.out.println("tconv1 output shape : " + generator.tconv1.outputDepth + " " + generator.tconv1.outputHeight + " " + generator.tconv1.outputWidth);
+        System.out.println("tconv2 output shape : " + generator.tconv2.outputDepth + " " + generator.tconv2.outputHeight + " " + generator.tconv2.outputWidth);
+        System.out.println("tconv3 output shape : " + generator.tconv3.outputDepth + " " + generator.tconv3.outputHeight + " " + generator.tconv3.outputWidth);
+//        System.exit(0);
+
         // loading the first handwritten three from the mnist dataset
         BufferedImage img = UTIL.mnist_load_index(3, 0);
+        double[][] three = UTIL.zeroToOneToMinusOneToOne(UTIL.img_to_mat(img));
 
-        double[][][] targetOutput = new double[][][]{UTIL.zeroToOneToMinusOneToOne(UTIL.img_to_mat(img))};
+        double[][][] targetOutput = new double[][][]{three};
 
-        double[][][][] outputGradients = new double[generator.batchSize][1][28][28];
 
-        double prev_loss = Double.MAX_VALUE, loss, learning_rate = 0.0001;
+        double[][][][] outputGradients = new double[generator.batchSize][1][targetOutput[0].length][targetOutput[0][0].length];
+
+        double prev_loss = Double.MAX_VALUE, loss, learning_rate = 0.01;
         generator.verbose = true;
 
         for (int epoch = 0, max_epochs = 20000000; epoch < max_epochs; epoch++, prev_loss = loss) {
             double[][][][] outputs = generator.forwardBatch();
-            UTIL.saveImage(UTIL.getBufferedImage(generator.generateImage()),"starting_image.png");
+            UTIL.saveImage(UTIL.getBufferedImage(outputs[0]), "starting_image.png");
 
             double[] losses = new double[generator.batchSize];
             for (int i = 0; i < generator.batchSize; i++)
@@ -311,7 +320,7 @@ public class Generator_Implementation {
             loss = UTIL.mean(losses);
 
             System.out.println("loss : " + loss);
-
+            System.out.println("outputs shape : " + outputs.length + " " + outputs[0].length + " " + outputs[0][0].length + " " + outputs[0][0][0].length);
 
             for (int i = 0; i < generator.batchSize; i++)
                 UTIL.calculateGradientRMSE(outputGradients[i][0], outputs[i][0], targetOutput[0]);
