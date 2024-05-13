@@ -1,21 +1,22 @@
 package DCGAN.layers;
 
 import DCGAN.XavierInitializer;
-import DCGAN.AdamOptimizer;
 
 public class DenseLayer {
     private double[][] weights;
     private double[] biases;
     private double[] input;
+    private AdamOptimizer adam;
 
     public int outputSize, inputSize;
 
-    public DenseLayer(int inputSize, int outputSize) {
+    public DenseLayer(int inputSize, int outputSize, double learningRate, double beta1, double beta2, double epsilon) {
         this.outputSize = outputSize;
         this.inputSize = inputSize;
 
         this.weights = XavierInitializer.xavierInit2D(inputSize, outputSize);
         this.biases = XavierInitializer.xavierInit1D(outputSize);
+        this.adam = new AdamOptimizer(learningRate, beta1, beta2, epsilon);
     }
 
     public double[] forward(double[] input) {
@@ -44,20 +45,18 @@ public class DenseLayer {
         return inputGradient;
     }
 
-    public void updateParameters(double[] outputGradient, double learningRate) {
-        AdamOptimizer adam = new AdamOptimizer(learningRate, 0.9, 0.999, 1e-8);
-        double[] flatOutputGradient = flattenOutputGradient(outputGradient);
-        double[] flatInput = flattenInput(input);
-        double[] update = adam.update(flatOutputGradient);
+    public void updateParameters(double[] outputGradient) {
+        double[] update = adam.update(outputGradient);
         for (int i = 0; i < weights.length; i++) {
             for (int j = 0; j < weights[0].length; j++) {
-                weights[i][j] -= update[i * weights[0].length + j] * flatInput[i];
+                weights[i][j] -= update[i * weights[0].length + j] * input[i];
             }
         }
         for (int j = 0; j < weights[0].length; j++) {
             biases[j] -= update[weights.length * weights[0].length + j];
         }
     }
+
 
     private double[] flattenOutputGradient(double[] outputGradient) {
         double[] flatOutputGradient = new double[outputGradient.length];
