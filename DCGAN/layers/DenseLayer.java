@@ -5,13 +5,11 @@ import DCGAN.XavierInitializer;
 public class DenseLayer {
     private double[][] weights;
     private double[] biases;
-    double[] input;
+    private double[] input;
 
     public int outputSize, inputSize;
 
     public DenseLayer(int inputSize, int outputSize) {
-//        weights = new double[inputSize][outputSize];
-//        biases = new double[outputSize];
         this.outputSize = outputSize;
         this.inputSize = inputSize;
 
@@ -45,27 +43,34 @@ public class DenseLayer {
         return inputGradient;
     }
 
-
     public void updateParameters(double[] outputGradient, double learningRate) {
+        AdamOptimizer adam = new AdamOptimizer(learningRate, 0.9, 0.999, 1e-8);
+        double[] flatOutputGradient = flattenOutputGradient(outputGradient);
+        double[] flatInput = flattenInput(input);
+        double[] update = adam.update(flatOutputGradient);
         for (int i = 0; i < weights.length; i++) {
             for (int j = 0; j < weights[0].length; j++) {
-                weights[i][j] -= learningRate * outputGradient[j] * input[i];
+                weights[i][j] -= update[i * weights[0].length + j] * flatInput[i];
             }
         }
         for (int j = 0; j < weights[0].length; j++) {
-            biases[j] -= learningRate * outputGradient[j];
+            biases[j] -= update[weights.length * weights[0].length + j];
         }
     }
 
-    public void updateParameters(double[] outputGradient, double[] input, double learningRate) {
-        for (int i = 0; i < weights.length; i++) {
-            for (int j = 0; j < weights[0].length; j++) {
-                weights[i][j] -= learningRate * outputGradient[j] * input[i];
-            }
+    private double[] flattenOutputGradient(double[] outputGradient) {
+        double[] flatOutputGradient = new double[outputGradient.length];
+        for (int i = 0; i < outputGradient.length; i++) {
+            flatOutputGradient[i] = outputGradient[i];
         }
-        for (int j = 0; j < weights[0].length; j++) {
-            biases[j] -= learningRate * outputGradient[j];
-        }
+        return flatOutputGradient;
     }
 
+    private double[] flattenInput(double[] input) {
+        double[] flatInput = new double[input.length];
+        for (int i = 0; i < input.length; i++) {
+            flatInput[i] = input[i];
+        }
+        return flatInput;
+    }
 }
