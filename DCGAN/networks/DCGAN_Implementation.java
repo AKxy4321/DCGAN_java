@@ -56,6 +56,9 @@ Generator loss function gradient: [3.2944894818692116]
         System.out.println("Loading Images");
 
         int batch_size = 1; // batch size of 1 for sgd
+
+        boolean disc_frozen = false;
+
         // minibatch gradient descent
         for (int epochs = 0; epochs < 1000000; epochs++) {
             int[] index = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -116,8 +119,17 @@ Generator loss function gradient: [3.2944894818692116]
                 double[] expected_real_output = {1.0};
                 double[] expected_fake_output = {0.0};
 
-                double min_disc_loss = 0.5;
-                if (disc_loss > min_disc_loss) {
+                double min_disc_loss = 0.2, escape_disc_loss = 0.9;
+                if (disc_frozen) {
+                    if (disc_loss > escape_disc_loss)
+                        disc_frozen = false;
+                }else{
+                    if (disc_loss < min_disc_loss)
+                        disc_frozen = true;
+                }
+                logger.info("disc_frozen : "+ disc_frozen);
+
+                if (!disc_frozen) {
                     // train on real images
                     train_disc_on_real:
                     {
@@ -153,8 +165,7 @@ Generator loss function gradient: [3.2944894818692116]
                         double[] disc_output_gradient = UTIL.mean_1st_layer(disc_output_gradients);
                         discriminator.updateParameters(disc_output_gradient, learning_rate_disc);
                     }
-                } else
-                    logger.info("Discriminator loss is less than " + min_disc_loss +", freezing discriminator training temporarily");
+                }
 
                 // train generator
                 train_generator:
