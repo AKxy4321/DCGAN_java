@@ -6,7 +6,7 @@ import java.util.Arrays;
 
 public class BatchNormalization {
     private final double epsilon = 1e-5;
-    private final double momentum = 0.8;
+    //    private final double momentum = 0;
     private double[] runningMean;
     private double[] runningVar;
     private double[] gamma;
@@ -47,35 +47,37 @@ public class BatchNormalization {
         double[][] xCentered = new double[batchSize][inputDim];
         xNormalized = new double[batchSize][inputDim];
 
-        for (int i = 0; i < inputDim; i++) {
-            for (int j = 0; j < batchSize; j++) {
-                mean[i] += x[j][i];
+        for (int feature_idx = 0; feature_idx < inputDim; feature_idx++) {
+            for (int sample_idx = 0; sample_idx < batchSize; sample_idx++) {
+                mean[feature_idx] += x[sample_idx][feature_idx];
             }
-            mean[i] /= batchSize;
+            mean[feature_idx] /= batchSize;
         }
 
-
-        for (int i = 0; i < inputDim; i++) {
-            for (int j = 0; j < batchSize; j++) {
-                xCentered[j][i] = x[j][i] - mean[i];
-                var[i] += xCentered[j][i] * xCentered[j][i];
+        for (int feature_idx = 0; feature_idx < inputDim; feature_idx++) {
+            for (int sample_idx = 0; sample_idx < batchSize; sample_idx++) {
+                xCentered[sample_idx][feature_idx] = x[sample_idx][feature_idx] - mean[feature_idx];
+                var[feature_idx] += xCentered[sample_idx][feature_idx] * xCentered[sample_idx][feature_idx];
             }
-            var[i] /= batchSize;
+            var[feature_idx] /= batchSize;
         }
 
-        for (int j = 0; j < batchSize; j++) {
+        for (int sample_idx = 0; sample_idx < batchSize; sample_idx++) {
+            for (int feature_idx = 0; feature_idx < inputDim; feature_idx++) {
+                xNormalized[sample_idx][feature_idx] = xCentered[sample_idx][feature_idx] / Math.sqrt(var[feature_idx] + epsilon);
 
-            for (int i = 0; i < inputDim; i++)
-                xNormalized[j][i] = xCentered[j][i] / Math.sqrt(var[i] + epsilon);
+                out[sample_idx][feature_idx] = gamma[feature_idx] * xNormalized[sample_idx][feature_idx] + beta[feature_idx];
 
-            for (int i = 0; i < inputDim; i++) {
-                out[j][i] = gamma[i] * xNormalized[j][i] + beta[i];
+                if (Double.isNaN(out[sample_idx][feature_idx])) {
+                    System.err.println("NaN value found");
+                }
             }
         }
 
-        updateRunningMean(mean);
-        updateRunningVar(var);
-
+        for (int feature_idx = 0; feature_idx < inputDim; feature_idx++) {
+            runningMean[feature_idx] = mean[feature_idx];
+            runningVar[feature_idx] = var[feature_idx];
+        }
         return out;
     }
 
@@ -85,7 +87,7 @@ public class BatchNormalization {
         double[] out = new double[inputDim];
 
         double[] xNormalized = calculateXNormalized(x, runningMean, runningVar);
-//        this.xNormalized = xNormalized;
+
         for (int i = 0; i < inputDim; i++) {
             out[i] = gamma[i] * xNormalized[i] + beta[i];
         }
@@ -108,41 +110,26 @@ public class BatchNormalization {
         this.dMean = new double[inputDim];
 
 
-        for (int i = 0; i < dout.length; i++) {
-            for (int j = 0; j < dout[0].length; j++) {
-                dxNormalized[i][j] = dout[i][j] * gamma[j];
+        for (int sample_idx = 0; sample_idx < dout.length; sample_idx++) {
+            for (int feature_idx = 0; feature_idx < dout[0].length; feature_idx++) {
+                dxNormalized[sample_idx][feature_idx] = dout[sample_idx][feature_idx] * gamma[feature_idx];
 
-                dVar[j] += dxNormalized[i][j] * (x[i][j] - runningMean[j])
-                        * (-0.5) * Math.pow(runningVar[j] + epsilon, -1.5);
+                dVar[feature_idx] += dxNormalized[sample_idx][feature_idx] * (x[sample_idx][feature_idx] - runningMean[feature_idx])
+                        * (-0.5) * Math.pow(runningVar[feature_idx] + epsilon, -1.5);
             }
         }
 
-        double[][] xCentered = new double[batchSize][inputDim];
-        for (int i = 0; i < batchSize; i++) {
-            for (int j = 0; j < inputDim; j++) {
-                xCentered[i][j] = x[i][j] - runningMean[j];
+        for (int sample_idx = 0; sample_idx < dout.length; sample_idx++) {
+            for (int feature_idx = 0; feature_idx < dout[0].length; feature_idx++) {
+                dMean[feature_idx] += -1 * (dxNormalized[sample_idx][feature_idx] / (Math.sqrt(runningVar[feature_idx] + epsilon)));
             }
         }
 
-        double[] xCenteredSum = new double[inputDim];
-        for (int i = 0; i < batchSize; i++) {
-            for (int j = 0; j < inputDim; j++) {
-                xCenteredSum[j] += xCentered[i][j];
-            }
-        }
-
-        for (int i = 0; i < dout.length; i++) {
-            for (int j = 0; j < dout[0].length; j++) {
-                dMean[j] += -1 * (dxNormalized[i][j] / (Math.sqrt(runningVar[j] + epsilon)))
-                        + dVar[j] * (-2) * xCenteredSum[j] / batchSize;
-            }
-        }
-
-        for (int i = 0; i < dout.length; i++) {
-            for (int j = 0; j < dout[0].length; j++) {
-                dx[i][j] = dxNormalized[i][j] / Math.sqrt(runningVar[j] + epsilon)
-                        + dVar[j] * 2 * (x[i][j] - runningMean[j]) / batchSize
-                        + dMean[j] / batchSize;
+        for (int sample_idx = 0; sample_idx < dout.length; sample_idx++) {
+            for (int feature_idx = 0; feature_idx < dout[0].length; feature_idx++) {
+                dx[sample_idx][feature_idx] = dxNormalized[sample_idx][feature_idx] / Math.sqrt(runningVar[feature_idx] + epsilon)
+                        + dVar[feature_idx] * 2 * (x[sample_idx][feature_idx] - runningMean[feature_idx]) / batchSize
+                        + dMean[feature_idx] / batchSize;
             }
         }
 
@@ -154,25 +141,24 @@ public class BatchNormalization {
          * Parameters are updated separately in updateParameters function. The input is calculated in the backward function
          * */
 
-        int m = dout.length; // Number of samples in the batch
-        int n = dout[0].length; // Number of features
-
-        double[] dGamma = new double[n];
-        double[] dBeta = new double[n];
+        double[] dGamma = new double[inputDim];
+        double[] dBeta = new double[inputDim];
 
         // Compute dGamma and dBeta
-        for (int j = 0; j < n; j++) {
-            for (int i = 0; i < m; i++) {
-                dGamma[j] += dout[i][j] * xNormalized[i][j]; // Gradient of loss w.r.t. gamma
-                dBeta[j] += dout[i][j]; // Gradient of loss w.r.t. beta
+        for (int feature_idx = 0; feature_idx < inputDim; feature_idx++) {
+            for (int sample_idx = 0; sample_idx < batchSize; sample_idx++) {
+                dGamma[feature_idx] += dout[sample_idx][feature_idx] * xNormalized[sample_idx][feature_idx]; // Gradient of loss w.r.t. gamma
+                dBeta[feature_idx] += dout[sample_idx][feature_idx]; // Gradient of loss w.r.t. beta
             }
         }
 
-        for (int i = 0; i < gamma.length; i++) {
-            gamma[i] -= learning_rate * dGamma[i];
-            beta[i] -= learning_rate * dBeta[i];
-            runningMean[i] -= learning_rate * dMean[i];
-            runningVar[i] -= learning_rate * dVar[i];
+        for (int feature_idx = 0; feature_idx < gamma.length; feature_idx++) {
+            gamma[feature_idx] -= learning_rate * dGamma[feature_idx];
+            beta[feature_idx] -= learning_rate * dBeta[feature_idx];
+
+            // You shouldn't update the variance and mean during backward pass. It is not supposed to be learnable
+//            runningMean[i] -= learning_rate * dMean[i];
+//            runningVar[i] -= learning_rate * dVar[i];
         }
     }
 
@@ -184,14 +170,14 @@ public class BatchNormalization {
         return xNormalized;
     }
 
-    private void updateRunningMean(double[] mean) {
-        for (int i = 0; i < runningMean.length; i++)
-            runningMean[i] = momentum * runningMean[i] + (1 - momentum) * mean[i];
-    }
-    // new_coeff = prev_coeff * momentum + (1 - momentum) * new_coeff
-
-    private void updateRunningVar(double[] var) {
-        for (int i = 0; i < runningVar.length; i++)
-            runningVar[i] = Math.max(momentum * runningVar[i] + (1 - momentum) * var[i], epsilon);
-    }
+//    private void updateRunningMean(double[] mean) {
+//        for (int i = 0; i < runningMean.length; i++)
+//            runningMean[i] = momentum * runningMean[i] + (1 - momentum) * mean[i];
+//    }
+//    // new_coeff = prev_coeff * momentum + (1 - momentum) * new_coeff
+//
+//    private void updateRunningVar(double[] var) {
+//        for (int i = 0; i < runningVar.length; i++)
+//            runningVar[i] = Math.max(momentum * runningVar[i] + (1 - momentum) * var[i], epsilon);
+//    }
 }
