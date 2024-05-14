@@ -5,18 +5,18 @@ import DCGAN.XavierInitializer;
 public class DenseLayer {
     private double[][] weights;
     private double[] biases;
-    private double[] input;
-    private AdamOptimizer adam;
+    double[] input;
 
     public int outputSize, inputSize;
 
-    public DenseLayer(int inputSize, int outputSize, double learningRate, double beta1, double beta2, double epsilon) {
+    public DenseLayer(int inputSize, int outputSize) {
+//        weights = new double[inputSize][outputSize];
+//        biases = new double[outputSize];
         this.outputSize = outputSize;
         this.inputSize = inputSize;
 
         this.weights = XavierInitializer.xavierInit2D(inputSize, outputSize);
         this.biases = XavierInitializer.xavierInit1D(outputSize);
-        this.adam = new AdamOptimizer(learningRate, beta1, beta2, epsilon);
     }
 
     public double[] forward(double[] input) {
@@ -45,32 +45,20 @@ public class DenseLayer {
         return inputGradient;
     }
 
-    public void updateParameters(double[] outputGradient) {
-        double[] update = adam.update(outputGradient);
+
+    public void updateParameters(double[] outputGradient, double learningRate) {
+        updateParameters(outputGradient, input, learningRate);
+    }
+
+    public void updateParameters(double[] outputGradient, double[] input, double learningRate) {
         for (int i = 0; i < weights.length; i++) {
             for (int j = 0; j < weights[0].length; j++) {
-                weights[i][j] -= update[i * weights[0].length + j] * input[i];
+                weights[i][j] -= learningRate * outputGradient[j] * input[i];
             }
         }
         for (int j = 0; j < weights[0].length; j++) {
-            biases[j] -= update[weights.length * weights[0].length + j];
+            biases[j] -= learningRate * outputGradient[j];
         }
     }
 
-
-    private double[] flattenOutputGradient(double[] outputGradient) {
-        double[] flatOutputGradient = new double[outputGradient.length];
-        for (int i = 0; i < outputGradient.length; i++) {
-            flatOutputGradient[i] = outputGradient[i];
-        }
-        return flatOutputGradient;
-    }
-
-    private double[] flattenInput(double[] input) {
-        double[] flatInput = new double[input.length];
-        for (int i = 0; i < input.length; i++) {
-            flatInput[i] = input[i];
-        }
-        return flatInput;
-    }
 }
