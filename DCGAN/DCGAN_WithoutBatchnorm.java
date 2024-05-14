@@ -2,6 +2,7 @@ package DCGAN;
 
 import DCGAN.networks.Discriminator_Implementation;
 import DCGAN.networks.Generator_Implementation;
+import DCGAN.networks.Generator_Implementation_Without_Batchnorm;
 import DCGAN.util.MiscUtils;
 
 import java.awt.image.BufferedImage;
@@ -13,7 +14,7 @@ import static DCGAN.util.TrainingUtils.gradientBinaryCrossEntropy;
 import static DCGAN.util.TrainingUtils.lossBinaryCrossEntropy;
 
 
-public class DCGAN_Implementation {
+public class DCGAN_WithoutBatchnorm{
     final private static Logger logger = Logger.getLogger(DCGAN_Implementation.class.getName());
 
     int train_size = 100;
@@ -26,7 +27,7 @@ public class DCGAN_Implementation {
     private double disc_loss, gen_loss, accuracy;
 
     Discriminator_Implementation discriminator = new Discriminator_Implementation();
-    Generator_Implementation generator = new Generator_Implementation(batch_size);
+    Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm();
 
     double[] expected_real_output = {1.0};
     double[] expected_fake_output = {0.0};
@@ -48,15 +49,16 @@ public class DCGAN_Implementation {
             for (int batch_idx = 0; batch_idx < train_size / batch_size; batch_idx++) {
 
                 // Load images
-                double[][][][] fakeImages = generator.forwardBatch();
+                double[][][][] fakeImages = new double[batch_size][1][28][28];
                 double[][][][] realImages = new double[batch_size][1][28][28];
 
-                for (int real_idx = 0; real_idx < batch_size; real_idx++) {
+                for (int image_idx = 0; image_idx < batch_size; image_idx++) {
                     BufferedImage real_img = MiscUtils.mnist_load_index(label, img_index);
-                    realImages[real_idx] = new double[][][]{zeroToOneToMinusOneToOne(img_to_mat(real_img))};
-
-                    if (real_idx == 0)
+                    realImages[image_idx] = new double[][][]{zeroToOneToMinusOneToOne(img_to_mat(real_img))};
+                    if (image_idx == 0)
                         saveImage(real_img, "real_image.png");
+
+                    fakeImages[image_idx] = generator.generateImage();
 
                     img_index++;
                 }
@@ -97,7 +99,7 @@ public class DCGAN_Implementation {
                     logger.info("gen_frozen : " + true);
 
                 // generate image
-                saveImage(getBufferedImage(generator.generateImage()), "generated_image_dcgan.png");
+                saveImage(getBufferedImage(generator.generateImage()), "generated_image_dcgan_without_batchnorm.png");
             }
         }
     }
@@ -155,7 +157,7 @@ public class DCGAN_Implementation {
             generatorOutputGradients[img_idx] = discriminator.backward(disc_output_gradient_fake);
         }
 
-        generator.updateParametersBatch(generatorOutputGradients, learning_rate);
+        generator.updateParameters(mean_1st_layer(generatorOutputGradients), learning_rate);
     }
 
     public double generatorLoss(double[] fake_output) {

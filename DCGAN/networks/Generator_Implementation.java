@@ -15,7 +15,7 @@ public class Generator_Implementation {
     int dense_output_size;
     DenseLayer dense;
     BatchNormalization batch1;
-    SigmoidLayer leakyReLU1;
+    LeakyReLULayer leakyReLU1;
     TransposeConvolutionalLayer tconv1;
     BatchNormalization batch2;
     LeakyReLULayer leakyReLU2;
@@ -40,9 +40,9 @@ public class Generator_Implementation {
         this.dense_output_size = tconv1_input_width * tconv1_input_height * tconv1_input_depth;
         this.dense = new DenseLayer(noise_length, this.dense_output_size);
         this.batch1 = new BatchNormalization(this.dense_output_size);
-        this.leakyReLU1 = new SigmoidLayer();
+        this.leakyReLU1 = new LeakyReLULayer();
 
-        this.tconv1 = new TransposeConvolutionalLayer(5, 33, 1, tconv1_input_width, tconv1_input_height, tconv1_input_depth, (5 - 1) / 2, 0,0,false);
+        this.tconv1 = new TransposeConvolutionalLayer(5, 63, 1, tconv1_input_width, tconv1_input_height, tconv1_input_depth, (5 - 1) / 2, 0,0,false);
         this.batch2 = new BatchNormalization(tconv1.outputDepth * tconv1.outputHeight * tconv1.outputWidth);
         this.leakyReLU2 = new LeakyReLULayer();
 
