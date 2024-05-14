@@ -46,9 +46,9 @@ Generator loss function gradient: [3.2944894818692116]
     public void dcgan_execute() {
         Logger logger = Logger.getLogger(DCGAN_Implementation.class.getName());
         int train_size = 1;
-        int label = 9;
-        double learning_rate_gen = 1 * 1e-2;
-        double learning_rate_disc = 1 * 1e-4;
+        int label = 10;
+        double learning_rate_gen = 1 * 1e-1;
+        double learning_rate_disc = 1 * 1e-3;
         Discriminator_Implementation discriminator = new Discriminator_Implementation();
         Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm();
         generator.verbose = true;
@@ -58,6 +58,10 @@ Generator loss function gradient: [3.2944894818692116]
         int batch_size = 1; // batch size of 1 for sgd
 
         boolean disc_frozen = false;
+
+        // training it on only one image
+        BufferedImage real_img = DCGAN.UTIL.mnist_load_index(label, 0);
+        UTIL.saveImage(real_img, "real_image.png");
 
         // minibatch gradient descent
         for (int epochs = 0; epochs < 1000000; epochs++) {
@@ -70,9 +74,9 @@ Generator loss function gradient: [3.2944894818692116]
                 double[][][][] fakeImages = new double[batch_size][1][28][28];
                 double[][][][] realImages = new double[batch_size][1][28][28];
                 for (int real_idx = 0; real_idx < batch_size; real_idx++) {
-                    BufferedImage img = DCGAN.UTIL.mnist_load_index(label, index[label]);
-                    UTIL.saveImage(img, "real_image.png");
-                    realImages[real_idx] = new double[][][]{UTIL.zeroToOneToMinusOneToOne(DCGAN.UTIL.img_to_mat(img))};
+//                    BufferedImage real_img = DCGAN.UTIL.mnist_load_index(label, index[label]);
+//                    UTIL.saveImage(real_img, "real_image.png");
+                    realImages[real_idx] = new double[][][]{UTIL.zeroToOneToMinusOneToOne(DCGAN.UTIL.img_to_mat(real_img))};
                     index[label] += 1;
                 }
                 for (int j = 0; j < batch_size; j++) {
@@ -119,14 +123,14 @@ Generator loss function gradient: [3.2944894818692116]
                 double[] expected_real_output = {1.0};
                 double[] expected_fake_output = {0.0};
 
-                double min_disc_loss = 0.2, escape_disc_loss = 0.9;
-                if (disc_frozen) {
-                    if (disc_loss > escape_disc_loss)
-                        disc_frozen = false;
-                }else{
-                    if (disc_loss < min_disc_loss)
-                        disc_frozen = true;
-                }
+//                double min_disc_loss = 0.1, escape_disc_loss = 0.3;
+//                if (disc_frozen) {
+//                    if (disc_loss > escape_disc_loss)
+//                        disc_frozen = false;
+//                }else{
+//                    if (disc_loss < min_disc_loss)
+//                        disc_frozen = true;
+//                }
                 logger.info("disc_frozen : "+ disc_frozen);
 
                 if (!disc_frozen) {
@@ -174,6 +178,7 @@ Generator loss function gradient: [3.2944894818692116]
                         double[] discriminator_output_fake = discriminator.getOutput(fakeImages[img_idx][0]);
 
                         double[] output_gradient = generatorLossGradientNew(discriminator_output_fake);
+
                         disc_output_gradients[img_idx] = output_gradient;
 
                         if (img_idx == batch_size - 1) {
@@ -230,7 +235,7 @@ Generator loss function gradient: [3.2944894818692116]
 
     public double generatorLossNew(double[] fake_output) {
         // loss function : -log(D(G(z))
-        return -Math.log(fake_output[0] + epsilon);
+        return Math.log(fake_output[0] + epsilon);
     }
 
     public double[] generatorLossGradientNew(double[] fake_output) {
@@ -239,6 +244,8 @@ Generator loss function gradient: [3.2944894818692116]
         for (int i = 0; i < fake_output.length; i++) {
             gradient[i] = -1 / (fake_output[i] + epsilon);
         }
+
+        // changed the loss gradient
         return gradient;
     }
 
@@ -264,6 +271,6 @@ Generator loss function gradient: [3.2944894818692116]
         return gradient;
     }
 
-    public double epsilon = 0.00001;
+    public double epsilon = 0.00000001;
 
 }
