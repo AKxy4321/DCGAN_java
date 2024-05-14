@@ -82,7 +82,7 @@ public class UTIL {
         double sqrt_mse = Math.sqrt(lossMSE(output, targetOutput));
         for (int i = 0; i < outputGradient.length; i++) {
             for (int j = 0; j < outputGradient[0].length; j++) {
-                outputGradient[i][j] = (1 / (num_values * sqrt_mse)) * (output[i][j] - targetOutput[i][j]);
+                outputGradient[i][j] = (1 / (num_values * sqrt_mse + epsilon)) * (output[i][j] - targetOutput[i][j]);
             }
         }
     }
