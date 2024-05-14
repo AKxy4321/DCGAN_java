@@ -1,5 +1,6 @@
 package DCGAN.layers;
 
+import DCGAN.optimizers.AdamOptimizer;
 import DCGAN.util.MiscUtils;
 import DCGAN.util.XavierInitializer;
 
@@ -19,18 +20,21 @@ public class TransposeConvolutionalLayer {
     public int padding = 0, right_bottom_padding = 0;
     public int output_padding = 0; // for now we don't care about output_padding
 
-    boolean useBias = true;
+    boolean useBias = false;
+
+    AdamOptimizer filtersOptimizer;
+
 
     public TransposeConvolutionalLayer(int inputDepth, int filterSize, int numFilters, int stride) {
-        this(filterSize, numFilters, stride, 28, 28, inputDepth, 0,0,0, true);
+        this(filterSize, numFilters, stride, 28, 28, inputDepth, 0, 0, 0, true);
     }
 
     public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride, int inputWidth, int inputHeight, int inputDepth, int padding) {
-        this(filterSize, numFilters, stride, inputWidth, inputHeight, inputDepth, padding,0,0, true);
+        this(filterSize, numFilters, stride, inputWidth, inputHeight, inputDepth, padding, 0, 0, true);
     }
 
-    public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride, int inputWidth, int inputHeight, int inputDepth, int padding, boolean useBias){
-        this(filterSize, numFilters, stride, inputWidth, inputHeight, inputDepth, padding,0,0, useBias);
+    public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride, int inputWidth, int inputHeight, int inputDepth, int padding, boolean useBias) {
+        this(filterSize, numFilters, stride, inputWidth, inputHeight, inputDepth, padding, 0, 0, useBias);
     }
 
     public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride, int inputWidth, int inputHeight, int inputDepth, int padding, int output_padding, int right_bottom_padding, boolean useBias) {
@@ -59,6 +63,9 @@ public class TransposeConvolutionalLayer {
         outputWidth = this.stride * (inputWidth - 1) + filterSize - 2 * padding + output_padding + right_bottom_padding;
 
         outputDepth = numFilters;
+
+
+        filtersOptimizer = new AdamOptimizer(numFilters * filterDepth * filterSize * filterSize, 0.001, 0.9, 0.999, 1e-8);
     }
 
     public double[][][] forward(double[][][] input) {
@@ -110,7 +117,7 @@ public class TransposeConvolutionalLayer {
                     filters[filter_idx],
                     1, stride, stride);
 
-            if(inputGradientSlice[0].length != inputHeight){
+            if (inputGradientSlice[0].length != inputHeight) {
                 System.out.println("Input gradient slice shape not as expected");
             }
 
@@ -193,21 +200,24 @@ public class TransposeConvolutionalLayer {
             System.err.println("Warning : filtersGradient shape is not as expected. Please change previous or next or current layer dimensions to avoid errors.");
 //            System.out.println("hp : " + hp + " wp : " + wp + " dp : " + dp);
 
-            System.err.println("each filterGradient shape : " + filtersGradient[0].length + " " + filtersGradient[0][0].length + " "+ filtersGradient[0][0][0].length);
+            System.err.println("each filterGradient shape : " + filtersGradient[0].length + " " + filtersGradient[0][0].length + " " + filtersGradient[0][0][0].length);
             System.err.println("Supposed to be of shape : " + 1 + "x" + filterSize + "x" + filterSize);
 //            System.err.println("hp : " + hp + " wp : " + wp + " dp : " + dp);
             System.err.println("filterDepth : " + 1 + " outputDepth : " + outputDepth + " inputDepth : " + inputDepth + " Math.floor((1 * (filterDepth - 1) + outputDepth - inputDepth) / 2.0)");
         }
 
-        for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
-            for (int fd = 0; fd < filterDepth; fd++) {
-                for (int fy = 0; fy < filterSize; fy++) {
-                    for (int fx = 0; fx < filterSize; fx++) {
-                        filters[filter_idx][fd][fy][fx] -= learningRate * filtersGradient[filter_idx][fd][fy][fx];
-                    }
-                }
-            }
-        }
+        filtersOptimizer.updateParameters(filters,filtersGradient);
+
+        // Normal gradient descent
+//        for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
+//            for (int fd = 0; fd < filterDepth; fd++) {
+//                for (int fy = 0; fy < filterSize; fy++) {
+//                    for (int fx = 0; fx < filterSize; fx++) {
+//                        filters[filter_idx][fd][fy][fx] -= learningRate * filtersGradient[filter_idx][fd][fy][fx];
+//                    }
+//                }
+//            }
+//        }
 
     }
 

@@ -1,5 +1,6 @@
 package DCGAN.layers;
 
+import DCGAN.optimizers.AdamOptimizer;
 import DCGAN.util.MiscUtils;
 import DCGAN.util.XavierInitializer;
 
@@ -17,6 +18,8 @@ public class Convolution {
 
     public int filter_depth;
     public int inputPaddingX, inputPaddingY, inputPaddingZ;
+
+    AdamOptimizer filtersOptimizer, biasesOptimizer;
 
     private static Logger logger = Logger.getLogger(Convolution.class.getName());
 
@@ -47,6 +50,9 @@ public class Convolution {
         this.inputPaddingX = inputPaddingX;
         this.inputPaddingY = inputPaddingY;
         this.inputPaddingZ = inputPaddingZ;
+
+        filtersOptimizer = new AdamOptimizer(numFilters*filter_depth*filterSize*filterSize, 0.001, 0.9, 0.999, 1e-8);
+        biasesOptimizer = new AdamOptimizer(numFilters, 0.001, 0.9, 0.999, 1e-8);
     }
 
 
@@ -153,16 +159,20 @@ public class Convolution {
             }
         }
 
-        for (int k = 0; k < filters.length; k++) {
-            for (int fd = 0; fd < filters[0].length; fd++) {
-                for (int fy = 0; fy < filterSize; fy++) {
-                    for (int fx = 0; fx < filterSize; fx++) {
-                        this.filters[k][fd][fy][fx] -= learning_rate * filterGradients[k][fd][fy][fx];
-                    }
-                }
-            }
-            this.biases[k] -= learning_rate * biasGradients[k];
-        }
+        filtersOptimizer.updateParameters(filters, filterGradients);
+        biasesOptimizer.updateParameters(biases, biasGradients);
+
+//      Normal gradient descent
+//        for (int k = 0; k < filters.length; k++) {
+//            for (int fd = 0; fd < filters[0].length; fd++) {
+//                for (int fy = 0; fy < filterSize; fy++) {
+//                    for (int fx = 0; fx < filterSize; fx++) {
+//                        this.filters[k][fd][fy][fx] -= learning_rate * filterGradients[k][fd][fy][fx];
+//                    }
+//                }
+//            }
+//            this.biases[k] -= learning_rate * biasGradients[k];
+//        }
     }
 
 
