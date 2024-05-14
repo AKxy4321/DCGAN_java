@@ -1,6 +1,6 @@
 package DCGAN.networks;
 
-import DCGAN.UTIL;
+import DCGAN.util.MiscUtils;
 import DCGAN.layers.Convolution;
 import DCGAN.layers.DenseLayer;
 import DCGAN.layers.LeakyReLULayer;
@@ -18,7 +18,7 @@ public class Discriminator_Implementation {
     DenseLayer dense;
     SigmoidLayer sigmoidLayer;
 
-    boolean verbose = false;
+    public boolean verbose = false;
 
     public Discriminator_Implementation() {
         int inputWidth = 28, inputHeight = 28;
@@ -30,17 +30,20 @@ public class Discriminator_Implementation {
         this.sigmoidLayer = new SigmoidLayer();
     }
 
-    public double[] getOutput(double[][] img) {
+    public double[] getOutput(double[][] black_and_white_image) {
         double[][][] input = new double[1][][];
-        input[0] = img;
+        input[0] = black_and_white_image;
 
+        return getOutput(input);
+    }
+    public double[] getOutput(double[][][] input) {
         double[][][] output_conv1 = this.conv1.forward(input);
         double[][][] output_leakyRELU1 = this.leakyReLULayer1.forward(output_conv1);
 
         double[][][] output_conv2 = this.conv2.forward(output_leakyRELU1);
         double[][][] output_leakyRELU2 = this.leakyReLULayer2.forward(output_conv2);
 
-        double[] output_leakyRELU_flattened = UTIL.flatten(output_leakyRELU2);
+        double[] output_leakyRELU_flattened = MiscUtils.flatten(output_leakyRELU2);
         double[] output_dense = this.dense.forward(output_leakyRELU_flattened);
         double[] discriminator_output = this.sigmoidLayer.forward(output_dense);
         return discriminator_output;
@@ -50,7 +53,7 @@ public class Discriminator_Implementation {
         double[] disc_in_gradient_sigmoid = this.sigmoidLayer.backward(outputGradient);
         double[] disc_in_gradient_dense = this.dense.backward(disc_in_gradient_sigmoid);
 
-        double[][][] disc_in_gradient_dense_unflattened = UTIL.unflatten(disc_in_gradient_dense, leakyReLULayer2.output.length, leakyReLULayer2.output[0].length, leakyReLULayer2.output[0][0].length);
+        double[][][] disc_in_gradient_dense_unflattened = MiscUtils.unflatten(disc_in_gradient_dense, leakyReLULayer2.output.length, leakyReLULayer2.output[0].length, leakyReLULayer2.output[0][0].length);
         double[][][] disc_in_gradient_leakyrelu2 = this.leakyReLULayer2.backward(disc_in_gradient_dense_unflattened);
         double[][][] disc_in_gradient_conv2 = this.conv2.backprop(disc_in_gradient_leakyrelu2);
 
@@ -65,7 +68,7 @@ public class Discriminator_Implementation {
         double[] disc_in_gradient_sigmoid = this.sigmoidLayer.backward(outputGradient);
         double[] disc_in_gradient_dense = this.dense.backward(disc_in_gradient_sigmoid);
 
-        double[][][] disc_in_gradient_dense_unflattened = UTIL.unflatten(disc_in_gradient_dense, leakyReLULayer2.output.length, leakyReLULayer2.output[0].length, leakyReLULayer2.output[0][0].length);
+        double[][][] disc_in_gradient_dense_unflattened = MiscUtils.unflatten(disc_in_gradient_dense, leakyReLULayer2.output.length, leakyReLULayer2.output[0].length, leakyReLULayer2.output[0][0].length);
         double[][][] disc_in_gradient_leakyrelu2 = this.leakyReLULayer2.backward(disc_in_gradient_dense_unflattened);
 
         double[][][] disc_in_gradient_conv2 = this.conv2.backprop(disc_in_gradient_leakyrelu2);
@@ -82,10 +85,10 @@ public class Discriminator_Implementation {
             // print the sum of all the gradients
             System.out.println("Sum of all gradients in discriminator: "
                     + "\ndisc_in_gradient_dense : " + Arrays.stream(disc_in_gradient_dense).sum()
-                    + "\ndisc_in_gradient_leakyrelu2 : " + Arrays.stream(UTIL.flatten(disc_in_gradient_leakyrelu2)).sum()
-                    + "\ndisc_in_gradient_conv2 : " + Arrays.stream(UTIL.flatten(disc_in_gradient_conv2)).sum()
-                    + "\ndisc_in_gradient_leakyrelu1 : " + Arrays.stream(UTIL.flatten(disc_in_gradient_leakyrelu1)).sum()
-                    + "\ndisc_in_gradient_conv1 : " + Arrays.stream(UTIL.flatten(disc_in_gradient_conv1)).sum());
+                    + "\ndisc_in_gradient_leakyrelu2 : " + Arrays.stream(MiscUtils.flatten(disc_in_gradient_leakyrelu2)).sum()
+                    + "\ndisc_in_gradient_conv2 : " + Arrays.stream(MiscUtils.flatten(disc_in_gradient_conv2)).sum()
+                    + "\ndisc_in_gradient_leakyrelu1 : " + Arrays.stream(MiscUtils.flatten(disc_in_gradient_leakyrelu1)).sum()
+                    + "\ndisc_in_gradient_conv1 : " + Arrays.stream(MiscUtils.flatten(disc_in_gradient_conv1)).sum());
         }
     }
 }

@@ -1,4 +1,4 @@
-package DCGAN;
+package DCGAN.util;
 
 import java.util.Random;
 

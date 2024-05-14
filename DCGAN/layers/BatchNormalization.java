@@ -1,9 +1,5 @@
 package DCGAN.layers;
 
-import DCGAN.UTIL;
-
-import java.util.Arrays;
-
 public class BatchNormalization {
     private final double epsilon = 1e-5;
     //    private final double momentum = 0;

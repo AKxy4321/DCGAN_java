@@ -1,4 +1,4 @@
-package DCGAN;
+package DCGAN.util;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -7,107 +7,10 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.Arrays;
 
-public class UTIL {
+public class MiscUtils {
 
-    public static double epsilon = 1e-5;
+    public static final double epsilon = 1e-5;
 
-
-    public static double lossMSE(double[] outputs, double[] expectedOutputs) {
-        double loss = 0;
-        for (int i = 0; i < outputs.length; i++) {
-            loss += Math.pow(outputs[i] - expectedOutputs[i], 2);
-        }
-        return (loss / outputs.length);
-    }
-
-    public static double lossMSE(double[][] outputs, double[][] expectedOutputs) {
-        double loss = 0;
-        for (int i = 0; i < outputs.length; i++) {
-            for (int j = 0; j < outputs[0].length; j++)
-                loss += Math.pow(outputs[i][j] - expectedOutputs[i][j], 2);
-        }
-        return (loss / (outputs.length * outputs[0].length));
-    }
-
-    public static double lossMSE(double[][][] output, double[][][] targetOutput) {
-        double loss = 0;
-        for (int i = 0; i < output.length; i++)
-            for (int j = 0; j < output[0].length; j++)
-                for (int k = 0; k < output[0][0].length; k++)
-                    loss += Math.pow(output[i][j][k] - targetOutput[i][j][k], 2);
-        return loss / (output.length * output[0].length * output[0][0].length);
-    }
-
-    public static double gradientSquaredError(double output, double expectedOutput) {
-        return 2 * (output - expectedOutput);
-    }
-
-    public static void calculateGradientMSE(double[][] outputGradient, double[][] output, double[][] targetOutput) {
-        double num_values = output.length * output[0].length;
-        for (int i = 0; i < output.length; i++) {
-            for (int j = 0; j < output[i].length; j++) {
-                outputGradient[i][j] = gradientSquaredError(output[i][j], targetOutput[i][j]) / num_values;
-            }
-        }
-    }
-
-    public static double[] gradientMSE(double[] outputs, double[] expectedOutputs) {
-        double[] gradients = new double[outputs.length];
-        for (int i = 0; i < outputs.length; i++) {
-            gradients[i] = 2 * (outputs[i] - expectedOutputs[i]) / outputs.length;
-        }
-        return gradients;
-    }
-
-    public static double[][][] gradientMSE(double[][][] outputs, double[][][] expectedOutputs) {
-        double[][][] gradients = new double[outputs.length][outputs[0].length][outputs[0][0].length];
-        for (int i = 0; i < outputs.length; i++) {
-            for (int j = 0; j < outputs[0].length; j++) {
-                for (int k = 0; k < outputs[0][0].length; k++) {
-                    gradients[i][j][k] = 2 * (outputs[i][j][k] - expectedOutputs[i][j][k]) / (outputs.length * outputs[0].length * outputs[0][0].length);
-                }
-            }
-        }
-        return gradients;
-    }
-
-
-    public static double lossRMSE(double[][] outputs, double[][] expectedOutputs) {
-        double mse = lossMSE(outputs, expectedOutputs);
-        return Math.sqrt(mse);
-    }
-
-    public static void calculateGradientRMSE(double[][] outputGradient, double[][] output, double[][] targetOutput) {
-        double num_values = output.length * output[0].length;
-        double sqrt_mse = Math.sqrt(lossMSE(output, targetOutput));
-        for (int i = 0; i < outputGradient.length; i++) {
-            for (int j = 0; j < outputGradient[0].length; j++) {
-                outputGradient[i][j] = (1 / (num_values * sqrt_mse + epsilon)) * (output[i][j] - targetOutput[i][j]);
-            }
-        }
-    }
-
-
-    public static double lossRMSE(double[][][] output, double[][][] targetOutput) {
-        double loss = 0;
-        for (int i = 0; i < output.length; i++)
-            for (int j = 0; j < output[0].length; j++)
-                for (int k = 0; k < output[0][0].length; k++)
-                    loss += Math.pow(output[i][j][k] - targetOutput[i][j][k], 2);
-        return Math.sqrt(loss / (output.length * output[0].length * output[0][0].length));
-    }
-
-    public static void calculateGradientRMSE(double[][][] outputGradient, double[][][] output, double[][][] targetOutput) {
-        double num_values = output.length * output[0].length * output[0][0].length;
-        double sqrt_mse = Math.sqrt(lossMSE(output, targetOutput));
-        for (int i = 0; i < outputGradient.length; i++) {
-            for (int j = 0; j < outputGradient[0].length; j++) {
-                for (int k = 0; k < outputGradient[0].length; k++) {
-                    outputGradient[i][j][k] = (1 / (num_values * sqrt_mse + epsilon)) * (output[i][j][k] - targetOutput[i][j][k]);
-                }
-            }
-        }
-    }
 
     public static void prettyprint(double[][][] arr) {
         for (int i = 0; i < arr.length; i++) {
@@ -124,50 +27,6 @@ public class UTIL {
         }
     }
 
-
-    public static double lossBinaryCrossEntropy(double[] outputs, double[] labels) {
-        double loss = 0;
-        for (int i = 0; i < outputs.length; i++) {
-            loss += labels[i] * Math.log(outputs[i] + epsilon) + (1 - labels[i]) * Math.log(1 - outputs[i] + epsilon);
-        }
-        return -loss / outputs.length;
-    }
-
-    public static double lossBinaryCrossEntropy(double[][] outputs, double[][] labels) {
-        double loss = 0;
-        for (int i = 0; i < outputs.length; i++) {
-            for (int j = 0; j < outputs[i].length; j++)
-                loss += lossBinaryCrossEntropy(outputs[i][j], labels[i][j]);
-        }
-        return -loss / (outputs.length * outputs[0].length);
-    }
-
-    public static double lossBinaryCrossEntropy(double output, double label) {
-        double loss = -(label * Math.log(output + epsilon) - (1 - label) * Math.log(1 - output + epsilon));
-        System.out.println(loss + " " + output + " " + label);
-        return loss;
-    }
-
-    public static double[] gradientBinaryCrossEntropy(double[] outputs, double[] labels) {
-        double[] gradient = new double[outputs.length];
-        for (int i = 0; i < outputs.length; i++) {
-            gradient[i] = (outputs[i] - labels[i]) / (outputs[i] * (1 - outputs[i]) + epsilon);
-        }
-        return gradient;
-    }
-
-    public static double gradientBinaryCrossEntropy(double output, double label) {
-        return (output - label) / (output * (1 - output) + epsilon);
-    }
-
-    public static void calculateBinaryCrossEntropyGradient2D(double[][] outputGradient, double[][] output,
-                                                             double[][] targetOutput) {
-        for (int i = 0; i < output.length; i++) {
-            for (int j = 0; j < output[i].length; j++) {
-                outputGradient[i][j] = gradientBinaryCrossEntropy(output[i][j], targetOutput[i][j]);
-            }
-        }
-    }
 
     public static BufferedImage load_image(String src) throws IOException {
         BufferedImage file = ImageIO.read(new File(src));
@@ -278,39 +137,6 @@ public class UTIL {
         return new_array;
     }
 
-    public static double gen_loss(double[] fake_output) {
-        double[] fake_one = new double[fake_output.length];
-
-        for (int i = 0; i < fake_output.length; i++) {
-            fake_one[i] = 1;
-        }
-        return binary_cross_entropy(fake_one, fake_output);
-    }
-
-    public static double disc_loss(double[] real_output, double[] fake_output) {
-        double[] real_one = new double[real_output.length];
-        double[] fake_zero = new double[fake_output.length];
-
-        for (int i = 0; i < real_output.length; i++) {
-            real_one[i] = 1;
-            fake_zero[i] = 0;
-        }
-
-        double real_loss = binary_cross_entropy(real_one, real_output);
-        double fake_loss = binary_cross_entropy(fake_zero, fake_output);
-
-        return real_loss + fake_loss;
-    }
-
-    public static double binary_cross_entropy(double[] y_true, double[] y_pred) {
-        double sum = 0.0F;
-        double epsilon = 1e-5F;
-        for (int i = 0; i < y_true.length; i++) {
-            sum += y_true[i] * Math.log(y_pred[i]);
-        }
-        return -sum / y_true.length;
-    }
-
     public static BufferedImage getBufferedImage(double[][] imageData) {
         int width = imageData[0].length;
         int height = imageData.length;
@@ -376,69 +202,6 @@ public class UTIL {
             }
         }
         return flatten_output;
-    }
-
-    public static void main(String[] args) {
-        double[][][] input = {
-                {{1, 2}, {3, 4}},
-                {{5, 6}, {7, 8}}
-        };
-        int dz = 1, hz = 1, wz = 1;
-        UTIL.prettyprint(input);
-
-//        UTIL.prettyprint(UTIL.addZeroesInBetween(input, dz, hz, wz));
-
-        double[] flattened = flatten(input);
-        System.out.println(Arrays.toString(flattened));
-        double[][][] unflattened = unflatten(flattened, 2, 2, 2);
-        UTIL.prettyprint(unflattened);
-
-//        UTIL.prettyprint(UTIL.rotate180(new double[][]{
-//                {1, 2, 3, 1},
-//                {4, 5, 6, 1},
-//                {7, 8, 9, 1},
-//                {2, 2, 2, 2}}));
-
-//        double[][][] array = new double[][][]{
-//                {
-//                        {1, 2, 3},
-//                        {4, 5, 6},
-//                        {7, 8, 9}
-//                },
-//                {
-//                        {10, 11, 12},
-//                        {13, 14, 15},
-//                        {16, 17, 18}
-//                }
-//        };
-//        double[] flatten = flatten(array);
-//        double[][][] unflatten = unflatten(flatten, 2, 3, 3);
-//
-//        System.out.println("Actual array : ");
-//        for (double[][] doubles : array) {
-//            for (double[] aDouble : doubles) {
-//                for (double v : aDouble) {
-//                    System.out.print(v + " ");
-//                }
-//                System.out.println();
-//            }
-//            System.out.println();
-//        }
-//
-//        System.out.println("Flattened array : ");
-//        System.out.println(java.util.Arrays.toString(flatten));
-//
-//        System.out.println("Unflattened version of flattened array : ");
-//        for (double[][] doubles : unflatten) {
-//            for (double[] aDouble : doubles) {
-//                for (double v : aDouble) {
-//                    System.out.print(v + " ");
-//                }
-//                System.out.println();
-//            }
-//            System.out.println();
-//        }
-
     }
 
     public static double[] negate(double[] array) {
@@ -584,11 +347,7 @@ public class UTIL {
         return new_array;
     }
 
-    public static double[][][] gradientRMSE(double[][][] output, double[][][] targetOutput) {
-        double[][][] gradientArray = new double[output.length][output[0].length][output[0][0].length];
-        calculateGradientRMSE(gradientArray, output, targetOutput);
-        return gradientArray;
-    }
+
 
     public static double[][][] addZeroesInBetween(double[][][] input, int dz, int hz, int wz) {
 
@@ -610,6 +369,66 @@ public class UTIL {
         }
 
         return output;
+
+    }
+
+    public static void main(String[] args) {
+        double[][][] input = {{{1, 2}, {3, 4}}, {{5, 6}, {7, 8}}};
+        int dz = 1, hz = 1, wz = 1;
+        MiscUtils.prettyprint(input);
+
+//        UTIL.prettyprint(UTIL.addZeroesInBetween(input, dz, hz, wz));
+
+        double[] flattened = flatten(input);
+        System.out.println(Arrays.toString(flattened));
+        double[][][] unflattened = unflatten(flattened, 2, 2, 2);
+        MiscUtils.prettyprint(unflattened);
+
+//        UTIL.prettyprint(UTIL.rotate180(new double[][]{
+//                {1, 2, 3, 1},
+//                {4, 5, 6, 1},
+//                {7, 8, 9, 1},
+//                {2, 2, 2, 2}}));
+
+//        double[][][] array = new double[][][]{
+//                {
+//                        {1, 2, 3},
+//                        {4, 5, 6},
+//                        {7, 8, 9}
+//                },
+//                {
+//                        {10, 11, 12},
+//                        {13, 14, 15},
+//                        {16, 17, 18}
+//                }
+//        };
+//        double[] flatten = flatten(array);
+//        double[][][] unflatten = unflatten(flatten, 2, 3, 3);
+//
+//        System.out.println("Actual array : ");
+//        for (double[][] doubles : array) {
+//            for (double[] aDouble : doubles) {
+//                for (double v : aDouble) {
+//                    System.out.print(v + " ");
+//                }
+//                System.out.println();
+//            }
+//            System.out.println();
+//        }
+//
+//        System.out.println("Flattened array : ");
+//        System.out.println(java.util.Arrays.toString(flatten));
+//
+//        System.out.println("Unflattened version of flattened array : ");
+//        for (double[][] doubles : unflatten) {
+//            for (double[] aDouble : doubles) {
+//                for (double v : aDouble) {
+//                    System.out.print(v + " ");
+//                }
+//                System.out.println();
+//            }
+//            System.out.println();
+//        }
 
     }
 }

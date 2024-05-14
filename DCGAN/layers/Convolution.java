@@ -1,7 +1,7 @@
 package DCGAN.layers;
 
-import DCGAN.UTIL;
-import DCGAN.XavierInitializer;
+import DCGAN.util.MiscUtils;
+import DCGAN.util.XavierInitializer;
 
 import java.util.logging.Logger;
 
@@ -355,7 +355,7 @@ public class Convolution {
     }
 
     public static void main(String[] args) {
-        UTIL.prettyprint(
+        MiscUtils.prettyprint(
                 convolve2d(new double[][]{
                                 {1, 1},
                                 {1, 1}},

@@ -1,11 +1,16 @@
 package DCGAN.networks;
 
-import DCGAN.UTIL;
-import DCGAN.XavierInitializer;
+import DCGAN.util.MiscUtils;
+import DCGAN.util.XavierInitializer;
 import DCGAN.layers.*;
 
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
+
+import static DCGAN.util.MiscUtils.getBufferedImage;
+import static DCGAN.util.MiscUtils.saveImage;
+import static DCGAN.util.TrainingUtils.calculateGradientRMSE;
+import static DCGAN.util.TrainingUtils.lossRMSE;
 
 public class Generator_Implementation_Without_Batchnorm {
     int dense_output_size;
@@ -53,20 +58,20 @@ public class Generator_Implementation_Without_Batchnorm {
         double[] noise = XavierInitializer.xavierInit1D(500); // generate noise input that we want to pass to the generator
 
         double[] gen_dense_output = this.dense.forward(noise);
-        double[][][] gen_dense_output_unflattened = UTIL.unflatten(gen_dense_output, tconv1.inputDepth, tconv1.inputHeight, tconv1.inputWidth);
+        double[][][] gen_dense_output_unflattened = MiscUtils.unflatten(gen_dense_output, tconv1.inputDepth, tconv1.inputHeight, tconv1.inputWidth);
         double[][][] gen_leakyrelu_output1 = this.leakyReLU1.forward(gen_dense_output_unflattened);
 
-        UTIL.saveImage(UTIL.getBufferedImage(gen_leakyrelu_output1), "gen_leakyrelu_output1.png");
+        saveImage(getBufferedImage(gen_leakyrelu_output1), "gen_leakyrelu_output1.png");
 
         double[][][] outputTconv1 = this.tconv1.forward(gen_leakyrelu_output1);
         double[][][] gen_leakyrelu_output2 = this.leakyReLU2.forward(outputTconv1);
 
-        UTIL.saveImage(UTIL.getBufferedImage(gen_leakyrelu_output2), "gen_leakyrelu_output2.png");
+        saveImage(getBufferedImage(gen_leakyrelu_output2), "gen_leakyrelu_output2.png");
 
         double[][][] outputTconv2 = this.tconv2.forward(gen_leakyrelu_output2);
         double[][][] gen_leakyrelu_output3 = this.leakyReLU3.forward(outputTconv2);
 
-        UTIL.saveImage(UTIL.getBufferedImage(gen_leakyrelu_output3), "gen_leakyrelu_output3.png");
+        saveImage(getBufferedImage(gen_leakyrelu_output3), "gen_leakyrelu_output3.png");
 
         double[][][] gen_tconv3_output = this.tconv3.forward(gen_leakyrelu_output3);
         double[][][] fakeImage = this.tanh.forward(gen_tconv3_output);
@@ -85,7 +90,7 @@ public class Generator_Implementation_Without_Batchnorm {
         double[][][] tconv1_in_gradient_l1_outgrad = this.tconv1.backward(leakyrelu2_in_gradient_t1_outgrad);
         double[][][] leakyrelu_in_gradient_d_outgrad = this.leakyReLU1.backward(tconv1_in_gradient_l1_outgrad);
 
-        double[] leakyrelu_in_gradient_d_outgrad_flattened = UTIL.flatten(leakyrelu_in_gradient_d_outgrad);
+        double[] leakyrelu_in_gradient_d_outgrad_flattened = MiscUtils.flatten(leakyrelu_in_gradient_d_outgrad);
 
         double[] dense_in_gradient = this.dense.backward(leakyrelu_in_gradient_d_outgrad_flattened);
 
@@ -98,12 +103,12 @@ public class Generator_Implementation_Without_Batchnorm {
             // print out the sum of each gradient by flattening it and summing it up using stream().sum()
             System.out.println("Sum of each gradient in generator: ");
 
-            System.out.println("tanh_in_gradient: " + Arrays.stream(UTIL.flatten(tanh_in_gradient_t3_outgrad)).sum());
-            System.out.println("leakyrelu3_in_gradient: " + Arrays.stream(UTIL.flatten(leakyrelu3_in_gradient_t2_outgrad)).sum());
-            System.out.println("tconv2_in_gradient: " + Arrays.stream(UTIL.flatten(tconv2_in_gradient_l2_outgrad)).sum());
-            System.out.println("leakyrelu2_in_gradient: " + Arrays.stream(UTIL.flatten(leakyrelu2_in_gradient_t1_outgrad)).sum());
-            System.out.println("tconv1_in_gradient: " + Arrays.stream(UTIL.flatten(tconv1_in_gradient_l1_outgrad)).sum());
-            System.out.println("leakyrelu_in_gradient: " + Arrays.stream(UTIL.flatten(leakyrelu_in_gradient_d_outgrad)).sum());
+            System.out.println("tanh_in_gradient: " + Arrays.stream(MiscUtils.flatten(tanh_in_gradient_t3_outgrad)).sum());
+            System.out.println("leakyrelu3_in_gradient: " + Arrays.stream(MiscUtils.flatten(leakyrelu3_in_gradient_t2_outgrad)).sum());
+            System.out.println("tconv2_in_gradient: " + Arrays.stream(MiscUtils.flatten(tconv2_in_gradient_l2_outgrad)).sum());
+            System.out.println("leakyrelu2_in_gradient: " + Arrays.stream(MiscUtils.flatten(leakyrelu2_in_gradient_t1_outgrad)).sum());
+            System.out.println("tconv1_in_gradient: " + Arrays.stream(MiscUtils.flatten(tconv1_in_gradient_l1_outgrad)).sum());
+            System.out.println("leakyrelu_in_gradient: " + Arrays.stream(MiscUtils.flatten(leakyrelu_in_gradient_d_outgrad)).sum());
             System.out.println("leakyrelu_in_gradient_flattened: " + Arrays.stream(leakyrelu_in_gradient_d_outgrad_flattened).sum());
             System.out.println("dense_in_gradient: " + Arrays.stream(dense_in_gradient).sum());
         }
@@ -114,15 +119,15 @@ public class Generator_Implementation_Without_Batchnorm {
         Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(1);
         generator.verbose = false;
         // loading the first handwritten three from the mnist dataset
-        BufferedImage img = UTIL.mnist_load_index(8, 0);
+        BufferedImage img = MiscUtils.mnist_load_index(8, 0);
 
-        double[][][] targetOutput = new double[][][]{UTIL.zeroToOneToMinusOneToOne(UTIL.img_to_mat(img))};
+        double[][][] targetOutput = new double[][][]{MiscUtils.zeroToOneToMinusOneToOne(MiscUtils.img_to_mat(img))};
 
         // training it to give null input to the transpose convolution layer
         // by not updating the filters at all and setting target output to null.
 //        targetOutput = UTIL.multiplyScalar(targetOutput, 0);
-        UTIL.prettyprint(targetOutput);
-        UTIL.saveImage(UTIL.getBufferedImage(targetOutput), "target_image.png");
+        MiscUtils.prettyprint(targetOutput);
+        saveImage(getBufferedImage(targetOutput), "target_image.png");
 
         double[][][] outputGradients = new double[1][28][28];
 
@@ -132,39 +137,27 @@ public class Generator_Implementation_Without_Batchnorm {
         for (int epoch = 0, max_epochs = 200000; epoch < max_epochs; epoch++, prev_loss = loss) {
             double[][][] output = generator.generateImage();
 
-            UTIL.saveImage(UTIL.getBufferedImage(generator.generateImage()),"starting_image.png");
+            saveImage(getBufferedImage(generator.generateImage()),"starting_image.png");
 //            if(epoch == 0)
 //                break;
 
-            loss = UTIL.lossRMSE(output, targetOutput);
+            loss = lossRMSE(output, targetOutput);
 
             System.err.println("loss : " + loss);
 
-            UTIL.calculateGradientRMSE(outputGradients, output, targetOutput);
+            calculateGradientRMSE(outputGradients, output, targetOutput);
 
 //            outputGradients = UTIL.multiplyScalar(outputGradients, 28*28.0);
 
             generator.updateParameters(outputGradients, learning_rate);
 
             if (epoch % 10 == 0)
-                UTIL.saveImage(UTIL.getBufferedImage(generator.generateImage()), "current_image.png");
+                saveImage(getBufferedImage(generator.generateImage()), "current_image.png");
 
             if (loss < 0.1) break;
         }
 
         double[][][] output = generator.generateImage();
-        UTIL.saveImage(UTIL.getBufferedImage(output), "final_image.png");
+        saveImage(getBufferedImage(output), "final_image.png");
     }
 }
-/*
-* // calculate the new learning rate based on difference in prev and curr loss
-            double learning_rate = default_rate;
-            if (epoch > 10) {
-                double change_in_loss = prev_loss - loss;
-                if (change_in_loss > 0)
-                    learning_rate = largest / change_in_loss;
-            }
-
-            learning_rate = UTIL.clamp(learning_rate, smallest, largest);
-            System.out.println("loss : " + loss + " learning_rate : " + default_rate);
-* */

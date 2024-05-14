@@ -1,7 +1,10 @@
 package DCGAN.layers;
 
-import DCGAN.UTIL;
-import DCGAN.XavierInitializer;
+import DCGAN.util.MiscUtils;
+import DCGAN.util.XavierInitializer;
+
+import static DCGAN.util.TrainingUtils.calculateGradientRMSE;
+import static DCGAN.util.TrainingUtils.lossMSE;
 
 public class TransposeConvolutionalLayer {
     double[][][][] filters;
@@ -65,11 +68,11 @@ public class TransposeConvolutionalLayer {
         double[][][][] rotated_filters = new double[numFilters][filterDepth][filterSize][filterSize];
         for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
             for (int fd = 0; fd < filterDepth; fd++) {
-                rotated_filters[filter_idx][fd] = UTIL.rotate90(UTIL.rotate90(filters[filter_idx][fd]));
+                rotated_filters[filter_idx][fd] = MiscUtils.rotate90(MiscUtils.rotate90(filters[filter_idx][fd]));
             }
         }
 
-        double[][][] stretched_input = UTIL.addZeroesInBetween(input, 0, stride - 1, stride - 1);
+        double[][][] stretched_input = MiscUtils.addZeroesInBetween(input, 0, stride - 1, stride - 1);
         // "same" padding
         double[][][] padded_and_stretched_input = Convolution.pad3d(stretched_input, 0, 0, padding, padding + right_bottom_padding, padding, padding + right_bottom_padding);
 
@@ -150,7 +153,7 @@ public class TransposeConvolutionalLayer {
         double[][][][] filtersGradient = new double[numFilters][filterDepth][filterSize][filterSize];
         double[] biasGradient = new double[numFilters]; // to store bias gradients
 
-        double[][][] stretched_input = UTIL.addZeroesInBetween(input, 0, stride - 1, stride - 1);
+        double[][][] stretched_input = MiscUtils.addZeroesInBetween(input, 0, stride - 1, stride - 1);
 
         for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
             double[][][] result = Convolution.convolve3d(
@@ -230,7 +233,7 @@ public class TransposeConvolutionalLayer {
                 }
         };
         System.out.println("Actual input : ");
-        UTIL.prettyprint(input);
+        MiscUtils.prettyprint(input);
 
         TransposeConvolutionalLayer layer = new TransposeConvolutionalLayer(2, 1, 1, input[0][0].length, input[0].length, input.length, 0, false);
 
@@ -256,7 +259,7 @@ public class TransposeConvolutionalLayer {
 
         double[][][] output = layer.forward(input);
         System.out.println("Output:");
-        UTIL.prettyprint(output);
+        MiscUtils.prettyprint(output);
 
         double[][][] targetOutput = new double[][][]{{
                 {3.0, 12.0, 12.0},
@@ -376,14 +379,14 @@ public class TransposeConvolutionalLayer {
 
             System.out.println("Filters:");
             for (int filter_idx = 0; filter_idx < layer.numFilters; filter_idx++)
-                UTIL.prettyprint(layer.filters[filter_idx]);
+                MiscUtils.prettyprint(layer.filters[filter_idx]);
 
             //forward pass
             double[][][] tconv2_output = layer.forward(input);
 
             double[][][] outputGradient = new double[tconv2_output.length][tconv2_output[0].length][tconv2_output[0][0].length];
-            UTIL.calculateGradientRMSE(outputGradient, tconv2_output, targetOutput);
-            loss = UTIL.lossMSE(tconv2_output, targetOutput);
+            calculateGradientRMSE(outputGradient, tconv2_output, targetOutput);
+            loss = lossMSE(tconv2_output, targetOutput);
 
 
             System.out.println("Epoch " + (epoch + 1) + ", loss: " + loss);
@@ -412,13 +415,13 @@ public class TransposeConvolutionalLayer {
 
                 System.out.println("Filters:");
                 for (int filter_idx = 0; filter_idx < layer.numFilters; filter_idx++)
-                    UTIL.prettyprint(layer.filters[filter_idx]);
+                    MiscUtils.prettyprint(layer.filters[filter_idx]);
 
                 System.out.println("Target Output:");
-                UTIL.prettyprint(targetOutput);
+                MiscUtils.prettyprint(targetOutput);
 
                 System.out.println("Output:");
-                UTIL.prettyprint(output);
+                MiscUtils.prettyprint(output);
 
                 System.out.println("tconv2_in_gradient_tconv_out_gradient shape : "
                         + tconv2_in_gradient_tconv_out_gradient.length + " "
@@ -427,7 +430,7 @@ public class TransposeConvolutionalLayer {
             }
         }
 
-        UTIL.prettyprint(layer.filters[0]);
+        MiscUtils.prettyprint(layer.filters[0]);
 
     }
 }
