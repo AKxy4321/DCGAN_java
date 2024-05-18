@@ -42,10 +42,10 @@ public class GeneratorBasicStrideGreaterThanOne {
         double[] gradSigmoid1_inputgrad_dense1_outputgrad = sigmoid1.backward(gradDense2_inputgrad_sigmoid1_outputgrad);
         double[] gradDense1 = dense1.backward(gradSigmoid1_inputgrad_dense1_outputgrad);
 
-        tconv2.updateParameters(grad_tanh_inputgrad_tconv2_outputgrad, learningRate);
-        transposeConv1.updateParameters(grad_leakyReLU_inputgrad_tconv1_outputgrad, learningRate);
-        dense2.updateParameters(MiscUtils.flatten(gradTransposeConv1_inputgrad_dense2_outputgrad), learningRate);
-        dense1.updateParameters(gradSigmoid1_inputgrad_dense1_outputgrad, learningRate);
+        tconv2.updateParameters(grad_tanh_inputgrad_tconv2_outputgrad);
+        transposeConv1.updateParameters(grad_leakyReLU_inputgrad_tconv1_outputgrad);
+        dense2.updateParameters(MiscUtils.flatten(gradTransposeConv1_inputgrad_dense2_outputgrad));
+        dense1.updateParameters(gradSigmoid1_inputgrad_dense1_outputgrad);
 
         System.out.println("sum of each gradient: ");
         System.out.println("gradDense1 : " + Arrays.stream(gradDense1).sum());

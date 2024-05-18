@@ -162,7 +162,7 @@ public class Generator_Implementation_single_strides_and_Batchnorm {
     }
 
 
-    public void updateParametersBatch(double[][][][] gen_output_gradients, double learning_rate_gen) {
+    public void updateParametersBatch(double[][][][] gen_output_gradients) {
         double[][][][] tanh_in_gradients = new double[batchSize][][][];
         double[][] leakyrelu3_in_gradients_flattened = new double[batchSize][];
         double[][][][] leakyrelu3_in_gradients = new double[batchSize][][][];
@@ -215,18 +215,18 @@ public class Generator_Implementation_single_strides_and_Batchnorm {
         double[][][] tanh_in_gradients_mean = MiscUtils.mean_1st_layer(tanh_in_gradients);
 
         for (int i = 0; i < batchSize; i++) {
-            this.dense.updateParameters(batch1_in_gradients[i], noises[i], learning_rate_gen);
+            this.dense.updateParameters(batch1_in_gradients[i], noises[i]);
 
-            this.tconv1.updateParameters(batch2_in_gradients_unflattened[i], gen_leakyrelu1_outputs[i], learning_rate_gen);
+            this.tconv1.updateParameters(batch2_in_gradients_unflattened[i], gen_leakyrelu1_outputs[i]);
 
-            this.tconv2.updateParameters(batch3_in_gradients_unflattened[i], gen_leakyrelu2_outputs[i], learning_rate_gen);
+            this.tconv2.updateParameters(batch3_in_gradients_unflattened[i], gen_leakyrelu2_outputs[i]);
 
-            this.tconv3.updateParameters(tanh_in_gradients[i], gen_leakyrelu3_outputs[i], learning_rate_gen);
+            this.tconv3.updateParameters(tanh_in_gradients[i], gen_leakyrelu3_outputs[i]);
         }
 
-        this.batch1.updateParameters(leakyrelu_in_gradients_flattened, learning_rate_gen);
-        this.batch2.updateParameters(leakyrelu2_in_gradients_flattened, learning_rate_gen);
-        this.batch3.updateParameters(leakyrelu3_in_gradients_flattened, learning_rate_gen);
+        this.batch1.updateParameters(leakyrelu_in_gradients_flattened);
+        this.batch2.updateParameters(leakyrelu2_in_gradients_flattened);
+        this.batch3.updateParameters(leakyrelu3_in_gradients_flattened);
 
 
         if (verbose) {
@@ -242,7 +242,7 @@ public class Generator_Implementation_single_strides_and_Batchnorm {
         }
     }
 
-    public void updateParameters(double[][][] gen_output_gradient, double learning_rate_gen) {
+    public void updateParameters(double[][][] gen_output_gradient) {
 
         double[][][] tanh_in_gradient = this.tanh.backward(gen_output_gradient);
         double[][][] tconv3_in_gradient = this.tconv3.backward(tanh_in_gradient);
@@ -271,12 +271,12 @@ public class Generator_Implementation_single_strides_and_Batchnorm {
 
         double[] dense_in_gradient = this.dense.backward(leakyrelu_in_gradient_flattened);
 
-        this.tconv1.updateParameters(leakyrelu2_in_gradient, learning_rate_gen);
-        this.tconv2.updateParameters(leakyrelu3_in_gradient, learning_rate_gen);
-//        this.batch1.updateParameters(leakyrelu_in_gradient_flattened, learning_rate_gen);
-//        this.batch2.updateParameters(leakyrelu2_in_gradient_flattened, learning_rate_gen);
-//        this.batch3.updateParameters(leakyrelu3_in_gradient_flattened, learning_rate_gen);
-        this.dense.updateParameters(leakyrelu_in_gradient_flattened, learning_rate_gen);
+        this.tconv1.updateParameters(leakyrelu2_in_gradient);
+        this.tconv2.updateParameters(leakyrelu3_in_gradient);
+//        this.batch1.updateParameters(leakyrelu_in_gradient_flattened);
+//        this.batch2.updateParameters(leakyrelu2_in_gradient_flattened);
+//        this.batch3.updateParameters(leakyrelu3_in_gradient_flattened);
+        this.dense.updateParameters(leakyrelu_in_gradient_flattened);
 
         if (verbose) {
             // print out the sum of each gradient by flattening it and summing it up using stream().sum()
@@ -309,7 +309,7 @@ public class Generator_Implementation_single_strides_and_Batchnorm {
 
         double[][][][] outputGradients = new double[generator.batchSize][1][28][28];
 
-        double prev_loss = Double.MAX_VALUE, loss, learning_rate = 0.001;
+        double prev_loss = Double.MAX_VALUE, loss;
         generator.verbose = true;
 
         for (int epoch = 0, max_epochs = 20000000; epoch < max_epochs; epoch++, prev_loss = loss) {
@@ -330,7 +330,7 @@ public class Generator_Implementation_single_strides_and_Batchnorm {
             for (int i = 0; i < generator.batchSize; i++)
                 calculateGradientRMSE(outputGradients[i], outputs[i], targetOutput);
 
-            generator.updateParametersBatch(outputGradients, learning_rate);
+            generator.updateParametersBatch(outputGradients);
 
             if (loss < 0.1) break;
         }

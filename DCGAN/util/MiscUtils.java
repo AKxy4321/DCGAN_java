@@ -79,22 +79,80 @@ public class MiscUtils {
         }
     }
 
+    public static double mean(double[] array) {
+        double sum = 0;
+        for (double genLoss : array) {
+            sum += genLoss;
+        }
+        return sum / array.length;
+    }
+
+    public static double[] mean_1st_layer(double[][] array) {
+        double[] new_array = new double[array[0].length];
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                new_array[j] += array[i][j];
+
+        for (int i = 0; i < new_array.length; i++)
+            new_array[i] /= array.length;
+
+        return new_array;
+    }
+
+
+
     public static double[][] mean_1st_layer(double[][][] array) {
         //computes the average of the first layer
         double[][] sum = new double[array[0].length][array[0][0].length];
-        for (double[][] doubles : array) {
-            for (int j = 0; j < doubles.length; j++) {
-                for (int k = 0; k < doubles[j].length; k++) {
-                    sum[j][k] += doubles[j][k];
-                }
-            }
-        }
-        for (int i = 0; i < sum.length; i++) {
-            for (int j = 0; j < sum[i].length; j++) {
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                for (int k = 0; k < array[0][0].length; k++)
+                    sum[j][k] += array[i][j][k];
+        /* doing division in a separate loop because we want more precision in our mean calculation.
+         Simply doing sum[j][k][l][m] += array_val/len will result in loss of precision
+         */
+        for (int i = 0; i < sum.length; i++)
+            for (int j = 0; j < sum[i].length; j++)
                 sum[i][j] /= array.length;
-            }
-        }
         return sum;
+    }
+
+    public static double[][][] mean_1st_layer(double[][][][] array) {
+        double[][][] new_array = new double[array[0].length][array[0][0].length][array[0][0][0].length];
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                for (int k = 0; k < array[0][0].length; k++)
+                    for (int l = 0; l < array[0][0][0].length; l++)
+                        new_array[j][k][l] += array[i][j][k][l];
+
+        for (int i = 0; i < new_array.length; i++)
+            for (int j = 0; j < new_array[0].length; j++)
+                for (int k = 0; k < new_array[0][0].length; k++)
+                    new_array[i][j][k] /= array.length;
+
+
+        return new_array;
+    }
+
+    public static double[][][][] mean_1st_layer(double[][][][][] array) {
+        double[][][][] new_array = new double[array[0].length][array[0][0].length][array[0][0][0].length][array[0][0][0][0].length];
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                for (int k = 0; k < array[0][0].length; k++)
+                    for (int l = 0; l < array[0][0][0].length; l++)
+                        for (int m = 0; m < array[0][0][0][0].length; m++)
+                            new_array[j][k][l][m] += array[i][j][k][l][m];
+
+        /* doing division in a separate loop because we want more precision in our mean calculation.
+         Simply doing sum[j][k][l][m] += array_val/len will result in loss of precision
+         */
+        for (int j = 0; j < array[0].length; j++)
+            for (int k = 0; k < array[0][0].length; k++)
+                for (int l = 0; l < array[0][0][0].length; l++)
+                    for (int m = 0; m < array[0][0][0][0].length; m++)
+                        new_array[j][k][l][m] /= array.length;
+
+        return new_array;
     }
 
 
@@ -157,7 +215,7 @@ public class MiscUtils {
     }
 
     public static BufferedImage getBufferedImage(double[][][] imageData) {
-        // TODO: change this to get the Buffered Image taking into accoun that this might have RGB channels in the extra 3rd dimension
+        // TODO: change this to get the Buffered Image taking into account that this might have RGB channels in the extra 3rd dimension
         return getBufferedImage(imageData[0]);
     }
 
@@ -211,47 +269,7 @@ public class MiscUtils {
         return new_array;
     }
 
-    public static double mean(double[] array) {
-        double sum = 0;
-        for (double genLoss : array) {
-            sum += genLoss;
-        }
-        return sum / array.length;
-    }
 
-    public static double[] mean_1st_layer(double[][] array) {
-        double[] sum = new double[array[0].length];
-        for (double[] subarray : array) {
-            for (int j = 0; j < subarray.length; j++) {
-                sum[j] += subarray[j];
-            }
-        }
-        for (int i = 0; i < sum.length; i++) {
-            sum[i] /= array.length;
-        }
-        return sum;
-    }
-
-    public static double[][][] mean_1st_layer(double[][][][] array) {
-        double[][][] sum = new double[array[0].length][array[0][0].length][array[0][0][0].length];
-        for (double[][][] subarray : array) {
-            for (int i = 0; i < subarray.length; i++) {
-                for (int j = 0; j < subarray[0].length; j++) {
-                    for (int k = 0; k < subarray[0][0].length; k++) {
-                        sum[i][j][k] += subarray[i][j][k];
-                    }
-                }
-            }
-        }
-        for (int i = 0; i < sum.length; i++) {
-            for (int j = 0; j < sum[0].length; j++) {
-                for (int k = 0; k < sum[0][0].length; k++) {
-                    sum[i][j][k] /= array.length;
-                }
-            }
-        }
-        return sum;
-    }
 
 
     public static void saveImage(BufferedImage image, String name) {
@@ -259,7 +277,7 @@ public class MiscUtils {
         try {
             ImageIO.write(image, "png", outputImageFile);
 //                    System.out.println("Image saved successfully to: " + outputImageFile.getAbsolutePath());
-            System.out.println("Saving image");
+            System.out.println("Saving image " + name);
         } catch (Exception e) {
             System.err.println("Error saving image: " + e.getMessage());
         }
@@ -346,7 +364,6 @@ public class MiscUtils {
                     new_array[i][j][k] = array[i][j][k] * scalar;
         return new_array;
     }
-
 
 
     public static double[][][] addZeroesInBetween(double[][][] input, int dz, int hz, int wz) {

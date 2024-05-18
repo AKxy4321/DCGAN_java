@@ -24,6 +24,9 @@ public class BatchNormalization {
 
 
     public BatchNormalization(int inputDim) {
+        this(inputDim, 1e-3);
+    }
+    public BatchNormalization(int inputDim, double learning_rate) {
         gamma = new double[inputDim];
         beta = new double[inputDim];
         runningMean = new double[inputDim];
@@ -34,8 +37,8 @@ public class BatchNormalization {
             beta[i] = 0.0;
         }
 
-        gammaOptimizer = new AdamOptimizer(inputDim, 0.001, 0.9, 0.999, 1e-8);
-        betaOptimizer = new AdamOptimizer(inputDim, 0.001, 0.9, 0.999, 1e-8);
+        gammaOptimizer = new AdamOptimizer(inputDim, learning_rate, 0.9, 0.999, 1e-8);
+        betaOptimizer = new AdamOptimizer(inputDim, learning_rate, 0.9, 0.999, 1e-8);
     }
 
     public double[][] forwardBatch(double[][] x) {
@@ -138,7 +141,7 @@ public class BatchNormalization {
         return dx;
     }
 
-    public void updateParameters(double[][] dout, double learning_rate) {
+    public void updateParameters(double[][] dout) {
         /**
          * Parameters are updated separately in updateParameters function. The input is calculated in the backward function
          * */

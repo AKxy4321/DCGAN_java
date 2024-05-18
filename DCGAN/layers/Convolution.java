@@ -20,6 +20,7 @@ public class Convolution {
     public int inputPaddingX, inputPaddingY, inputPaddingZ;
 
     AdamOptimizer filtersOptimizer, biasesOptimizer;
+    public boolean use_bias = false;
 
     private static Logger logger = Logger.getLogger(Convolution.class.getName());
 
@@ -27,7 +28,11 @@ public class Convolution {
         this(filterSize, numFilters, stride, input_width, input_height, input_depth, 0, 0, 0);
     }
 
-    Convolution(int filterSize, int numFilters, int stride, int input_width, int input_height, int input_depth, int inputPaddingX, int inputPaddingY, int inputPaddingZ) {
+    public Convolution(int filterSize, int numFilters, int stride, int input_width, int input_height, int input_depth, int inputPaddingX, int inputPaddingY, int inputPaddingZ) {
+        this(filterSize, numFilters, stride, input_width, input_height, input_depth, inputPaddingX, inputPaddingY, inputPaddingZ, 0.001);
+    }
+
+    public Convolution(int filterSize, int numFilters, int stride, int input_width, int input_height, int input_depth, int inputPaddingX, int inputPaddingY, int inputPaddingZ, double learning_rate) {
         this.numFilters = numFilters;
         this.filterSize = filterSize;
         this.stride = stride;
@@ -44,17 +49,18 @@ public class Convolution {
         // but usually we want 3d output, although if you put filter_depth to something smaller, you will get a 4d output which we don't really wanna work with
         this.filter_depth = input_depth;
 
-        this.filters = XavierInitializer.xavierInit4D(numFilters, filter_depth, filterSize);
+        this.filters = new double[numFilters][filter_depth][][];
+        for (int filter_idx = 0; filter_idx < numFilters; filter_idx++)
+            filters[filter_idx] = XavierInitializer.xavierInit3D(filter_depth, filterSize, filterSize);
         this.biases = XavierInitializer.xavierInit1D(numFilters);
 
         this.inputPaddingX = inputPaddingX;
         this.inputPaddingY = inputPaddingY;
         this.inputPaddingZ = inputPaddingZ;
 
-        filtersOptimizer = new AdamOptimizer(numFilters*filter_depth*filterSize*filterSize, 0.001, 0.9, 0.999, 1e-8);
-        biasesOptimizer = new AdamOptimizer(numFilters, 0.001, 0.9, 0.999, 1e-8);
+        filtersOptimizer = new AdamOptimizer(numFilters * filter_depth * filterSize * filterSize, learning_rate, 0.9, 0.999, 1e-8);
+        biasesOptimizer = new AdamOptimizer(numFilters, learning_rate, 0.9, 0.999, 1e-8);
     }
-
 
 
     public double[][][] forward(double[][][] input) {
@@ -63,21 +69,20 @@ public class Convolution {
         double[][][] output = new double[output_depth][output_height][output_width];
 
         // preprocessing : pad the input
-        input = pad3d(input, 0, 0, 0);
+        input = pad3d(input, inputPaddingX, inputPaddingY, inputPaddingZ);
 
         for (int d = 0; d < this.output_depth; d++) {
             // we know the convolution result will have a depth of 1 because we are convolving a 3d input with a filter of the same depth
-            // od = (id-f
             // od = ((id - fd) / stride_in_z) + 1 = ((id - id) / stride_in_z) + 1 = 0 + 1 = 1
 
             // we take this 1xoutput_heightxoutput_width and reshape it to 2d : output_heightxoutput_width
             output[d] = convolve3d(input, filters[d], 1, stride, stride)[0];
 
-            // if we are using bias as well
-            for (int y = 0; y < output_height; y++) {
-                for (int x = 0; x < output_width; x++) {
-//                    output[d][y][x] += biases[d];
-                }
+
+            if (use_bias) {
+                for (int y = 0; y < output_height; y++)
+                    for (int x = 0; x < output_width; x++)
+                        output[d][y][x] += biases[d];
             }
         }
 
@@ -122,7 +127,58 @@ public class Convolution {
         return inputGradient;
     }
 
-    public void updateParameters(double[][][] output_gradients, double learning_rate) {
+    public double[][][][] calculateFiltersGradient(double[][][] output_gradient, double[][][] input3D) {
+        double[][][][] filtersGradient = new double[numFilters][filter_depth][filterSize][filterSize];
+
+        for (int filter_idx = 0; filter_idx < this.output_depth; filter_idx++) {
+            double[][][] f = this.filters[filter_idx];
+
+            int y = 0;
+            for (int output_y = 0; output_y < this.output_height; y += stride, output_y++) {
+                int x = 0;
+                for (int output_x = 0; output_x < this.output_width; x += stride, output_x++) {
+
+                    // convolve centered at this particular location
+                    double chain_grad = output_gradient[filter_idx][output_y][output_x];
+                    for (int fy = 0; fy < filterSize; fy++) {
+                        int input_y = y + fy; // coordinates in the original input array coordinates
+                        for (int fx = 0; fx < filterSize; fx++) {
+                            int input_x = x + fx;
+                            if (input_y >= 0 && input_y < input_height && input_x >= 0 && input_x < input_width) {
+                                for (int fd = 0; fd < f.length; fd++) {
+                                    filtersGradient[filter_idx][fd][fy][fx] += input3D[fd][input_y][input_x] * chain_grad;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return filtersGradient;
+    }
+
+    public double[] calculateBiasGradient(double[][][] output_gradient) {
+        double[] biasGradient = new double[numFilters];
+        for (int filter_idx = 0; filter_idx < this.output_depth; filter_idx++) {
+            double[][][] f = this.filters[filter_idx];
+
+            int y = 0;
+            for (int output_y = 0; output_y < this.output_height; y += stride, output_y++) {
+                int x = 0;
+                for (int output_x = 0; output_x < this.output_width; x += stride, output_x++) {
+                    biasGradient[filter_idx] += output_gradient[filter_idx][output_y][output_x];
+                }
+            }
+        }
+        return biasGradient;
+    }
+
+    @Deprecated
+    public void updateParameters(double[][][] output_gradient) {
+        updateParameters(output_gradient, this.input3D);
+    }
+
+    public void updateParameters(double[][][] output_gradient, double[][][] input3D) {
         /**
          * updates the filter weights and the biases
          * the filterGradients are calculated using the formula : df = convolution(input, output_gradients)
@@ -130,49 +186,24 @@ public class Convolution {
          * biasGradient[d] = sum(output_gradients[d])
          * */
 
-        double[][][][] filterGradients = new double[numFilters][filter_depth][filterSize][filterSize];
-        double[] biasGradients = new double[numFilters];
+        double[][][][] filtersGradient = calculateFiltersGradient(output_gradient, input3D);
+        double[] biasGradient = calculateBiasGradient(output_gradient);
 
-        for (int d = 0; d < this.output_depth; d++) {
-            double[][][] f = this.filters[d];
+        filtersOptimizer.updateParameters(filters, filtersGradient);
+        biasesOptimizer.updateParameters(biases, biasGradient);
+    }
 
-            int y = 0; //-this.padding;
-            for (int output_y = 0; output_y < this.output_height; y += stride, output_y++) {
-                int x = 0; // -this.padding;
-                for (int output_x = 0; output_x < this.output_width; x += stride, output_x++) {
+    public void updateParametersBatch(double[][][][] output_gradients, double[][][][] inputs) {
+        double[][][][][] filtersGradients = new double[output_gradients.length][][][][];
+        double[][] biasGradients = new double[output_gradients.length][];
 
-                    // convolve centered at this particular location
-                    double chain_grad = output_gradients[d][output_y][output_x];
-                    for (int fy = 0; fy < filterSize; fy++) {
-                        int input_y = y + fy; // coordinates in the original input array coordinates
-                        for (int fx = 0; fx < filterSize; fx++) {
-                            int input_x = x + fx;
-                            if (input_y >= 0 && input_y < input_height && input_x >= 0 && input_x < input_width) {
-                                for (int fd = 0; fd < f.length; fd++) {
-                                    filterGradients[d][fd][fy][fx] += input3D[fd][input_y][input_x] * chain_grad;
-                                }
-                            }
-                        }
-                    }
-                    biasGradients[d] += chain_grad;
-                }
-            }
+        for (int i = 0; i < output_gradients.length; i++) {
+            filtersGradients[i] = calculateFiltersGradient(output_gradients[i], inputs[i]);
+            biasGradients[i] = calculateBiasGradient(output_gradients[i]);
         }
 
-        filtersOptimizer.updateParameters(filters, filterGradients);
-        biasesOptimizer.updateParameters(biases, biasGradients);
-
-//      Normal gradient descent
-//        for (int k = 0; k < filters.length; k++) {
-//            for (int fd = 0; fd < filters[0].length; fd++) {
-//                for (int fy = 0; fy < filterSize; fy++) {
-//                    for (int fx = 0; fx < filterSize; fx++) {
-//                        this.filters[k][fd][fy][fx] -= learning_rate * filterGradients[k][fd][fy][fx];
-//                    }
-//                }
-//            }
-//            this.biases[k] -= learning_rate * biasGradients[k];
-//        }
+        filtersOptimizer.updateParameters(filters, MiscUtils.mean_1st_layer(filtersGradients));
+        biasesOptimizer.updateParameters(biases, MiscUtils.mean_1st_layer(biasGradients));
     }
 
 
