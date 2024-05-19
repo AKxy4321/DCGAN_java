@@ -87,8 +87,6 @@ public class BatchNormalization {
     }
 
     public double[] getOutput(double[] x) {
-        int inputDim = x.length;
-        this.inputDim = inputDim;
         double[] out = new double[inputDim];
 
         double[] xNormalized = calculateXNormalized(x, runningMean, runningVar);
@@ -159,16 +157,6 @@ public class BatchNormalization {
 
         gammaOptimizer.updateParameters(gamma, dGamma);
         betaOptimizer.updateParameters(beta, dBeta);
-
-        // normal gradient descent
-//        for (int feature_idx = 0; feature_idx < gamma.length; feature_idx++) {
-//            gamma[feature_idx] -= learning_rate * dGamma[feature_idx];
-//            beta[feature_idx] -= learning_rate * dBeta[feature_idx];
-//
-//            // You shouldn't update the variance and mean during backward pass. It is not supposed to be learnable
-////            runningMean[i] -= learning_rate * dMean[i];
-////            runningVar[i] -= learning_rate * dVar[i];
-//        }
     }
 
     private double[] calculateXNormalized(double[] x, double[] mean, double[] var) {
