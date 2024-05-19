@@ -75,17 +75,17 @@ public class Generator_Implementation_Without_Batchnorm {
         double[][][] gen_dense_output_unflattened = MiscUtils.unflatten(gen_dense_output, tconv1.inputDepth, tconv1.inputHeight, tconv1.inputWidth);
         double[][][] gen_leakyrelu_output1 = this.leakyReLU1.forward(gen_dense_output_unflattened);
 
-        saveImage(getBufferedImage(gen_leakyrelu_output1), "gen_leakyrelu_output1.png");
+//        saveImage(getBufferedImage(gen_leakyrelu_output1), "gen_leakyrelu_output1.png");
 
         double[][][] outputTconv1 = this.tconv1.forward(gen_leakyrelu_output1);
         double[][][] gen_leakyrelu_output2 = this.leakyReLU2.forward(outputTconv1);
 
-        saveImage(getBufferedImage(gen_leakyrelu_output2), "gen_leakyrelu_output2.png");
+//        saveImage(getBufferedImage(gen_leakyrelu_output2), "gen_leakyrelu_output2.png");
 
         double[][][] outputTconv2 = this.tconv2.forward(gen_leakyrelu_output2);
         double[][][] gen_leakyrelu_output3 = this.leakyReLU3.forward(outputTconv2);
 
-        saveImage(getBufferedImage(gen_leakyrelu_output3), "gen_leakyrelu_output3.png");
+//        saveImage(getBufferedImage(gen_leakyrelu_output3), "gen_leakyrelu_output3.png");
 
         double[][][] gen_tconv3_output = this.tconv3.forward(gen_leakyrelu_output3);
         double[][][] fakeImage = this.tanh.forward(gen_tconv3_output);

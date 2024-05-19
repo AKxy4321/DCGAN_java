@@ -17,11 +17,12 @@ import static DCGAN.util.TrainingUtils.lossBinaryCrossEntropy;
 public class DCGAN_Implementation {
     final private static Logger logger = Logger.getLogger(DCGAN_Implementation.class.getName());
 
-    int train_size = 100;
+    int train_size = 1000;
+    int test_size = 100;
     int label = 9;
     double learning_rate_gen = 1 * 1e-3;
     double learning_rate_disc = 1 * 1e-3;
-    int batch_size = 8;
+    int batch_size = 10;
 
     private double disc_loss, gen_loss, accuracy;
 
@@ -41,44 +42,34 @@ public class DCGAN_Implementation {
         generator.verbose = true;
         discriminator.verbose = false;
 
-        // we want to train the dcgan system to replicate this single image for now
-        BufferedImage real_img = MiscUtils.mnist_load_index(label, 1);
-
-        MiscUtils.saveImage(real_img, "real_image.png");
-
-        double[][][] real_img_array = new double[][][]{zeroToOneToMinusOneToOne(img_to_mat(real_img))};
-
         // minibatch gradient descent
         for (int epochs = 0; epochs < 1000000; epochs++) {
+            int index = 0;// reset our index to 0
             for (int batch_idx = 0; batch_idx < train_size / batch_size; batch_idx++) {
-
                 // Load images
                 double[][][][] fakeImages = generator.forwardBatch();
                 double[][][][] realImages = new double[batch_size][1][28][28];
                 for (int real_idx = 0; real_idx < batch_size; real_idx++)
-                    realImages[real_idx] = real_img_array;
-
-
-                // calculating and displaying our model metrics
-                calculateModelMetrics(realImages, fakeImages);
-
-                logger.info("Epoch : " + epochs + " batch:" + batch_idx);
-                logger.info("Gen_Loss : " + gen_loss);
-                logger.info("Disc_Loss : " + disc_loss);
-                logger.info("Accuracy : " + accuracy);
+                    realImages[real_idx] = new double[][][]{zeroToOneToMinusOneToOne(img_to_mat(mnist_load_index(label, index++)))};
 
                 // train discriminator
-                if (accuracy < 0.99) // we don't want to train the discriminator too much
+                if (accuracy < 0.90) // we don't want to train the discriminator too much
                     train_discriminator(realImages, fakeImages);
 
                 // train generator
-                if (epochs > 0) // we start training the generator only after the discriminator has learned something at the start
+                if (accuracy > 0.5) // we start training the generator only after the discriminator has learned something at the start
                     train_generator(fakeImages);
 
                 // generate image
                 double[][][] gen_img = generator.generateImage();
                 saveImage(getBufferedImage(gen_img), "generated_image_dcgan.png");
-                logger.info("RMSE with desired image : " + TrainingUtils.lossRMSE(gen_img, real_img_array));
+
+                // calculating and displaying our model metrics
+                calculateModelMetrics();
+                logger.info("Epoch : " + epochs + " batch:" + batch_idx);
+                logger.info("Gen_Loss : " + gen_loss);
+                logger.info("Disc_Loss : " + disc_loss);
+                logger.info("Accuracy : " + accuracy);
             }
         }
     }
@@ -116,16 +107,17 @@ public class DCGAN_Implementation {
         generator.updateParametersBatch(disc_input_gradients_gen_output_gradients);
     }
 
-    private void calculateModelMetrics(double[][][][] realImages, double[][][][] fakeImages) {
-        double[] fake_outputs = new double[realImages.length];
-        double[] real_outputs = new double[realImages.length];
+    private void calculateModelMetrics() {
+        double[] fake_outputs = new double[test_size];
+        double[] real_outputs = new double[test_size];
         double num_correct_predictions = 0.0;
-        for (int img_idx = 0; img_idx < batch_size; img_idx++) {
-            real_outputs[img_idx] = discriminator.getOutput(realImages[img_idx])[0];
-            fake_outputs[img_idx] = discriminator.getOutput(fakeImages[img_idx])[0];
+        int test_index = train_size; // we want it to test outside the train dataset
+        for (int img_idx = 0; img_idx < test_size; img_idx++) {
+            real_outputs[img_idx] = discriminator.getOutput(new double[][][]{zeroToOneToMinusOneToOne(img_to_mat(mnist_load_index(label, test_index++)))})[0];
+            fake_outputs[img_idx] = discriminator.getOutput(generator.generateImage())[0];
             num_correct_predictions += (fake_outputs[img_idx] <= 0.5 ? 1 : 0) + (real_outputs[img_idx] > 0.5 ? 1 : 0);
         }
-        accuracy = num_correct_predictions / (batch_size * 2.0);
+        accuracy = num_correct_predictions / (test_size * 2.0);
 
         disc_loss = discriminatorLoss(real_outputs, fake_outputs);
         gen_loss = generatorLoss(fake_outputs);
@@ -168,21 +160,6 @@ public class DCGAN_Implementation {
 
         return real_loss + fake_loss;
     }
-
-    public double[] discriminatorLossGradient(double[] real_outputs, double[] fake_outputs) {
-        double[] ones = new double[real_outputs.length];
-        double[] zeros = new double[real_outputs.length];
-        Arrays.fill(ones, 1);
-        Arrays.fill(zeros, 0);
-        double[] real_gradient = gradientBinaryCrossEntropy(real_outputs, ones);
-        double[] fake_gradient = gradientBinaryCrossEntropy(fake_outputs, zeros);
-        double[] gradient = new double[real_outputs.length];
-        for (int i = 0; i < real_outputs.length; i++) {
-            gradient[i] = real_gradient[i] + fake_gradient[i];
-        }
-        return gradient;
-    }
-
 
     private static final double epsilon = 1e-6;
 
