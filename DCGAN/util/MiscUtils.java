@@ -389,6 +389,43 @@ public class MiscUtils {
 
     }
 
+    public static double[][] scaleMinMax(double[][] array) {
+        double min = findMin(array);
+        double max = findMax(array);
+        double[][] scaledArray = new double[array.length][array[0].length];
+
+        for (int i = 0; i < array.length; i++) {
+            for (int j = 0; j < array[i].length; j++) {
+                scaledArray[i][j] = ((array[i][j] - min) / (max - min)) * 2 - 1;
+            }
+        }
+        return scaledArray;
+    }
+
+    public static double findMin(double[][] array) {
+        double min = array[0][0];
+        for (double[] row : array) {
+            for (double value : row) {
+                if (value < min) {
+                    min = value;
+                }
+            }
+        }
+        return min;
+    }
+
+    public static double findMax(double[][] array) {
+        double max = array[0][0];
+        for (double[] row : array) {
+            for (double value : row) {
+                if (value > max) {
+                    max = value;
+                }
+            }
+        }
+        return max;
+    }
+
     public static void main(String[] args) {
         double[][][] input = {{{1, 2}, {3, 4}}, {{5, 6}, {7, 8}}};
         int dz = 1, hz = 1, wz = 1;

@@ -17,12 +17,12 @@ import static DCGAN.util.TrainingUtils.lossBinaryCrossEntropy;
 public class DCGAN_Implementation {
     final private static Logger logger = Logger.getLogger(DCGAN_Implementation.class.getName());
 
-    int train_size = 1000;
+    int train_size = 1;
     int test_size = 100;
     int label = 9;
-    double learning_rate_gen = 1 * 1e-3;
-    double learning_rate_disc = 1 * 1e-3;
-    int batch_size = 10;
+    double learning_rate_gen = 3 * 1e-3;
+    double learning_rate_disc = 1 * 1e-4;
+    int batch_size = 1;// switching to sgd
 
     private double disc_loss, gen_loss, accuracy;
 
@@ -30,8 +30,8 @@ public class DCGAN_Implementation {
     Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(batch_size, learning_rate_gen);
 
     // label smoothing for regularization so that the discriminator doesn't become too confident
-    double[] expected_real_output_disc = {0.98};
-    double[] expected_fake_output_disc = {0.05};
+    double[] expected_real_output_disc = {0.9};
+    double[] expected_fake_output_disc = {0.1};
 
     public static void main(String[] args) {
         DCGAN_Implementation dcgan = new DCGAN_Implementation();
@@ -50,15 +50,16 @@ public class DCGAN_Implementation {
                 double[][][][] fakeImages = generator.forwardBatch();
                 double[][][][] realImages = new double[batch_size][1][28][28];
                 for (int real_idx = 0; real_idx < batch_size; real_idx++)
-                    realImages[real_idx] = new double[][][]{zeroToOneToMinusOneToOne(img_to_mat(mnist_load_index(label, index++)))};
+                    realImages[real_idx] = new double[][][]{addNoise(zeroToOneToMinusOneToOne(img_to_mat(mnist_load_index(label, index++))), 0.5)};
 
                 // train discriminator
-                if (accuracy < 0.90) // we don't want to train the discriminator too much
+//                if (accuracy < 0.90) // we don't want to train the discriminator too much
+                if (epochs % 2 == 0) // we train the discriminator every 2 epochs
                     train_discriminator(realImages, fakeImages);
 
                 // train generator
-                if (accuracy > 0.5) // we start training the generator only after the discriminator has learned something at the start
-                    train_generator(fakeImages);
+//                if (accuracy > 0.5) // we start training the generator only after the discriminator has learned something at the start
+                train_generator(fakeImages);
 
                 // generate image
                 double[][][] gen_img = generator.generateImage();
@@ -70,8 +71,21 @@ public class DCGAN_Implementation {
                 logger.info("Gen_Loss : " + gen_loss);
                 logger.info("Disc_Loss : " + disc_loss);
                 logger.info("Accuracy : " + accuracy);
+
+                if (epochs == 0) // for debugging
+                    MiscUtils.saveImage(getBufferedImage(realImages[0]), "real_image_dcgan_with_noise.png");
             }
         }
+    }
+
+    private double[][] addNoise(double[][] image_array, double scale) {
+
+        for (int i = 0; i < image_array.length; i++) {
+            for (int j = 0; j < image_array[i].length; j++) {
+                image_array[i][j] = clamp(image_array[i][j] + Math.random() * scale, -1, 1);
+            }
+        }
+        return image_array;
     }
 
 
@@ -105,6 +119,10 @@ public class DCGAN_Implementation {
 
         // input to the discriminator is the output of the generator
         generator.updateParametersBatch(disc_input_gradients_gen_output_gradients);
+
+        // for debugging
+//        if(accuracy > 0.99)
+        MiscUtils.saveImage(getBufferedImage(scaleMinMax(disc_input_gradients_gen_output_gradients[0][0])), "disc_gradient_wrt_input.png");
     }
 
     private void calculateModelMetrics() {
