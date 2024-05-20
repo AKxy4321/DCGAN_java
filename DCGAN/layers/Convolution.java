@@ -17,7 +17,8 @@ public class Convolution {
     public int input_width, input_height, input_depth;
 
     public int filter_depth;
-    public int inputPaddingX, inputPaddingY, inputPaddingZ;
+    public int inputPaddingX, inputPaddingY;
+    public int padding = 0;
 
     AdamOptimizer filtersOptimizer, biasesOptimizer;
     public boolean use_bias = false;
@@ -40,8 +41,10 @@ public class Convolution {
         this.input_height = input_height;
         this.input_depth = input_depth;
 
-        this.output_width = (int) Math.floor((double) (input_width - filterSize) / stride + 1);
-        this.output_height = (int) Math.floor((double) (input_height - filterSize) / stride + 1);
+        // output_shape = ((input_height - kernel_size + 2 * padding) / stride) + 1 for symmetrical padding
+        this.padding = inputPaddingX;
+        this.output_width = (int) Math.floor((double) (input_width - filterSize + 2 * padding) / stride + 1);
+        this.output_height = (int) Math.floor((double) (input_height - filterSize + 2 * padding) / stride + 1);
         this.output_depth = this.numFilters;
 
         // since filterDepth isn't mentioned, its convention to assume that the filter depth is equal to the input depth,
@@ -56,7 +59,6 @@ public class Convolution {
 
         this.inputPaddingX = inputPaddingX;
         this.inputPaddingY = inputPaddingY;
-        this.inputPaddingZ = inputPaddingZ;
 
         filtersOptimizer = new AdamOptimizer(numFilters * filter_depth * filterSize * filterSize, learning_rate, 0.9, 0.999, 1e-8);
         biasesOptimizer = new AdamOptimizer(numFilters, learning_rate, 0.9, 0.999, 1e-8);
@@ -69,7 +71,7 @@ public class Convolution {
         double[][][] output = new double[output_depth][output_height][output_width];
 
         // preprocessing : pad the input
-        input = pad3d(input, inputPaddingX, inputPaddingY, inputPaddingZ);
+        input = pad3d(input, 0, padding, padding);
 
         for (int d = 0; d < this.output_depth; d++) {
             // we know the convolution result will have a depth of 1 because we are convolving a 3d input with a filter of the same depth
@@ -102,9 +104,9 @@ public class Convolution {
         for (int d = 0; d < this.output_depth; d++) {
             double[][][] f = this.filters[d];
 
-            int y = 0;
+            int y = -padding;
             for (int output_y = 0; output_y < this.output_height; y += stride, output_y++) {
-                int x = 0;
+                int x = -padding;
                 for (int output_x = 0; output_x < this.output_width; x += stride, output_x++) {
 
                     // convolve centered at this particular location
@@ -133,9 +135,9 @@ public class Convolution {
         for (int filter_idx = 0; filter_idx < this.output_depth; filter_idx++) {
             double[][][] f = this.filters[filter_idx];
 
-            int y = 0;
+            int y = -padding;
             for (int output_y = 0; output_y < this.output_height; y += stride, output_y++) {
-                int x = 0;
+                int x = -padding;
                 for (int output_x = 0; output_x < this.output_width; x += stride, output_x++) {
 
                     // convolve centered at this particular location

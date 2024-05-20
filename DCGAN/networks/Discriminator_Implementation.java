@@ -28,9 +28,13 @@ public class Discriminator_Implementation {
     public Discriminator_Implementation(int batchSize, double learning_rate) {
         this.batchSize = batchSize;
         int inputWidth = 28, inputHeight = 28;
-        this.conv1 = new Convolution(4, 64, 2, inputWidth, inputHeight, 1, 0, 0, 0, learning_rate);
+        this.conv1 = new Convolution(4, 64, 2,
+                inputWidth, inputHeight, 1,
+                2, 2, 0, learning_rate);
         this.leakyReLULayer1 = new LeakyReLULayer();
-        this.conv2 = new Convolution(4, 128, 2, conv1.output_width, conv1.output_height, conv1.output_depth, 0, 0, 0, learning_rate);
+        this.conv2 = new Convolution(4, 128, 2,
+                conv1.output_width, conv1.output_height, conv1.output_depth,
+                2, 2, 0, learning_rate);
         this.leakyReLULayer2 = new LeakyReLULayer();
         this.dense = new DenseLayer(conv2.output_depth * conv2.output_width * conv2.output_height, 1, learning_rate);
         this.sigmoidLayer = new SigmoidLayer();
