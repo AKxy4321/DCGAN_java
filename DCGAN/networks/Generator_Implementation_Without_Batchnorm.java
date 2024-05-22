@@ -29,31 +29,33 @@ public class Generator_Implementation_Without_Batchnorm {
         this.batchSize = batchSize;
 
         int noise_length = 500;
-        int tconv1_input_width = 7, tconv1_input_height = 7, tconv1_input_depth = 35;
+        int tconv1_input_width = 4, tconv1_input_height = 4, tconv1_input_depth = 37;
         this.dense_output_size = tconv1_input_width * tconv1_input_height * tconv1_input_depth;
         this.dense = new DenseLayer(noise_length, this.dense_output_size, learning_rate);
         this.leakyReLU1 = new LeakyReLULayer();
 
-        this.tconv1 = new TransposeConvolutionalLayer(5, 33, 1,
+        // this.stride * (inputHeight - 1) + filterSize - 2 * padding;
+        this.tconv1 = new TransposeConvolutionalLayer(3, 35, 2,
                 tconv1_input_width, tconv1_input_height, tconv1_input_depth,
-                (5 - 1) / 2, 0, 0, false, learning_rate);
-        // this.stride * (inputHeight - 1) + filterSize - 2 * padding; = 1 * (7 - 1) + 5 - 0 = 11
-        // 1 * (i-1) + 3 - 0 = i + 2
+                1, 0, 0, 1, false, learning_rate);
+        tconv1.outputHeight = 7;
+        tconv1.outputWidth = 7;
         this.leakyReLU2 = new LeakyReLULayer();
 
-        this.tconv2 = new TransposeConvolutionalLayer(5, 33, 2,
+        this.tconv2 = new TransposeConvolutionalLayer(4, 33, 2,
                 tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth,
-                (5 - 1) / 2, 0, 1, false, learning_rate);
-        // (i + 2 - 1) + 3 - 2*0 = i + 4
+                2, 0, 0, 1, false, learning_rate);
+        tconv2.outputHeight = 14;
+        tconv2.outputWidth = 14;
         this.leakyReLU3 = new LeakyReLULayer();
 
-        System.out.println("tconv2 output shape : " + tconv2.outputDepth + " " + tconv2.outputHeight + " " + tconv2.outputWidth);
-        this.tconv3 = new TransposeConvolutionalLayer(5, 1, 2,
+        this.tconv3 = new TransposeConvolutionalLayer(4, 1, 2,
                 tconv2.outputWidth, tconv2.outputHeight, tconv2.outputDepth,
-                (5 - 1) / 2, 0, 1, false, learning_rate);
+                2, 0, 0, 1, false, learning_rate);
+        tconv3.outputHeight = 28;
+        tconv3.outputWidth = 28;
         // (i + 4 - 1) + 3 - 2*0 = i + 6
         this.tanh = new TanhLayer();
-
 
 
         noises = new double[batchSize][dense.inputSize];
@@ -104,7 +106,7 @@ public class Generator_Implementation_Without_Batchnorm {
     double[][][][] tanhOutputs;
 
     public double[][][][] forwardBatch() {
-        for (int i = 0; i < batchSize; i++){
+        for (int i = 0; i < batchSize; i++) {
             noises[i] = XavierInitializer.xavierInit1D(dense.inputSize);
 
             denseOutputs[i] = dense.forward(noises[i]);
@@ -125,6 +127,13 @@ public class Generator_Implementation_Without_Batchnorm {
 
             tanhOutputs[i] = tanh.forward(tconv3Outputs[i]);
         }
+
+        if(verbose){
+            MiscUtils.saveImage(getBufferedImage(scaleMinMax(tconv1Outputs[0][0])), "tconv1Outputs[0][0].png");
+            MiscUtils.saveImage(getBufferedImage(scaleMinMax(tconv2Outputs[0][0])), "tconv2Outputs[0][0].png");
+            MiscUtils.saveImage(getBufferedImage(scaleMinMax(tconv3Outputs[0][0])), "tconv3Outputs[0][0].png");
+        }
+
 
         return tanhOutputs;
     }
@@ -165,7 +174,7 @@ public class Generator_Implementation_Without_Batchnorm {
         }
     }
 
-    public void updateParametersBatch(double[][][][] outputGradients){
+    public void updateParametersBatch(double[][][][] outputGradients) {
         double[][][][] tanh_in_gradient_t3_outgrad = new double[batchSize][][][];
         double[][][][] tconv3_in_gradient_l3_outgrad = new double[batchSize][][][];
         double[][][][] leakyrelu3_in_gradient_t2_outgrad = new double[batchSize][][][];
@@ -174,7 +183,7 @@ public class Generator_Implementation_Without_Batchnorm {
         double[][][][] tconv1_in_gradient_l1_outgrad = new double[batchSize][][][];
         double[][] leakyrelu_in_gradient_d_outgrad_flattened = new double[batchSize][];
 
-        for(int i = 0; i < batchSize; i++) {
+        for (int i = 0; i < batchSize; i++) {
             tanh_in_gradient_t3_outgrad[i] = this.tanh.backward(outputGradients[i], tanhOutputs[i]);
             tconv3_in_gradient_l3_outgrad[i] = this.tconv3.backward(tanh_in_gradient_t3_outgrad[i]);
             leakyrelu3_in_gradient_t2_outgrad[i] = this.leakyReLU3.backward(tconv3_in_gradient_l3_outgrad[i], leakyReLU3Outputs[i]);
@@ -193,7 +202,7 @@ public class Generator_Implementation_Without_Batchnorm {
         this.tconv3.updateParametersBatch(tanh_in_gradient_t3_outgrad, leakyReLU3Outputs);
         this.dense.updateParametersBatch(leakyrelu_in_gradient_d_outgrad_flattened, noises);
 
-        if  (verbose){
+        if (verbose) {
             // print out the sum of each gradient by flattening it and summing it up using stream().sum()
             System.out.println("Sum of each gradient in generator: ");
             for (int i = 0; i < batchSize; i++) {
@@ -204,12 +213,17 @@ public class Generator_Implementation_Without_Batchnorm {
                 System.out.println("tconv1_in_gradient: " + Arrays.stream(MiscUtils.flatten(tconv1_in_gradient_l1_outgrad[i])).sum());
                 System.out.println("leakyrelu_in_gradient: " + Arrays.stream(MiscUtils.flatten(leakyrelu_in_gradient_d_outgrad_flattened)).sum());
                 System.out.println("leakyrelu_in_gradient_flattened: " + Arrays.stream(leakyrelu_in_gradient_d_outgrad_flattened[i]).sum());
+
+                MiscUtils.saveImage(getBufferedImage(scaleMinMax(tanh_in_gradient_t3_outgrad[0][0])), "tanh_in_gradient_t3_outgrad[0][0].png");
+                MiscUtils.saveImage(getBufferedImage(scaleMinMax(tconv3_in_gradient_l3_outgrad[0][0])), "tconv3_in_gradient_l3_outgrad[0][0].png");
+                MiscUtils.saveImage(getBufferedImage(scaleMinMax(tconv2_in_gradient_l2_outgrad[0][0])), "tconv2_in_gradient_l2_outgrad[0][0].png");
+                MiscUtils.saveImage(getBufferedImage(scaleMinMax(tconv1_in_gradient_l1_outgrad[0][0])), "tconv1_in_gradient_l1_outgrad[0][0].png");
             }
         }
     }
 
     public static void main(String[] args) {
-        Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(8,0.001);
+        Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(8, 0.001);
 
         System.out.println("tconv1 output shape : " + generator.tconv1.outputDepth + " " + generator.tconv1.outputHeight + " " + generator.tconv1.outputWidth);
         System.out.println("tconv2 output shape : " + generator.tconv2.outputDepth + " " + generator.tconv2.outputHeight + " " + generator.tconv2.outputWidth);
@@ -227,7 +241,7 @@ public class Generator_Implementation_Without_Batchnorm {
         double prev_loss = Double.MAX_VALUE, loss = Double.MAX_VALUE;
         generator.verbose = true;
 
-        for (int epoch = 0, max_epochs = 20000000; epoch < max_epochs && loss > 0.1; epoch++, prev_loss = loss) {
+        for (int epoch = 0, max_epochs = 20000000; epoch < max_epochs && loss > 0.00001; epoch++, prev_loss = loss) {
             double[][][][] outputs = generator.forwardBatch();
             saveImage(getBufferedImage(outputs[0]), "gen_no_batchnorm_current.png");
 

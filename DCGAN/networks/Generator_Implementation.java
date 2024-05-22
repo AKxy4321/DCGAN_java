@@ -8,12 +8,10 @@ import java.awt.image.BufferedImage;
 import java.util.Arrays;
 
 import static DCGAN.util.MiscUtils.*;
-import static DCGAN.util.TrainingUtils.calculateGradientRMSE;
-import static DCGAN.util.TrainingUtils.lossRMSE;
+import static DCGAN.util.TrainingUtils.*;
 
 public class Generator_Implementation {
     /**
-     *
      * TODO: There is a (almost) vanishing gradient problem when backpropagating from the batch normalization layer. Have to debug.
      * But it does give some output close to the target image after an hour, so maybe only the layers after the last batch normalization layer is learning
      * debug output :
@@ -27,7 +25,7 @@ public class Generator_Implementation {
      * batch3_in_gradients: -1.5151725360484924E-17
      * tconv3_in_gradients: -0.003934218516113986
      * tanh_in_gradients: -0.003934218516113986
-     * */
+     */
 
     int dense_output_size;
     DenseLayer dense;
@@ -50,7 +48,7 @@ public class Generator_Implementation {
         this.batchSize = batchSize;
 
         int noise_length = 100;
-        int tconv1_input_width = 7, tconv1_input_height = 7, tconv1_input_depth = 35;
+        int tconv1_input_width = 4, tconv1_input_height = 4, tconv1_input_depth = 35;
         this.dense_output_size = tconv1_input_width * tconv1_input_height * tconv1_input_depth;
 
 
@@ -58,21 +56,27 @@ public class Generator_Implementation {
         this.batch1 = new BatchNormalization(this.dense_output_size, learning_rate);
         this.leakyReLU1 = new LeakyReLULayer();
 
-        this.tconv1 = new TransposeConvolutionalLayer(5, 33, 1,
+        this.tconv1 = new TransposeConvolutionalLayer(3, 35, 2,
                 tconv1_input_width, tconv1_input_height, tconv1_input_depth,
-                (5 - 1) / 2, 0, 0, false, learning_rate);
+                1, 0, 0, 1, false, learning_rate);
+        tconv1.outputHeight = 7;
+        tconv1.outputWidth = 7;
         this.batch2 = new BatchNormalization(tconv1.outputDepth * tconv1.outputHeight * tconv1.outputWidth, learning_rate);
         this.leakyReLU2 = new LeakyReLULayer();
 
-        this.tconv2 = new TransposeConvolutionalLayer(5, 33, 2,
+        this.tconv2 = new TransposeConvolutionalLayer(4, 33, 2,
                 tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth,
-                (5 - 1) / 2, 0, 1, false, learning_rate);
+                2, 0, 0, 1, false, learning_rate);
+        tconv2.outputHeight = 14;
+        tconv2.outputWidth = 14;
         this.batch3 = new BatchNormalization(tconv2.outputDepth * tconv2.outputHeight * tconv2.outputWidth, learning_rate);
         this.leakyReLU3 = new LeakyReLULayer();
 
-        this.tconv3 = new TransposeConvolutionalLayer(5, 1, 2,
+        this.tconv3 = new TransposeConvolutionalLayer(4, 1, 2,
                 tconv2.outputWidth, tconv2.outputHeight, tconv2.outputDepth,
-                (5 - 1) / 2, 0, 1, false, learning_rate);
+                2, 0, 0, 1, false, learning_rate);
+        tconv3.outputHeight = 28;
+        tconv3.outputWidth = 28;
         this.tanh = new TanhLayer();
 
 
@@ -254,7 +258,7 @@ public class Generator_Implementation {
     }
 
     public static void main(String[] args) {
-        Generator_Implementation generator = new Generator_Implementation(8,0.001);
+        Generator_Implementation generator = new Generator_Implementation(25, 0.001);
 
         System.out.println("tconv1 output shape : " + generator.tconv1.outputDepth + " " + generator.tconv1.outputHeight + " " + generator.tconv1.outputWidth);
         System.out.println("tconv2 output shape : " + generator.tconv2.outputDepth + " " + generator.tconv2.outputHeight + " " + generator.tconv2.outputWidth);
@@ -278,13 +282,13 @@ public class Generator_Implementation {
 
             double[] losses = new double[generator.batchSize];
             for (int i = 0; i < generator.batchSize; i++)
-                losses[i] = lossRMSE(outputs[i], targetOutput);
+                losses[i] = lossMSE(outputs[i], targetOutput);
             loss = mean(losses);
 
             System.out.println("epoch : " + epoch + " loss : " + loss);
 
             for (int i = 0; i < generator.batchSize; i++)
-                calculateGradientRMSE(outputGradients[i], outputs[i], targetOutput);
+                calculateGradientMSE(outputGradients[i][0], outputs[i][0], targetOutput[0]);
 
             generator.updateParametersBatch(outputGradients);
         }
