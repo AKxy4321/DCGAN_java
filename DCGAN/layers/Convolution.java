@@ -13,7 +13,7 @@ public class Convolution {
     public double[][][][] filters;
     public double[] biases;
     public double[][][] input3D;
-    public int output_width, output_height, output_depth;
+    public int outputWidth, outputHeight, outputDepth;
     public int input_width, input_height, input_depth;
 
     public int filter_depth;
@@ -43,9 +43,9 @@ public class Convolution {
 
         // output_shape = ((input_height - kernel_size + 2 * padding) / stride) + 1 for symmetrical padding
         this.padding = inputPaddingX;
-        this.output_width = (int) Math.floor((double) (input_width - filterSize + 2 * padding) / stride + 1);
-        this.output_height = (int) Math.floor((double) (input_height - filterSize + 2 * padding) / stride + 1);
-        this.output_depth = this.numFilters;
+        this.outputWidth = (int) Math.floor((double) (input_width - filterSize + 2 * padding) / stride + 1);
+        this.outputHeight = (int) Math.floor((double) (input_height - filterSize + 2 * padding) / stride + 1);
+        this.outputDepth = this.numFilters;
 
         // since filterDepth isn't mentioned, its convention to assume that the filter depth is equal to the input depth,
         // although it makes sense to make its depth 1, that goes against convention,
@@ -60,20 +60,20 @@ public class Convolution {
         this.inputPaddingX = inputPaddingX;
         this.inputPaddingY = inputPaddingY;
 
-        filtersOptimizer = new AdamOptimizer(numFilters * filter_depth * filterSize * filterSize, learning_rate, 0.9, 0.999, 1e-8);
-        biasesOptimizer = new AdamOptimizer(numFilters, learning_rate, 0.9, 0.999, 1e-8);
+        filtersOptimizer = new AdamOptimizer(numFilters * filter_depth * filterSize * filterSize, learning_rate, 0.5, 0.999, 1e-8);
+        biasesOptimizer = new AdamOptimizer(numFilters, learning_rate, 0.5, 0.999, 1e-8);
     }
 
 
     public double[][][] forward(double[][][] input) {
         this.input3D = input;
 
-        double[][][] output = new double[output_depth][output_height][output_width];
+        double[][][] output = new double[outputDepth][outputHeight][outputWidth];
 
         // preprocessing : pad the input
         input = pad3d(input, 0, padding, padding);
 
-        for (int d = 0; d < this.output_depth; d++) {
+        for (int d = 0; d < this.outputDepth; d++) {
             // we know the convolution result will have a depth of 1 because we are convolving a 3d input with a filter of the same depth
             // od = ((id - fd) / stride_in_z) + 1 = ((id - id) / stride_in_z) + 1 = 0 + 1 = 1
 
@@ -82,8 +82,8 @@ public class Convolution {
 
 
             if (use_bias) {
-                for (int y = 0; y < output_height; y++)
-                    for (int x = 0; x < output_width; x++)
+                for (int y = 0; y < outputHeight; y++)
+                    for (int x = 0; x < outputWidth; x++)
                         output[d][y][x] += biases[d];
             }
         }
@@ -91,7 +91,7 @@ public class Convolution {
         return output;
     }
 
-    public double[][][] backprop(double[][][] output_gradients) {
+    public double[][][] backward(double[][][] output_gradients) {
 
         /**
          returns the input Gradient. Input gradient is calculated using the formula:
@@ -101,13 +101,13 @@ public class Convolution {
 
         double[][][] inputGradient = new double[input_depth][input_height][input_width];
 
-        for (int d = 0; d < this.output_depth; d++) {
+        for (int d = 0; d < this.outputDepth; d++) {
             double[][][] f = this.filters[d];
 
             int y = -padding;
-            for (int output_y = 0; output_y < this.output_height; y += stride, output_y++) {
+            for (int output_y = 0; output_y < this.outputHeight; y += stride, output_y++) {
                 int x = -padding;
-                for (int output_x = 0; output_x < this.output_width; x += stride, output_x++) {
+                for (int output_x = 0; output_x < this.outputWidth; x += stride, output_x++) {
 
                     // convolve centered at this particular location
                     double chain_grad = output_gradients[d][output_y][output_x];
@@ -132,13 +132,13 @@ public class Convolution {
     public double[][][][] calculateFiltersGradient(double[][][] output_gradient, double[][][] input3D) {
         double[][][][] filtersGradient = new double[numFilters][filter_depth][filterSize][filterSize];
 
-        for (int filter_idx = 0; filter_idx < this.output_depth; filter_idx++) {
+        for (int filter_idx = 0; filter_idx < this.outputDepth; filter_idx++) {
             double[][][] f = this.filters[filter_idx];
 
             int y = -padding;
-            for (int output_y = 0; output_y < this.output_height; y += stride, output_y++) {
+            for (int output_y = 0; output_y < this.outputHeight; y += stride, output_y++) {
                 int x = -padding;
-                for (int output_x = 0; output_x < this.output_width; x += stride, output_x++) {
+                for (int output_x = 0; output_x < this.outputWidth; x += stride, output_x++) {
 
                     // convolve centered at this particular location
                     double chain_grad = output_gradient[filter_idx][output_y][output_x];
@@ -161,13 +161,13 @@ public class Convolution {
 
     public double[] calculateBiasGradient(double[][][] output_gradient) {
         double[] biasGradient = new double[numFilters];
-        for (int filter_idx = 0; filter_idx < this.output_depth; filter_idx++) {
+        for (int filter_idx = 0; filter_idx < this.outputDepth; filter_idx++) {
             double[][][] f = this.filters[filter_idx];
 
             int y = 0;
-            for (int output_y = 0; output_y < this.output_height; y += stride, output_y++) {
+            for (int output_y = 0; output_y < this.outputHeight; y += stride, output_y++) {
                 int x = 0;
-                for (int output_x = 0; output_x < this.output_width; x += stride, output_x++) {
+                for (int output_x = 0; output_x < this.outputWidth; x += stride, output_x++) {
                     biasGradient[filter_idx] += output_gradient[filter_idx][output_y][output_x];
                 }
             }
