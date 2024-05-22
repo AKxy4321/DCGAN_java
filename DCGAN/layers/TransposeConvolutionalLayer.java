@@ -20,6 +20,8 @@ public class TransposeConvolutionalLayer {
     public int padding = 0, right_bottom_padding = 0;
     public int output_padding = 0; // for now we don't care about output_padding
 
+    int outputGradientPadding = 0;
+
     boolean useBias = false;
 
     AdamOptimizer filtersOptimizer;
@@ -38,10 +40,11 @@ public class TransposeConvolutionalLayer {
     }
 
     public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride, int inputWidth, int inputHeight, int inputDepth, int padding, int output_padding, int right_bottom_padding, boolean useBias) {
-        this(filterSize, numFilters, stride, inputWidth, inputHeight, inputDepth, padding, output_padding, right_bottom_padding, useBias, 0.001);
+        this(filterSize, numFilters, stride, inputWidth, inputHeight, inputDepth, padding, output_padding, right_bottom_padding, 0, useBias, 0.001);
     }
 
-    public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride, int inputWidth, int inputHeight, int inputDepth, int padding, int output_padding, int right_bottom_padding, boolean useBias, double learning_rate) {
+
+    public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride, int inputWidth, int inputHeight, int inputDepth, int padding, int output_padding, int right_bottom_padding, int outputGradientPadding, boolean useBias, double learning_rate) {
         this.useBias = useBias;
         this.numFilters = numFilters;
         this.filterSize = filterSize;
@@ -62,6 +65,7 @@ public class TransposeConvolutionalLayer {
         this.padding = padding;
         this.output_padding = output_padding;
         this.right_bottom_padding = right_bottom_padding;
+        this.outputGradientPadding = outputGradientPadding;
 
         // output_shape = (input_shape - 1) * stride - 2 * padding + kernel_size + output_padding
 
@@ -116,8 +120,8 @@ public class TransposeConvolutionalLayer {
                     Convolution.pad3d(
                             new double[][][]{outputGradient[filter_idx]},
                             filterDepth - 1, filterDepth - 1,
-                            padding, padding,
-                            padding, padding),
+                            outputGradientPadding, outputGradientPadding,
+                            outputGradientPadding, outputGradientPadding),
                     filters[filter_idx],
                     1, stride, stride);
 
@@ -132,18 +136,20 @@ public class TransposeConvolutionalLayer {
                     }
                 }
             }
+
+
+            if (filter_idx == 0 && (inputDepth != inputGradient.length || inputWidth != inputGradient[0].length || inputWidth != inputGradient[0][0].length)) {
+                // warning
+                System.out.println("Warning : inputGradient shape is not as expected. Please change layer dimensions to avoid errors.");
+                System.out.println("filterSize : " + filterSize + " filterDepth : " + 1);
+                System.out.println("inputDepth : " + inputDepth + " inputHeight : " + inputHeight + " inputWidth : " + inputWidth);
+                System.out.println("outputDepth : " + outputDepth + " outputHeight : " + outputHeight + " outputWidth : " + outputWidth);
+                System.out.println("Update Parameters method:");
+                System.out.println("inputGradientPerFilter is supposed to be of shape : " + inputDepth + "x" + inputHeight + "x" + inputWidth);
+                System.out.println("inputGradient Shape : " + inputGradient.length + " " + inputGradient[0].length + " " + inputGradient[0][0].length);
+            }
         }
 
-        if (inputDepth != inputGradient.length || inputWidth != inputGradient[0].length || inputWidth != inputGradient[0][0].length) {
-            // warning
-            System.out.println("Warning : inputGradient shape is not as expected. Please change layer dimensions to avoid errors.");
-            System.out.println("filterSize : " + filterSize + " filterDepth : " + 1);
-            System.out.println("inputDepth : " + inputDepth + " inputHeight : " + inputHeight + " inputWidth : " + inputWidth);
-            System.out.println("outputDepth : " + outputDepth + " outputHeight : " + outputHeight + " outputWidth : " + outputWidth);
-            System.out.println("Update Parameters method:");
-            System.out.println("inputGradientPerFilter is supposed to be of shape : " + inputDepth + "x" + inputHeight + "x" + inputWidth);
-            System.out.println("inputGradient Shape : " + inputGradient.length + " " + inputGradient[0].length + " " + inputGradient[0][0].length);
-        }
 
         return inputGradient;
     }
@@ -165,8 +171,8 @@ public class TransposeConvolutionalLayer {
             double[][][] result = Convolution.convolve3d(
                     Convolution.pad3d(new double[][][]{outputGradient[filter_idx]},
                             filterDepth - 1, filterDepth - 1,
-                            padding, padding - right_bottom_padding,
-                            padding, padding - right_bottom_padding
+                            outputGradientPadding, outputGradientPadding,
+                            outputGradientPadding, outputGradientPadding
                     ),
                     stretched_input,
                     1, 1, 1);
