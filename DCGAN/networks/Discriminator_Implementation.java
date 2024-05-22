@@ -31,12 +31,12 @@ public class Discriminator_Implementation {
         this.conv1 = new Convolution(4, 64, 2,
                 inputWidth, inputHeight, 1,
                 2, 2, 0, learning_rate);
-        this.leakyReLULayer1 = new LeakyReLULayer();
+        this.leakyReLULayer1 = new LeakyReLULayer(0.2);
         this.conv2 = new Convolution(4, 128, 2,
-                conv1.output_width, conv1.output_height, conv1.output_depth,
+                conv1.outputWidth, conv1.outputHeight, conv1.outputDepth,
                 2, 2, 0, learning_rate);
-        this.leakyReLULayer2 = new LeakyReLULayer();
-        this.dense = new DenseLayer(conv2.output_depth * conv2.output_width * conv2.output_height, 1, learning_rate);
+        this.leakyReLULayer2 = new LeakyReLULayer(0.2);
+        this.dense = new DenseLayer(conv2.outputDepth * conv2.outputWidth * conv2.outputHeight, 1, learning_rate);
         this.sigmoidLayer = new SigmoidLayer();
 
 
@@ -77,10 +77,10 @@ public class Discriminator_Implementation {
         double[][][] disc_in_gradient_dense_unflattened = MiscUtils.unflatten(disc_in_gradient_dense, leakyReLULayer2.output.length, leakyReLULayer2.output[0].length, leakyReLULayer2.output[0][0].length);
         double[][][] disc_in_gradient_leakyrelu2 = this.leakyReLULayer2.backward(disc_in_gradient_dense_unflattened);
 
-        double[][][] disc_in_gradient_conv2 = this.conv2.backprop(disc_in_gradient_leakyrelu2);
+        double[][][] disc_in_gradient_conv2 = this.conv2.backward(disc_in_gradient_leakyrelu2);
         double[][][] disc_in_gradient_leakyrelu1 = this.leakyReLULayer1.backward(disc_in_gradient_conv2);
 
-        double[][][] disc_in_gradient_conv1 = this.conv1.backprop(disc_in_gradient_leakyrelu1);
+        double[][][] disc_in_gradient_conv1 = this.conv1.backward(disc_in_gradient_leakyrelu1);
 
         // now we have the gradient of the loss function for the generated output wrt to the generator output(which is nothing but dou J / dou image)
         return disc_in_gradient_conv1; // this is the inputGradient
@@ -93,10 +93,10 @@ public class Discriminator_Implementation {
         double[][][] disc_in_gradient_dense_unflattened = MiscUtils.unflatten(disc_in_gradient_dense, leakyReLULayer2.output.length, leakyReLULayer2.output[0].length, leakyReLULayer2.output[0][0].length);
         double[][][] disc_in_gradient_leakyrelu2 = this.leakyReLULayer2.backward(disc_in_gradient_dense_unflattened);
 
-        double[][][] disc_in_gradient_conv2 = this.conv2.backprop(disc_in_gradient_leakyrelu2);
+        double[][][] disc_in_gradient_conv2 = this.conv2.backward(disc_in_gradient_leakyrelu2);
         double[][][] disc_in_gradient_leakyrelu1 = this.leakyReLULayer1.backward(disc_in_gradient_conv2);
 
-        double[][][] disc_in_gradient_conv1 = this.conv1.backprop(disc_in_gradient_leakyrelu1);
+        double[][][] disc_in_gradient_conv1 = this.conv1.backward(disc_in_gradient_leakyrelu1);
 
         conv1.updateParameters(disc_in_gradient_leakyrelu1);
         conv2.updateParameters(disc_in_gradient_leakyrelu2);
@@ -151,10 +151,10 @@ public class Discriminator_Implementation {
             double[][][] disc_in_gradient_dense_unflattened = MiscUtils.unflatten(disc_in_gradient_dense, leakyReLULayer2.output.length, leakyReLULayer2.output[0].length, leakyReLULayer2.output[0][0].length);
             double[][][] disc_in_gradients_leakyrelu2 = this.leakyReLULayer2.backward(disc_in_gradient_dense_unflattened, outputs_leakyRELU2[i]);
 
-            double[][][] disc_in_gradient_conv2 = this.conv2.backprop(disc_in_gradients_leakyrelu2);
+            double[][][] disc_in_gradient_conv2 = this.conv2.backward(disc_in_gradients_leakyrelu2);
             double[][][] disc_in_gradients_leakyrelu1 = this.leakyReLULayer1.backward(disc_in_gradient_conv2, outputs_leakyRELU1[i]);
 
-            disc_in_gradients_conv1[i] = this.conv1.backprop(disc_in_gradients_leakyrelu1);
+            disc_in_gradients_conv1[i] = this.conv1.backward(disc_in_gradients_leakyrelu1);
         }
 
         return disc_in_gradients_conv1;
@@ -172,7 +172,7 @@ public class Discriminator_Implementation {
             double[][][] disc_in_gradient_dense_unflattened = MiscUtils.unflatten(disc_in_gradient_dense, leakyReLULayer2.output.length, leakyReLULayer2.output[0].length, leakyReLULayer2.output[0][0].length);
             disc_in_gradients_leakyrelu2[i] = this.leakyReLULayer2.backward(disc_in_gradient_dense_unflattened, outputs_leakyRELU2[i]);
 
-            double[][][] disc_in_gradient_conv2 = this.conv2.backprop(disc_in_gradients_leakyrelu2[i]);
+            double[][][] disc_in_gradient_conv2 = this.conv2.backward(disc_in_gradients_leakyrelu2[i]);
             disc_in_gradients_leakyrelu1[i] = this.leakyReLULayer1.backward(disc_in_gradient_conv2, outputs_leakyRELU1[i]);
 
 //            not needed
