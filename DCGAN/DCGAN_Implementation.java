@@ -18,12 +18,12 @@ import static DCGAN.util.TrainingUtils.lossBinaryCrossEntropy;
 public class DCGAN_Implementation {
     final private static Logger logger = Logger.getLogger(DCGAN_Implementation.class.getName());
 
-    int train_size = 1;
+    int train_size = 3000;
     int test_size = 1;
     int label = 3;
-    double learning_rate_gen = 3 * 1e-3;
+    double learning_rate_gen = +3 * 1e-3;
     double learning_rate_disc = 1 * 1e-4;
-    int batch_size = 1; // 1 for sgd
+    int batch_size = 32; // 1 for sgd
 
     private double disc_loss, gen_loss, accuracy;
 
@@ -58,7 +58,7 @@ public class DCGAN_Implementation {
 
                 // train discriminator
 //                if (accuracy < 0.90) // we don't want to train the discriminator too much
-                if (epochs % 5 == 0 || accuracy < 0.6) // we train the discriminator every 5 epochs or if it is not performing well
+                if (accuracy < 0.6) // we train the discriminator every 5 epochs or if it is not performing well
                     train_discriminator(realImages, fakeImages);
 
                 // train generator
@@ -107,17 +107,17 @@ public class DCGAN_Implementation {
         double[][] disc_output_gradients = new double[batch_size][];
         for (int img_idx = 0; img_idx < batch_size; img_idx++) {
             // label smoothing for regularization so that the discriminator doesn't become too confident
-            if (expected_output[0] == 1)
-                soft_label[0] = 0.8 + Math.random() * 0.3;
-            else if (expected_output[0] == 0)
-                soft_label[0] = Math.random() * 0.3;
+//            if (expected_output[0] == 1)
+//                soft_label[0] = 0.8 + Math.random() * 0.3;
+//            else if (expected_output[0] == 0)
+//                soft_label[0] = Math.random() * 0.3;
 
 //            if(expected_output[0] == 1)
 //                disc_output_gradients[img_idx] = discriminatorLossGradientRevisedReal(disc_outputs[img_idx], soft_label);
 //            else
 //                disc_output_gradients[img_idx] = discriminatorLossGradientRevisedFake(disc_outputs[img_idx], soft_label);
 
-            disc_output_gradients[img_idx] = gradientBinaryCrossEntropy(disc_outputs[img_idx], soft_label);
+            disc_output_gradients[img_idx] = gradientBinaryCrossEntropy(disc_outputs[img_idx], expected_output);
         }
 
         discriminator.updateParametersBatch(disc_output_gradients);

@@ -28,26 +28,26 @@ public class Generator_Implementation_Without_Batchnorm {
     public Generator_Implementation_Without_Batchnorm(int batchSize, double learning_rate) {
         this.batchSize = batchSize;
 
-        int noise_length = 500;
-        int tconv1_input_width = 4, tconv1_input_height = 4, tconv1_input_depth = 37;
+        int noise_length = 100;
+        int tconv1_input_width = 4, tconv1_input_height = 4, tconv1_input_depth = 256;
         this.dense_output_size = tconv1_input_width * tconv1_input_height * tconv1_input_depth;
         this.dense = new DenseLayer(noise_length, this.dense_output_size, learning_rate);
-        this.leakyReLU1 = new LeakyReLULayer();
+        this.leakyReLU1 = new LeakyReLULayer(0);
 
         // this.stride * (inputHeight - 1) + filterSize - 2 * padding;
-        this.tconv1 = new TransposeConvolutionalLayer(3, 35, 2,
+        this.tconv1 = new TransposeConvolutionalLayer(3, 128, 2,
                 tconv1_input_width, tconv1_input_height, tconv1_input_depth,
                 1, 0, 0, 1, false, learning_rate);
         tconv1.outputHeight = 7;
         tconv1.outputWidth = 7;
-        this.leakyReLU2 = new LeakyReLULayer();
+        this.leakyReLU2 = new LeakyReLULayer(0);
 
-        this.tconv2 = new TransposeConvolutionalLayer(4, 33, 2,
+        this.tconv2 = new TransposeConvolutionalLayer(4, 32, 2,
                 tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth,
                 2, 0, 0, 1, false, learning_rate);
         tconv2.outputHeight = 14;
         tconv2.outputWidth = 14;
-        this.leakyReLU3 = new LeakyReLULayer();
+        this.leakyReLU3 = new LeakyReLULayer(0);
 
         this.tconv3 = new TransposeConvolutionalLayer(4, 1, 2,
                 tconv2.outputWidth, tconv2.outputHeight, tconv2.outputDepth,
