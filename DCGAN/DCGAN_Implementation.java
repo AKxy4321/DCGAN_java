@@ -19,7 +19,7 @@ public class DCGAN_Implementation {
     final private static Logger logger = Logger.getLogger(DCGAN_Implementation.class.getName());
 
     int train_size = 3000;
-    int test_size = 1;
+    int test_size = 10;
     int label = 3;
     double learning_rate_gen = +3 * 1e-3;
     double learning_rate_disc = 1 * 1e-4;
@@ -145,7 +145,7 @@ public class DCGAN_Implementation {
         double[] fake_outputs = new double[test_size];
         double[] real_outputs = new double[test_size];
         double num_correct_predictions = 0.0;
-        int test_index = 0; // train_size; // we want it to test outside the train dataset
+        int test_index = train_size; // train_size; // we want it to test outside the train dataset
         for (int img_idx = 0; img_idx < test_size; img_idx++) {
             real_outputs[img_idx] = discriminator.getOutput(new double[][][]{zeroToOneToMinusOneToOne(img_to_mat(mnist_load_index(label, test_index++)))})[0];
             fake_outputs[img_idx] = discriminator.getOutput(generator.generateImage())[0];
