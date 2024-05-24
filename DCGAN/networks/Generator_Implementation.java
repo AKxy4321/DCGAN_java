@@ -48,7 +48,7 @@ public class Generator_Implementation {
         this.batchSize = batchSize;
 
         int noise_length = 100;
-        int tconv1_input_width = 4, tconv1_input_height = 4, tconv1_input_depth = 35;
+        int tconv1_input_width = 4, tconv1_input_height = 4, tconv1_input_depth = 256;
         this.dense_output_size = tconv1_input_width * tconv1_input_height * tconv1_input_depth;
 
 
@@ -56,7 +56,7 @@ public class Generator_Implementation {
         this.batch1 = new BatchNormalization(this.dense_output_size, learning_rate);
         this.leakyReLU1 = new LeakyReLULayer();
 
-        this.tconv1 = new TransposeConvolutionalLayer(3, 35, 2,
+        this.tconv1 = new TransposeConvolutionalLayer(3, 128, 2,
                 tconv1_input_width, tconv1_input_height, tconv1_input_depth,
                 1, 0, 0, 1, false, learning_rate);
         tconv1.outputHeight = 7;
@@ -64,7 +64,7 @@ public class Generator_Implementation {
         this.batch2 = new BatchNormalization(tconv1.outputDepth * tconv1.outputHeight * tconv1.outputWidth, learning_rate);
         this.leakyReLU2 = new LeakyReLULayer();
 
-        this.tconv2 = new TransposeConvolutionalLayer(4, 33, 2,
+        this.tconv2 = new TransposeConvolutionalLayer(4, 64, 2,
                 tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth,
                 2, 0, 0, 1, false, learning_rate);
         tconv2.outputHeight = 14;
@@ -199,7 +199,7 @@ public class Generator_Implementation {
         double[][] leakyrelu_in_gradients_flattened_batch1_outgrad = new double[batchSize][];
 
 
-        for (int i = 0; i < batchSize; i++) {
+        for (int i = 0; i < batchSize; i++, System.out.print(verbose?i+" ":" ")) {
             tanh_in_gradients[i] = this.tanh.backward(gen_output_gradients[i], fakeImages[i]);
 
             leakyrelu3_in_gradients[i] = this.leakyReLU3.backward(this.tconv3.backward(tanh_in_gradients[i]), gen_leakyrelu3_outputs[i]);
@@ -209,7 +209,7 @@ public class Generator_Implementation {
 
         double[][] batch3_in_gradients = this.batch3.backward(leakyrelu3_in_gradients_flattened_batch3_outgrad);
 
-        for (int i = 0; i < batchSize; i++) {
+        for (int i = 0; i < batchSize; i++, System.out.print(verbose?i+" ":" ")) {
             batch3_in_gradients_unflattened[i] = MiscUtils.unflatten(batch3_in_gradients[i], tconv2.outputDepth, tconv2.outputHeight, tconv2.outputWidth);
             double[][][] tconv2_in_gradient = this.tconv2.backward(batch3_in_gradients_unflattened[i]);
 
@@ -219,7 +219,7 @@ public class Generator_Implementation {
 
         double[][] batch2_in_gradients_flattened = this.batch2.backward(leakyrelu2_in_gradients_flattened_batch2_outgrad);
 
-        for (int i = 0; i < batchSize; i++) {
+        for (int i = 0; i < batchSize; i++, System.out.print(verbose?i+" ":" ")) {
             batch2_in_gradients_unflattened[i] = MiscUtils.unflatten(batch2_in_gradients_flattened[i], tconv1.outputDepth, tconv1.outputHeight, tconv1.outputWidth);
 
             double[][][] tconv1_in_gradient = this.tconv1.backward(batch2_in_gradients_unflattened[i]);
@@ -254,11 +254,15 @@ public class Generator_Implementation {
             System.out.println("batch3_in_gradients: " + Arrays.stream(MiscUtils.flatten(batch3_in_gradients)).sum());
             System.out.println("tconv3_in_gradients: " + Arrays.stream(MiscUtils.flatten(tanh_in_gradients[0])).sum());
             System.out.println("tanh_in_gradients: " + Arrays.stream(MiscUtils.flatten(tanh_in_gradients[0])).sum());
+
+            MiscUtils.saveImage(getBufferedImage(scaleMinMax(leakyrelu3_in_gradients[0][0])), "leakyrelu3_in_gradients.png");
+            MiscUtils.saveImage(getBufferedImage(scaleMinMax(batch3_in_gradients_unflattened[0][0])), "batch3_in_gradients_unflattened.png");
         }
     }
 
     public static void main(String[] args) {
-        Generator_Implementation generator = new Generator_Implementation(25, 0.001);
+        Generator_Implementation generator = new Generator_Implementation(3, 0.001);
+        generator.verbose = true;
 
         System.out.println("tconv1 output shape : " + generator.tconv1.outputDepth + " " + generator.tconv1.outputHeight + " " + generator.tconv1.outputWidth);
         System.out.println("tconv2 output shape : " + generator.tconv2.outputDepth + " " + generator.tconv2.outputHeight + " " + generator.tconv2.outputWidth);

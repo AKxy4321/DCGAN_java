@@ -25,7 +25,7 @@ public class DenseLayer {
         this.biases = XavierInitializer.xavierInit1D(outputSize);
 
         weightsOptimizer = new AdamOptimizer(inputSize * outputSize, initial_learning_rate, 0.9, 0.999, 1e-8);
-        biasesOptimizer = new AdamOptimizer(outputSize, initial_learning_rate, 0.9, 0.999, 1e-8);
+        biasesOptimizer = new AdamOptimizer(outputSize, initial_learning_rate, 0.5, 0.999, 1e-8);
     }
 
     public double[] forward(double[] input) {

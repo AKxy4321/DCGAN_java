@@ -18,12 +18,12 @@ import static DCGAN.util.TrainingUtils.lossBinaryCrossEntropy;
 public class DCGAN_Implementation {
     final private static Logger logger = Logger.getLogger(DCGAN_Implementation.class.getName());
 
-    int train_size = 3000;
+    int train_size = 1000;
     int test_size = 10;
-    int label = 3;
-    double learning_rate_gen = +3 * 1e-3;
-    double learning_rate_disc = 1 * 1e-4;
-    int batch_size = 32; // 1 for sgd
+    int label = 9;
+    double learning_rate_gen = 0.0003;
+    double learning_rate_disc = 0.0001;
+    int batch_size = 8; // 1 for sgd
 
     private double disc_loss, gen_loss, accuracy;
 
@@ -53,12 +53,13 @@ public class DCGAN_Implementation {
                     realImages[real_idx] = new double[][][]{
                             addNoise(
                                     zeroToOneToMinusOneToOne(img_to_mat(mnist_load_index(label, index++))),
-                                    0.5)
+                                    0)
                     };
 
                 // train discriminator
 //                if (accuracy < 0.90) // we don't want to train the discriminator too much
-                if (accuracy < 0.6) // we train the discriminator every 5 epochs or if it is not performing well
+//                if (accuracy < 0.6) // we train the discriminator every 5 epochs or if it is not performing well
+                if (batch_idx > 0 && batch_idx % 10 == 0)
                     train_discriminator(realImages, fakeImages);
 
                 // train generator
@@ -129,7 +130,7 @@ public class DCGAN_Implementation {
     public void train_generator(double[][][][] fakeImages) {
         double[][] disc_fake_outputs = discriminator.forwardBatch(fakeImages);
 
-        double[][] disc_fake_output_gradients = generatorLossGradient(disc_fake_outputs);
+        double[][] disc_fake_output_gradients = generatorLossGradientRevised(disc_fake_outputs);
 
         double[][][][] disc_input_gradients_gen_output_gradients = discriminator.backwardBatch(disc_fake_output_gradients);
 
@@ -154,7 +155,7 @@ public class DCGAN_Implementation {
         accuracy = num_correct_predictions / (test_size * 2.0);
 
         disc_loss = discriminatorLossRevised(real_outputs, fake_outputs);
-        gen_loss = generatorLoss(fake_outputs);
+        gen_loss = generatorLossRevised(fake_outputs);
     }
 
     public double generatorLoss(double[] fake_outputs) {
@@ -182,6 +183,33 @@ public class DCGAN_Implementation {
             gradients[i] = generatorLossGradient(fake_outputs_batch[i]);
 
         return gradients;
+    }
+
+    public double generatorLossRevised(double[][] fake_outputs_batch) {
+        double loss = 0.0;
+        for (int i = 0; i < fake_outputs_batch.length; i++)
+            loss += Math.log(fake_outputs_batch[i][0] + epsilon);
+
+        return -loss / (fake_outputs_batch.length * fake_outputs_batch[0].length);
+    }
+
+    public double generatorLossRevised(double[] fake_outputs) {
+        /**
+         * Non-saturating GAN loss
+         * */
+        double loss = 0.0;
+        for (int i = 0; i < fake_outputs.length; i++)
+            loss += Math.log(fake_outputs[i] + epsilon);
+
+        return -loss / fake_outputs.length;
+    }
+
+    public double[][] generatorLossGradientRevised(double[][] fake_outputs_batch) {
+        double[][] gradient = new double[fake_outputs_batch.length][];
+        for (int i = 0; i < fake_outputs_batch.length; i++)
+            gradient[i] = new double[]{-1 / (fake_outputs_batch[i][0] + epsilon)};
+
+        return gradient;
     }
 
     public double discriminatorLoss(double[] real_outputs, double[] fake_outputs) {
