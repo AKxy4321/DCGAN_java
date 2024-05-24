@@ -34,7 +34,7 @@ public class Generator_Implementation_Without_Batchnorm {
         int tconv1_input_width = 4, tconv1_input_height = 4, tconv1_input_depth = 256;
         this.dense_output_size = tconv1_input_width * tconv1_input_height * tconv1_input_depth;
         this.dense = new DenseLayer(noise_length, this.dense_output_size, learning_rate);
-        this.leakyReLU1 = new LeakyReLULayer(0);
+        this.leakyReLU1 = new LeakyReLULayer(0.1);
 
         // this.stride * (inputHeight - 1) + filterSize - 2 * padding;
         this.tconv1 = new TransposeConvolutionalLayer(3, 128, 2,
@@ -42,14 +42,14 @@ public class Generator_Implementation_Without_Batchnorm {
                 1, 0, 0, 1, false, learning_rate);
         tconv1.outputHeight = 7;
         tconv1.outputWidth = 7;
-        this.leakyReLU2 = new LeakyReLULayer(0);
+        this.leakyReLU2 = new LeakyReLULayer(0.1);
 
         this.tconv2 = new TransposeConvolutionalLayer(4, 64, 2,
                 tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth,
                 2, 0, 0, 1, false, learning_rate);
         tconv2.outputHeight = 14;
         tconv2.outputWidth = 14;
-        this.leakyReLU3 = new LeakyReLULayer(0);
+        this.leakyReLU3 = new LeakyReLULayer(0.1);
 
         this.tconv3 = new TransposeConvolutionalLayer(4, 1, 2,
                 tconv2.outputWidth, tconv2.outputHeight, tconv2.outputDepth,
@@ -73,30 +73,35 @@ public class Generator_Implementation_Without_Batchnorm {
     }
 
     public double[][][] generateImage() {
-        double[] noise = new double[noise_length]; // generate noise input that we want to pass to the generator
-        for (int i = 0; i < noise_length; i++)
-            noise[i] = random.nextGaussian();
+        // using a spherical Z
+        double[] noise = XavierInitializer.xavierInit1D(noise_length);
+        double mag = 0;
+        for (int j = 0; j < noise_length; j++)
+            mag += Math.pow(noise[j], 2);
+        mag = Math.max(Math.sqrt(mag), 0.0000001);
+        for (int j = 0; j < noise_length; j++)
+            noise[j] /= mag; // to set the magnitude of the noise vector to 1
 
-        double[] gen_dense_output = this.dense.forward(noise);
-        double[][][] gen_dense_output_unflattened = MiscUtils.unflatten(gen_dense_output, tconv1.inputDepth, tconv1.inputHeight, tconv1.inputWidth);
-        double[][][] gen_leakyrelu_output1 = this.leakyReLU1.forward(gen_dense_output_unflattened);
+    double[] gen_dense_output = this.dense.forward(noise);
+    double[][][] gen_dense_output_unflattened = MiscUtils.unflatten(gen_dense_output, tconv1.inputDepth, tconv1.inputHeight, tconv1.inputWidth);
+    double[][][] gen_leakyrelu_output1 = this.leakyReLU1.forward(gen_dense_output_unflattened);
 
 //        saveImage(getBufferedImage(gen_leakyrelu_output1), "gen_leakyrelu_output1.png");
 
-        double[][][] outputTconv1 = this.tconv1.forward(gen_leakyrelu_output1);
-        double[][][] gen_leakyrelu_output2 = this.leakyReLU2.forward(outputTconv1);
+    double[][][] outputTconv1 = this.tconv1.forward(gen_leakyrelu_output1);
+    double[][][] gen_leakyrelu_output2 = this.leakyReLU2.forward(outputTconv1);
 
 //        saveImage(getBufferedImage(gen_leakyrelu_output2), "gen_leakyrelu_output2.png");
 
-        double[][][] outputTconv2 = this.tconv2.forward(gen_leakyrelu_output2);
-        double[][][] gen_leakyrelu_output3 = this.leakyReLU3.forward(outputTconv2);
+    double[][][] outputTconv2 = this.tconv2.forward(gen_leakyrelu_output2);
+    double[][][] gen_leakyrelu_output3 = this.leakyReLU3.forward(outputTconv2);
 
 //        saveImage(getBufferedImage(gen_leakyrelu_output3), "gen_leakyrelu_output3.png");
 
-        double[][][] gen_tconv3_output = this.tconv3.forward(gen_leakyrelu_output3);
-        double[][][] fakeImage = this.tanh.forward(gen_tconv3_output);
+    double[][][] gen_tconv3_output = this.tconv3.forward(gen_leakyrelu_output3);
+    double[][][] fakeImage = this.tanh.forward(gen_tconv3_output);
         return fakeImage;
-    }
+}
 
     double[][] noises;
     double[][] denseOutputs;
@@ -110,12 +115,16 @@ public class Generator_Implementation_Without_Batchnorm {
     double[][][][] tanhOutputs;
 
     public double[][][][] forwardBatch() {
+        noises = XavierInitializer.xavierInit2D(batchSize, noise_length);
+        for (int sample_idx = 0; sample_idx < batchSize; sample_idx++) {
+            double mag = 0;
+            for (int j = 0; j < noise_length; j++)
+                mag += Math.pow(noises[sample_idx][j], 2);
+            mag = Math.max(Math.sqrt(mag), 0.0000001);
+            for (int j = 0; j < noise_length; j++)
+                noises[sample_idx][j] /= mag; // to set the magnitude of the noise vector to 1
+        }
         for (int i = 0; i < batchSize; i++, System.out.print(verbose ? " " + i : "")) {
-            double[][] noises = new double[batchSize][noise_length]; // generate noise input that we want to pass to the generator
-            for (int sample_idx = 0; sample_idx < batchSize; sample_idx++)
-                for (int j = 0; j < noise_length; j++)
-                    noises[sample_idx][j] = random.nextGaussian();
-
             denseOutputs[i] = dense.forward(noises[i]);
 
             denseOutputsUnflattened[i] = MiscUtils.unflatten(denseOutputs[i], tconv1.inputDepth, tconv1.inputHeight, tconv1.inputWidth);
@@ -230,7 +239,7 @@ public class Generator_Implementation_Without_Batchnorm {
     }
 
     public static void main(String[] args) {
-        Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(8, 0.001);
+        Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(1, 0.001);
 
         System.out.println("tconv1 output shape : " + generator.tconv1.outputDepth + " " + generator.tconv1.outputHeight + " " + generator.tconv1.outputWidth);
         System.out.println("tconv2 output shape : " + generator.tconv2.outputDepth + " " + generator.tconv2.outputHeight + " " + generator.tconv2.outputWidth);
