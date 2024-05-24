@@ -126,7 +126,7 @@ public class Discriminator_Implementation {
     public double[][] forwardBatch(double[][][][] inputs) {
         this.inputs = inputs;
 
-        for (int i = 0; i < inputs.length; i++) {
+        for (int i = 0; i < inputs.length; i++, System.out.print(verbose ? " " + i : "")) {
             outputs_conv1[i] = this.conv1.forward(inputs[i]);
             outputs_leakyRELU1[i] = this.leakyReLULayer1.forward(outputs_conv1[i]);
 
@@ -144,7 +144,7 @@ public class Discriminator_Implementation {
     public double[][][][] backwardBatch(double[][] outputGradients) {
         double[][][][] disc_in_gradients_conv1 = new double[batchSize][][][];
 
-        for (int i = 0; i < batchSize; i++) {
+        for (int i = 0; i < batchSize; i++, System.out.print(verbose ? " " + i : "")) {
             double[] disc_in_gradients_sigmoid = this.sigmoidLayer.backward(outputGradients[i], outputs_sigmoid[i]);
             double[] disc_in_gradient_dense = this.dense.backward(disc_in_gradients_sigmoid);
 

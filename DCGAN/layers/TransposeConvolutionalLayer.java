@@ -8,7 +8,7 @@ import static DCGAN.util.TrainingUtils.calculateGradientRMSE;
 import static DCGAN.util.TrainingUtils.lossMSE;
 
 public class TransposeConvolutionalLayer {
-    double[][][][] filters;
+    public double[][][][] filters;
     //    double[] biases;
     private final int stride;
     double[][][] input;
@@ -52,10 +52,17 @@ public class TransposeConvolutionalLayer {
         this.filters = new double[numFilters][filterDepth][filterSize][filterSize];
 //        this.biases = new double[numFilters]; bias not implemented
 
-        this.filters = new double[numFilters][][][];
-        for (int filter_idx = 0; filter_idx < numFilters; filter_idx++)
-            filters[filter_idx] = XavierInitializer.xavierInit3D(filterDepth, filterSize, filterSize);
-//        this.biases = XavierInitializer.xavierInit1D(numFilters);
+        filters = new double[numFilters][filterDepth][filterSize][filterSize]; // XavierInitializer.xavierInit4D(numFilters, filterDepth, filterSize);
+        for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
+            for (int fd = 0; fd < filterDepth; fd++) {
+                for(int i = 0; i < filterSize; i++) {
+                    for(int j = 0; j < filterSize; j++) {
+                        filters[filter_idx][fd][i][j] = (Math.random()-0.5)*2;
+                    }
+                }
+            }
+        }
+
         this.stride = stride;
 
         this.inputWidth = inputWidth;
@@ -73,7 +80,7 @@ public class TransposeConvolutionalLayer {
         outputWidth = this.stride * (inputWidth - 1) + filterSize - 2 * padding + output_padding + right_bottom_padding;
         outputDepth = numFilters;
 
-        filtersOptimizer = new AdamOptimizer(numFilters * filterDepth * filterSize * filterSize, learning_rate, 0.9, 0.999, 1e-8);
+        filtersOptimizer = new AdamOptimizer(numFilters * filterDepth * filterSize * filterSize, learning_rate, 0.5, 0.999, 1e-8);
     }
 
     public double[][][] forward(double[][][] input) {
@@ -83,7 +90,7 @@ public class TransposeConvolutionalLayer {
         double[][][][] rotated_filters = new double[numFilters][filterDepth][filterSize][filterSize];
         for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
             for (int fd = 0; fd < filterDepth; fd++) {
-                rotated_filters[filter_idx][fd] = MiscUtils.rotate90(MiscUtils.rotate90(filters[filter_idx][fd]));
+                rotated_filters[filter_idx][fd] = MiscUtils.rotate180(filters[filter_idx][fd]);
             }
         }
 

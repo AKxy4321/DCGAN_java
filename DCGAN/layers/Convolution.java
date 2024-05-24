@@ -52,9 +52,19 @@ public class Convolution {
         // but usually we want 3d output, although if you put filter_depth to something smaller, you will get a 4d output which we don't really wanna work with
         this.filter_depth = input_depth;
 
-        this.filters = new double[numFilters][filter_depth][][];
-        for (int filter_idx = 0; filter_idx < numFilters; filter_idx++)
-            filters[filter_idx] = XavierInitializer.xavierInit3D(filter_depth, filterSize, filterSize);
+//        this.filters = new double[numFilters][filter_depth][][];
+//        filters = XavierInitializer.xavierInit4D(numFilters, filter_depth, filterSize);
+        filters = new double[numFilters][filter_depth][filterSize][filterSize]; // XavierInitializer.xavierInit4D(numFilters, filterDepth, filterSize);
+        for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
+            for (int fd = 0; fd < filter_depth; fd++) {
+                for(int i = 0; i < filterSize; i++) {
+                    for(int j = 0; j < filterSize; j++) {
+                        filters[filter_idx][fd][i][j] = (Math.random()-0.5)*2;
+                    }
+                }
+            }
+        }
+
         this.biases = XavierInitializer.xavierInit1D(numFilters);
 
         this.inputPaddingX = inputPaddingX;
@@ -81,11 +91,11 @@ public class Convolution {
             output[d] = convolve3d(input, filters[d], 1, stride, stride)[0];
 
 
-            if (use_bias) {
-                for (int y = 0; y < outputHeight; y++)
-                    for (int x = 0; x < outputWidth; x++)
-                        output[d][y][x] += biases[d];
-            }
+//            if (use_bias) {
+//                for (int y = 0; y < outputHeight; y++)
+//                    for (int x = 0; x < outputWidth; x++)
+//                        output[d][y][x] += biases[d];
+//            }
         }
 
         return output;
