@@ -74,7 +74,7 @@ public class Generator_Implementation_Without_Batchnorm {
 
     public double[][][] generateImage() {
         double[] noise = new double[noise_length]; // generate noise input that we want to pass to the generator
-        for(int i=0;i<noise_length;i++)
+        for (int i = 0; i < noise_length; i++)
             noise[i] = random.nextGaussian();
 
         double[] gen_dense_output = this.dense.forward(noise);
@@ -110,8 +110,11 @@ public class Generator_Implementation_Without_Batchnorm {
     double[][][][] tanhOutputs;
 
     public double[][][][] forwardBatch() {
-        for (int i = 0; i < batchSize; i++,  System.out.print(verbose ? " " + i : "")) {
-            noises[i] = XavierInitializer.xavierInit1D(dense.inputSize);
+        for (int i = 0; i < batchSize; i++, System.out.print(verbose ? " " + i : "")) {
+            double[][] noises = new double[batchSize][noise_length]; // generate noise input that we want to pass to the generator
+            for (int sample_idx = 0; sample_idx < batchSize; sample_idx++)
+                for (int j = 0; j < noise_length; j++)
+                    noises[sample_idx][j] = random.nextGaussian();
 
             denseOutputs[i] = dense.forward(noises[i]);
 
@@ -132,7 +135,7 @@ public class Generator_Implementation_Without_Batchnorm {
             tanhOutputs[i] = tanh.forward(tconv3Outputs[i]);
         }
 
-        if(verbose){
+        if (verbose) {
             MiscUtils.saveImage(getBufferedImage(scaleMinMax(tconv1Outputs[0][0])), "tconv1Outputs[0][0].png");
             MiscUtils.saveImage(getBufferedImage(scaleMinMax(tconv2Outputs[0][0])), "tconv2Outputs[0][0].png");
             MiscUtils.saveImage(getBufferedImage(scaleMinMax(tconv3Outputs[0][0])), "tconv3Outputs[0][0].png");
@@ -187,7 +190,7 @@ public class Generator_Implementation_Without_Batchnorm {
         double[][][][] tconv1_in_gradient_l1_outgrad = new double[batchSize][][][];
         double[][] leakyrelu_in_gradient_d_outgrad_flattened = new double[batchSize][];
 
-        for (int i = 0; i < batchSize; i++,  System.out.print(verbose ? " " + i : "")) {
+        for (int i = 0; i < batchSize; i++, System.out.print(verbose ? " " + i : "")) {
             tanh_in_gradient_t3_outgrad[i] = this.tanh.backward(outputGradients[i], tanhOutputs[i]);
             tconv3_in_gradient_l3_outgrad[i] = this.tconv3.backward(tanh_in_gradient_t3_outgrad[i]);
             leakyrelu3_in_gradient_t2_outgrad[i] = this.leakyReLU3.backward(tconv3_in_gradient_l3_outgrad[i], leakyReLU3Outputs[i]);
