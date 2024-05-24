@@ -140,20 +140,13 @@ public class WGAN {
     }
 
     public static double criticLoss(double[] real_outputs, double[] fake_outputs) {
-        double avg_real_output = 0.0, avg_fake_output = 0.0;
-        for (int i = 0; i < real_outputs.length; i++) {
-            avg_real_output += real_outputs[i];
-            avg_fake_output += fake_outputs[i];
-        }
+        double avg_real_output = MiscUtils.mean(real_outputs), avg_fake_output = MiscUtils.mean(fake_outputs);
         return -(avg_real_output - avg_fake_output); // we want to minimize this
     }
 
 
     public static double generatorLoss(double[] fake_outputs) {
-        double avg_fake_output = 0.0;
-        for (int i = 0; i < fake_outputs.length; i++) {
-            avg_fake_output += fake_outputs[i];
-        }
-        return -avg_fake_output;
+        double avg_fake_output = MiscUtils.mean(fake_outputs);
+        return -avg_fake_output/fake_outputs.length;
     }
 }
