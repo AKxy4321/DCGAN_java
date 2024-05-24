@@ -6,6 +6,7 @@ import DCGAN.layers.*;
 
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
+import java.util.Random;
 
 import static DCGAN.util.MiscUtils.*;
 import static DCGAN.util.TrainingUtils.calculateGradientRMSE;
@@ -24,11 +25,12 @@ public class Generator_Implementation_Without_Batchnorm {
 
     public boolean verbose = false;
     public int batchSize = 1;
+    int noise_length = 100;
+    Random random = new Random(1);
 
     public Generator_Implementation_Without_Batchnorm(int batchSize, double learning_rate) {
         this.batchSize = batchSize;
 
-        int noise_length = 100;
         int tconv1_input_width = 4, tconv1_input_height = 4, tconv1_input_depth = 256;
         this.dense_output_size = tconv1_input_width * tconv1_input_height * tconv1_input_depth;
         this.dense = new DenseLayer(noise_length, this.dense_output_size, learning_rate);
@@ -71,7 +73,9 @@ public class Generator_Implementation_Without_Batchnorm {
     }
 
     public double[][][] generateImage() {
-        double[] noise = XavierInitializer.xavierInit1D(500); // generate noise input that we want to pass to the generator
+        double[] noise = new double[noise_length]; // generate noise input that we want to pass to the generator
+        for(int i=0;i<noise_length;i++)
+            noise[i] = random.nextGaussian();
 
         double[] gen_dense_output = this.dense.forward(noise);
         double[][][] gen_dense_output_unflattened = MiscUtils.unflatten(gen_dense_output, tconv1.inputDepth, tconv1.inputHeight, tconv1.inputWidth);

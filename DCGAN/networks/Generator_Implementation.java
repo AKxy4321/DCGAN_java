@@ -42,12 +42,12 @@ public class Generator_Implementation {
 
     public boolean verbose = false;
     public int batchSize;
+    int noise_length = 100;
 
 
     public Generator_Implementation(int batchSize, double learning_rate) {
         this.batchSize = batchSize;
 
-        int noise_length = 100;
         int tconv1_input_width = 4, tconv1_input_height = 4, tconv1_input_depth = 256;
         this.dense_output_size = tconv1_input_width * tconv1_input_height * tconv1_input_depth;
 
@@ -102,7 +102,7 @@ public class Generator_Implementation {
     }
 
     public double[][][] generateImage() {
-        double[] noise = XavierInitializer.xavierInit1D(100); // generate noise input that we want to pass to the generator
+        double[] noise = XavierInitializer.xavierInit1D(noise_length); // generate noise input that we want to pass to the generator
 
         double[] gen_dense_output = this.dense.forward(noise);
         double[] gen_batch1_output = this.batch1.getOutput(gen_dense_output);
