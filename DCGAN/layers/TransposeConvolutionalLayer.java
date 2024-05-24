@@ -49,18 +49,11 @@ public class TransposeConvolutionalLayer {
         this.numFilters = numFilters;
         this.filterSize = filterSize;
         this.filterDepth = inputDepth;
-        this.filters = new double[numFilters][filterDepth][filterSize][filterSize];
 //        this.biases = new double[numFilters]; bias not implemented
 
         filters = new double[numFilters][filterDepth][filterSize][filterSize]; // XavierInitializer.xavierInit4D(numFilters, filterDepth, filterSize);
         for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
-            for (int fd = 0; fd < filterDepth; fd++) {
-                for(int i = 0; i < filterSize; i++) {
-                    for(int j = 0; j < filterSize; j++) {
-                        filters[filter_idx][fd][i][j] = (Math.random()-0.5)*2;
-                    }
-                }
-            }
+            filters[filter_idx] = XavierInitializer.xavierInit3D(filterDepth,filterSize, filterSize);
         }
 
         this.stride = stride;

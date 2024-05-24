@@ -23,7 +23,7 @@ public class DCGAN_Implementation {
     int label = 9;
     double learning_rate_gen = 0.0003;
     double learning_rate_disc = 0.0001;
-    int batch_size = 8; // 1 for sgd
+    int batch_size = 1; // 1 for sgd
 
     private double disc_loss, gen_loss, accuracy;
 
@@ -59,7 +59,7 @@ public class DCGAN_Implementation {
                 // train discriminator
 //                if (accuracy < 0.90) // we don't want to train the discriminator too much
 //                if (accuracy < 0.6) // we train the discriminator every 5 epochs or if it is not performing well
-                if (batch_idx > 0 && batch_idx % 10 == 0)
+                if (batch_idx > 0 && batch_idx % 5 == 0)
                     train_discriminator(realImages, fakeImages);
 
                 // train generator
