@@ -4,6 +4,10 @@ import DCGAN.optimizers.AdamOptimizer;
 import DCGAN.util.MiscUtils;
 import DCGAN.util.XavierInitializer;
 
+import java.util.Random;
+
+import static DCGAN.layers.Convolution.pad3d;
+import static DCGAN.util.MiscUtils.*;
 import static DCGAN.util.TrainingUtils.calculateGradientRMSE;
 import static DCGAN.util.TrainingUtils.lossMSE;
 
@@ -26,6 +30,17 @@ public class TransposeConvolutionalLayer {
 
     AdamOptimizer filtersOptimizer;
 
+    double[][][][] filtersGradient;
+    double[][][] inputGradient;
+
+    double[][][] stretched_input;
+    double[][][] padded_and_stretched_input;
+    double[][][] output;
+    double[][][] output_slice;
+    double[][][][] rotated_filters;
+    double[][][] paddedOutputGradientSlice;
+    double[][][] inputGradientSlice;
+
 
     public TransposeConvolutionalLayer(int inputDepth, int filterSize, int numFilters, int stride) {
         this(filterSize, numFilters, stride, 28, 28, inputDepth, 0, 0, 0, true);
@@ -46,15 +61,10 @@ public class TransposeConvolutionalLayer {
 
     public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride, int inputWidth, int inputHeight, int inputDepth, int padding, int output_padding, int right_bottom_padding, int outputGradientPadding, boolean useBias, double learning_rate) {
         this.useBias = useBias;
+
         this.numFilters = numFilters;
         this.filterSize = filterSize;
         this.filterDepth = inputDepth;
-//        this.biases = new double[numFilters]; bias not implemented
-
-        filters = new double[numFilters][filterDepth][filterSize][filterSize]; // XavierInitializer.xavierInit4D(numFilters, filterDepth, filterSize);
-        for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
-            filters[filter_idx] = XavierInitializer.xavierInit3D(filterDepth,filterSize, filterSize);
-        }
 
         this.stride = stride;
 
@@ -67,41 +77,98 @@ public class TransposeConvolutionalLayer {
         this.right_bottom_padding = right_bottom_padding;
         this.outputGradientPadding = outputGradientPadding;
 
-        // output_shape = (input_shape - 1) * stride - 2 * padding + kernel_size + output_padding
+//        this.biases = new double[numFilters]; // bias not implemented
 
-        outputHeight = this.stride * (inputHeight - 1) + filterSize - 2 * padding + output_padding + right_bottom_padding;
-        outputWidth = this.stride * (inputWidth - 1) + filterSize - 2 * padding + output_padding + right_bottom_padding;
-        outputDepth = numFilters;
+        filters = new double[numFilters][filterDepth][filterSize][filterSize]; // XavierInitializer.xavierInit4D(numFilters, filterDepth, filterSize);
+        Random random = new Random();
+        for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
+            filters[filter_idx] = XavierInitializer.xavierInit3D(filterDepth, filterSize, filterSize);
+//            for(int fd = 0; fd < filterDepth; fd++) {
+//                for(int i=0;i<filterSize;i++){
+//                    for(int j=0;j<filterSize;j++){
+//                        filters[filter_idx][fd][i][j] = random.nextGaussian(0,0.02);
+//                    }
+//                }
+//            }
+        }
 
         filtersOptimizer = new AdamOptimizer(numFilters * filterDepth * filterSize * filterSize, learning_rate, 0.5, 0.999, 1e-8);
+
+        /**
+         * Ok, so a major reason why the network training is slow is because we keep making too many new arrays in the forward and backward passes.
+         * So, for efficiency's sake, we just initialize them once here, and reuse them in other places.
+         * */
+        filtersGradient = new double[numFilters][filterDepth][filterSize][filterSize];
+        inputGradient = new double[inputDepth][inputHeight][inputWidth];
+        stretched_input = new double[inputDepth + (inputDepth - 1) * (0)]
+                [inputHeight + (inputHeight - 1) * (stride - 1)]
+                [inputWidth + (inputWidth - 1) * (stride - 1)];
+        int stretched_input_depth = stretched_input.length;
+        int stretched_input_height = stretched_input[0].length;
+        int stretched_input_width = stretched_input[0][0].length;
+        int paddedInputDepth = stretched_input_depth + 0 + 0;
+        int paddedInputHeight = stretched_input_height + padding + padding + right_bottom_padding;
+        int paddedInputWidth = stretched_input_width + padding + padding + right_bottom_padding;
+        padded_and_stretched_input = new double[paddedInputDepth][paddedInputHeight][paddedInputWidth];
+
+        rotated_filters = new double[numFilters][filterDepth][filterSize][filterSize];
+
+        this.outputWidth = (int) Math.floor((double) (paddedInputWidth - filterSize) / 1 + 1);
+        this.outputHeight = (int) Math.floor((double) (paddedInputHeight - filterSize) / 1 + 1);
+        this.outputDepth = numFilters;
+
+        paddedOutputGradientSlice = new double[1 + 2 * (filterDepth - 1)][outputHeight + 2 * outputGradientPadding][outputWidth + 2 * outputGradientPadding];
+        inputGradientSlice = new double[inputDepth][inputHeight][inputWidth];
     }
 
     public double[][][] forward(double[][][] input) {
-        // considering "same" padding
-        this.input = input;
+        if (output == null)
+            output = new double[numFilters][outputHeight][outputWidth];
 
-        double[][][][] rotated_filters = new double[numFilters][filterDepth][filterSize][filterSize];
-        for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
-            for (int fd = 0; fd < filterDepth; fd++) {
-                rotated_filters[filter_idx][fd] = MiscUtils.rotate180(filters[filter_idx][fd]);
-            }
-        }
-
-        double[][][] stretched_input = MiscUtils.addZeroesInBetween(input, 0, stride - 1, stride - 1);
-        // "same" padding
-        double[][][] padded_and_stretched_input = Convolution.pad3d(stretched_input, 0, 0, padding, padding + right_bottom_padding, padding, padding + right_bottom_padding);
-
-        double[][][] output = new double[numFilters][outputHeight][outputWidth];
-
-        for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
-            output[filter_idx] = Convolution.convolve3d(padded_and_stretched_input, rotated_filters[filter_idx], 1, 1, 1)[0];
-        }
-
+        fillZeroes(output);
+        forward(output, input);
         return output;
     }
 
+    public void forward(double[][][] output, double[][][] input) {
+        // our temporary array that is going to hold the convolution results for each filter
+        if (output_slice == null)
+            output_slice = new double[1][outputHeight][outputWidth];
+
+        // reset the arrays before using them
+        fillZeroes(stretched_input);
+        fillZeroes(padded_and_stretched_input);
+        fillZeroes(rotated_filters);
+
+        this.input = input;
+
+        for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
+            for (int fd = 0; fd < filterDepth; fd++) {
+                rotate180(rotated_filters[filter_idx][fd], filters[filter_idx][fd]); // rotate filter and store in rotated_filters
+            }
+        }
+
+        MiscUtils.addZeroesInBetween(stretched_input, input, 0, stride - 1, stride - 1);
+        pad3d(padded_and_stretched_input, stretched_input, 0, 0, padding, padding + right_bottom_padding, padding, padding + right_bottom_padding);
+
+        for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
+            fillZeroes(output_slice); // reset our output_slice array
+
+            Convolution.convolve3d(output_slice, // our destination array
+                    padded_and_stretched_input, rotated_filters[filter_idx], // convolution of the transformed_input and the rotated_filter
+                    1, 1, 1); // our strides
+
+            // copy the output_slice to the output array at filter_idx
+            copyArray(output_slice[0], output[filter_idx]);
+        }
+    }
 
     public double[][][] backward(double[][][] outputGradient) {
+        backward(inputGradient, outputGradient);
+        return inputGradient;
+    }
+
+    public void backward(double[][][] inputGradient, double[][][] outputGradient) {
         /**
          * Consider implementing the convolution by multiplying matrices. Given an input vector x and a weight
          * matrix W, the forward propagation function of the convolution can be implemented by multiplying its
@@ -113,22 +180,28 @@ public class TransposeConvolutionalLayer {
          * with W^T and W, respectively.
          * */
 
-        double[][][] inputGradient = new double[inputDepth][inputHeight][inputWidth];
+
+        // reset the inputGradient array
+        fillZeroes(inputGradient);
 
         for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
-            double[][][] inputGradientSlice = Convolution.convolve3d(
-                    Convolution.pad3d(
-                            new double[][][]{outputGradient[filter_idx]},
-                            filterDepth - 1, filterDepth - 1,
-                            outputGradientPadding, outputGradientPadding,
-                            outputGradientPadding, outputGradientPadding),
+            fillZeroes(inputGradientSlice); // reset our inputGradientSlice array
+            fillZeroes(paddedOutputGradientSlice); // reset our paddedOutputGradientSlice array
+
+            pad3d(paddedOutputGradientSlice, // this is where the result of padding the array will be stored
+                    new double[][][]{outputGradient[filter_idx]}, // this is what we want to pad
+                    filterDepth - 1, filterDepth - 1,
+                    outputGradientPadding, outputGradientPadding,
+                    outputGradientPadding, outputGradientPadding);
+
+            Convolution.convolve3d(
+                    inputGradientSlice, // this is where the result of convolution will be stored
+                    paddedOutputGradientSlice, // this is the input array which we are convolving the filters with
                     filters[filter_idx],
                     1, stride, stride);
 
-            if (inputGradientSlice[0].length != inputHeight) {
-                System.out.println("Input gradient slice shape not as expected");
-            }
-
+            // now we have to store the inputGradientSlice in the inputGradient array
+            // but we have to reverse it along the depth dimension.
             for (int c = 0; c < inputDepth; c++) {
                 for (int i = 0; i < inputHeight; i++) {
                     for (int j = 0; j < inputWidth; j++) {
@@ -136,22 +209,7 @@ public class TransposeConvolutionalLayer {
                     }
                 }
             }
-
-
-            if (filter_idx == 0 && (inputDepth != inputGradient.length || inputWidth != inputGradient[0].length || inputWidth != inputGradient[0][0].length)) {
-                // warning
-                System.out.println("Warning : inputGradient shape is not as expected. Please change layer dimensions to avoid errors.");
-                System.out.println("filterSize : " + filterSize + " filterDepth : " + 1);
-                System.out.println("inputDepth : " + inputDepth + " inputHeight : " + inputHeight + " inputWidth : " + inputWidth);
-                System.out.println("outputDepth : " + outputDepth + " outputHeight : " + outputHeight + " outputWidth : " + outputWidth);
-                System.out.println("Update Parameters method:");
-                System.out.println("inputGradientPerFilter is supposed to be of shape : " + inputDepth + "x" + inputHeight + "x" + inputWidth);
-                System.out.println("inputGradient Shape : " + inputGradient.length + " " + inputGradient[0].length + " " + inputGradient[0][0].length);
-            }
         }
-
-
-        return inputGradient;
     }
 
 
@@ -163,13 +221,17 @@ public class TransposeConvolutionalLayer {
          so that the output of convolution is of the same shape as the filterGradients, we have to pad the input accordingly
          */
 
-        double[][][][] filtersGradient = new double[numFilters][filterDepth][filterSize][filterSize];
+        // reset the filtersGradient and stretched_input array
+        fillZeroes(filtersGradient);
+        fillZeroes(stretched_input);
+//        double[][][][] filtersGradient = new double[numFilters][filterDepth][filterSize][filterSize];
+//        double[][][] stretched_input = MiscUtils.addZeroesInBetween(input, 0, stride - 1, stride - 1);
 
-        double[][][] stretched_input = MiscUtils.addZeroesInBetween(input, 0, stride - 1, stride - 1);
+        MiscUtils.addZeroesInBetween(stretched_input, input, 0, stride - 1, stride - 1);
 
         for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
             double[][][] result = Convolution.convolve3d(
-                    Convolution.pad3d(new double[][][]{outputGradient[filter_idx]},
+                    pad3d(new double[][][]{outputGradient[filter_idx]},
                             filterDepth - 1, filterDepth - 1,
                             outputGradientPadding, outputGradientPadding,
                             outputGradientPadding, outputGradientPadding
@@ -206,7 +268,7 @@ public class TransposeConvolutionalLayer {
         double[][][][][] filtersGradients = new double[outputGradients.length][numFilters][filterDepth][filterSize][filterSize];
 
         for (int sample_idx = 0; sample_idx < outputGradients.length; sample_idx++)
-            filtersGradients[sample_idx] = getFilterGradient(outputGradients[sample_idx], inputs[sample_idx]);
+            copyArray(getFilterGradient(outputGradients[sample_idx], inputs[sample_idx]), filtersGradients[sample_idx]);
 
         filtersOptimizer.updateParameters(filters, MiscUtils.mean_1st_layer(filtersGradients));
     }

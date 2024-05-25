@@ -59,28 +59,35 @@ public class Generator_Implementation {
         this.tconv1 = new TransposeConvolutionalLayer(3, 128, 2,
                 tconv1_input_width, tconv1_input_height, tconv1_input_depth,
                 1, 0, 0, 1, false, learning_rate);
-        tconv1.outputHeight = 7;
-        tconv1.outputWidth = 7;
+        assert tconv1.outputHeight == 7;
+        assert tconv1.outputWidth == 7;
         this.batch2 = new BatchNormalization(tconv1.outputDepth * tconv1.outputHeight * tconv1.outputWidth, learning_rate);
         this.leakyReLU2 = new LeakyReLULayer();
 
         this.tconv2 = new TransposeConvolutionalLayer(4, 64, 2,
                 tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth,
                 2, 0, 0, 1, false, learning_rate);
-        tconv2.outputHeight = 14;
-        tconv2.outputWidth = 14;
+        assert tconv2.outputHeight == 14;
+        assert tconv2.outputWidth == 14;
         this.batch3 = new BatchNormalization(tconv2.outputDepth * tconv2.outputHeight * tconv2.outputWidth, learning_rate);
         this.leakyReLU3 = new LeakyReLULayer();
 
         this.tconv3 = new TransposeConvolutionalLayer(4, 1, 2,
                 tconv2.outputWidth, tconv2.outputHeight, tconv2.outputDepth,
                 2, 0, 0, 1, false, learning_rate);
-        tconv3.outputHeight = 28;
-        tconv3.outputWidth = 28;
+        assert tconv3.outputHeight == 28;
+        assert tconv3.outputWidth == 28;
         this.tanh = new TanhLayer();
 
 
-        // intialize the arrays
+        initArrays();
+    }
+
+    private void initArrays() {
+        /**
+         * initializes the arrays that will be used during forward and backward passes of batches
+         * */
+
         noises = new double[batchSize][100];
 
         gen_dense_outputs = new double[batchSize][dense_output_size];
@@ -139,6 +146,7 @@ public class Generator_Implementation {
     double[][] noises;
 
     public double[][][][] forwardBatch() {
+        // reset Arrays
 
         for (int i = 0; i < batchSize; i++) {
             noises[i] = XavierInitializer.xavierInit1D(100); // generate noise input that we want to pass to the generator
@@ -151,7 +159,7 @@ public class Generator_Implementation {
         for (int i = 0; i < batchSize; i++) {
             double[][][] gen_batch1_output_unflattened = MiscUtils.unflatten(gen_batchnorm1_outputs[i], tconv1.inputDepth, tconv1.inputHeight, tconv1.inputWidth);
             gen_leakyrelu1_outputs[i] = this.leakyReLU1.forward(gen_batch1_output_unflattened);
-            gen_tconv1_outputs[i] = this.tconv1.forward(gen_leakyrelu1_outputs[i]);
+            this.tconv1.forward(gen_tconv1_outputs[i], gen_leakyrelu1_outputs[i]); // do forward pass and store the result in gen_tconv1_outputs[i]
 
             gen_outputs_tconv1_flattened[i] = MiscUtils.flatten(gen_tconv1_outputs[i]);
         }
@@ -161,7 +169,7 @@ public class Generator_Implementation {
         for (int i = 0; i < batchSize; i++) {
             double[][][] gen_batch2_output_unflattened = MiscUtils.unflatten(gen_batchnorm2_outputs[i], tconv2.inputDepth, tconv2.inputHeight, tconv2.inputWidth);
             gen_leakyrelu2_outputs[i] = this.leakyReLU2.forward(gen_batch2_output_unflattened);
-            gen_tconv2_outputs[i] = this.tconv2.forward(gen_leakyrelu2_outputs[i]);
+            this.tconv2.forward(gen_tconv2_outputs[i], gen_leakyrelu2_outputs[i]); // do forward pass and store the result in gen_tconv2_outputs[i]
 
             gen_outputs_tconv2_flattened[i] = MiscUtils.flatten(gen_tconv2_outputs[i]);
         }
@@ -172,7 +180,7 @@ public class Generator_Implementation {
             double[][][] gen_batch3_output_unflattened = MiscUtils.unflatten(gen_batchnorm3_outputs[i], tconv3.inputDepth, tconv3.inputHeight, tconv3.inputWidth);
             gen_leakyrelu3_outputs[i] = this.leakyReLU3.forward(gen_batch3_output_unflattened);
 
-            gen_tconv3_outputs[i] = this.tconv3.forward(gen_leakyrelu3_outputs[i]);
+            this.tconv3.forward(gen_tconv3_outputs[i], gen_leakyrelu3_outputs[i]); // do forward pass and store the result in gen_tconv3_outputs[i]
 
             double[][][] fakeImage = this.tanh.forward(gen_tconv3_outputs[i]);
 
@@ -199,7 +207,7 @@ public class Generator_Implementation {
         double[][] leakyrelu_in_gradients_flattened_batch1_outgrad = new double[batchSize][];
 
 
-        for (int i = 0; i < batchSize; i++, System.out.print(verbose?i+" ":" ")) {
+        for (int i = 0; i < batchSize; i++, System.out.print(verbose ? i + " " : " ")) {
             tanh_in_gradients[i] = this.tanh.backward(gen_output_gradients[i], fakeImages[i]);
 
             leakyrelu3_in_gradients[i] = this.leakyReLU3.backward(this.tconv3.backward(tanh_in_gradients[i]), gen_leakyrelu3_outputs[i]);
@@ -209,7 +217,7 @@ public class Generator_Implementation {
 
         double[][] batch3_in_gradients = this.batch3.backward(leakyrelu3_in_gradients_flattened_batch3_outgrad);
 
-        for (int i = 0; i < batchSize; i++, System.out.print(verbose?i+" ":" ")) {
+        for (int i = 0; i < batchSize; i++, System.out.print(verbose ? i + " " : " ")) {
             batch3_in_gradients_unflattened[i] = MiscUtils.unflatten(batch3_in_gradients[i], tconv2.outputDepth, tconv2.outputHeight, tconv2.outputWidth);
             double[][][] tconv2_in_gradient = this.tconv2.backward(batch3_in_gradients_unflattened[i]);
 
@@ -219,7 +227,7 @@ public class Generator_Implementation {
 
         double[][] batch2_in_gradients_flattened = this.batch2.backward(leakyrelu2_in_gradients_flattened_batch2_outgrad);
 
-        for (int i = 0; i < batchSize; i++, System.out.print(verbose?i+" ":" ")) {
+        for (int i = 0; i < batchSize; i++, System.out.print(verbose ? i + " " : " ")) {
             batch2_in_gradients_unflattened[i] = MiscUtils.unflatten(batch2_in_gradients_flattened[i], tconv1.outputDepth, tconv1.outputHeight, tconv1.outputWidth);
 
             double[][][] tconv1_in_gradient = this.tconv1.backward(batch2_in_gradients_unflattened[i]);

@@ -4,6 +4,7 @@ import DCGAN.optimizers.AdamOptimizer;
 import DCGAN.util.MiscUtils;
 import DCGAN.util.XavierInitializer;
 
+import java.util.Random;
 import java.util.logging.Logger;
 
 public class Convolution {
@@ -55,11 +56,12 @@ public class Convolution {
 //        this.filters = new double[numFilters][filter_depth][][];
 //        filters = XavierInitializer.xavierInit4D(numFilters, filter_depth, filterSize);
         filters = new double[numFilters][filter_depth][filterSize][filterSize]; // XavierInitializer.xavierInit4D(numFilters, filterDepth, filterSize);
+        Random random = new Random();
         for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
 //            for (int fd = 0; fd < filter_depth; fd++) {
 //                for(int i = 0; i < filterSize; i++) {
 //                    for(int j = 0; j < filterSize; j++) {
-//                        filters[filter_idx][fd][i][j] = (Math.random()-0.5)*2;
+//                        filters[filter_idx][fd][i][j] = random.nextGaussian(0,0.02);
 //                    }
 //                }
 //            }
@@ -260,10 +262,10 @@ public class Convolution {
         return paddedInput;
     }
 
-    public static double[][][] pad3d(double[][][] paddedAndStretchedInput, int front, int back, int up, int bottom, int left, int right) {
-        int input_depth = paddedAndStretchedInput.length;
-        int input_height = paddedAndStretchedInput[0].length;
-        int input_width = paddedAndStretchedInput[0][0].length;
+    public static double[][][] pad3d(double[][][] array, int front, int back, int up, int bottom, int left, int right) {
+        int input_depth = array.length;
+        int input_height = array[0].length;
+        int input_width = array[0][0].length;
 
         int paddedInputDepth = input_depth + front + back;
         int paddedInputHeight = input_height + up + bottom;
@@ -271,10 +273,18 @@ public class Convolution {
 
         double[][][] paddedInput = new double[paddedInputDepth][paddedInputHeight][paddedInputWidth];
 
+        return pad3d(paddedInput, array, front, back, up, bottom, left, right);
+    }
+
+    public static double[][][] pad3d(double[][][] paddedInput, double[][][] array, int front, int back, int up, int bottom, int left, int right){
+        int input_depth = array.length;
+        int input_height = array[0].length;
+        int input_width = array[0][0].length;
+
         for (int d = 0; d < input_depth; d++) {
             for (int h = 0; h < input_height; h++) {
                 for (int w = 0; w < input_width; w++) {
-                    paddedInput[d + front][h + up][w + left] = paddedAndStretchedInput[d][h][w];
+                    paddedInput[d + front][h + up][w + left] = array[d][h][w];
                 }
             }
         }
@@ -295,18 +305,10 @@ public class Convolution {
         return convolve3d(input, filter, stride, stride, stride);
     }
 
-
     public static double[][][] convolve3d(double[][][] input, double[][][] filter, int z_stride, int y_stride, int x_stride) {
-//        System.out.println("Input before padding:");
-//        UTIL.prettyprint(input);
-
         int input_width = input[0][0].length;
         int input_height = input[0].length;
         int input_depth = input.length;
-
-//        System.out.println("Padded input : ");
-//        UTIL.prettyprint(input);
-
 
         int filterHeight = filter[0].length;
         int filterWidth = filter[0][0].length;
@@ -320,6 +322,29 @@ public class Convolution {
 
         double[][][] output = new double[output_depth][output_height][output_width];
 
+        return convolve3d(output, input, filter, z_stride, y_stride, x_stride);
+    }
+
+
+    public static double[][][] convolve3d(double[][][] output, double[][][] input, double[][][] filter, int z_stride, int y_stride, int x_stride) {
+        int input_width = input[0][0].length;
+        int input_height = input[0].length;
+        int input_depth = input.length;
+
+        int filterHeight = filter[0].length;
+        int filterWidth = filter[0][0].length;
+        int filterDepth = filter.length;
+
+        // output_shape = ((input_height - kernel_size + 2 * padding) / stride) + 1
+        // padding is already applied, so we can omit it in the below formula
+        int output_width = (int) Math.floor((double) (input_width - filterWidth) / x_stride + 1);
+        int output_height = (int) Math.floor((double) (input_height - filterHeight) / y_stride + 1);
+        int output_depth = (int) Math.floor((double) (input_depth - filterDepth) / z_stride + 1);
+
+        // assert that output_width is equal to the width of the output array
+        assert output[0][0].length == output_width;
+        assert output[0].length == output_height;
+        assert output.length == output_depth;
 
         int z = 0;
         for (int output_z = 0; output_z < output_depth; z += z_stride, output_z++) {

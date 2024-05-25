@@ -24,14 +24,14 @@ public class Generator_Implementation_Without_Batchnorm {
     TanhLayer tanh;
 
     public boolean verbose = false;
-    public int batchSize = 1;
+    public int batchSize;
     int noise_length = 100;
     Random random = new Random(1);
 
     public Generator_Implementation_Without_Batchnorm(int batchSize, double learning_rate) {
         this.batchSize = batchSize;
 
-        int tconv1_input_width = 4, tconv1_input_height = 4, tconv1_input_depth = 256;
+        int tconv1_input_width = 4, tconv1_input_height = 4, tconv1_input_depth = 64;
         this.dense_output_size = tconv1_input_width * tconv1_input_height * tconv1_input_depth;
         this.dense = new DenseLayer(noise_length, this.dense_output_size, learning_rate);
         this.leakyReLU1 = new LeakyReLULayer(0.1);
@@ -40,36 +40,39 @@ public class Generator_Implementation_Without_Batchnorm {
         this.tconv1 = new TransposeConvolutionalLayer(3, 64, 2,
                 tconv1_input_width, tconv1_input_height, tconv1_input_depth,
                 1, 0, 0, 1, false, learning_rate);
-        tconv1.outputHeight = 7;
-        tconv1.outputWidth = 7;
+        assert tconv1.outputHeight == 7;
+        assert tconv1.outputWidth == 7;
         this.leakyReLU2 = new LeakyReLULayer(0.1);
 
         this.tconv2 = new TransposeConvolutionalLayer(4, 64, 2,
                 tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth,
                 2, 0, 0, 1, false, learning_rate);
-        tconv2.outputHeight = 14;
-        tconv2.outputWidth = 14;
+        assert tconv2.outputHeight == 14;
+        assert tconv2.outputWidth == 14;
         this.leakyReLU3 = new LeakyReLULayer(0.1);
 
         this.tconv3 = new TransposeConvolutionalLayer(4, 1, 2,
                 tconv2.outputWidth, tconv2.outputHeight, tconv2.outputDepth,
                 2, 0, 0, 1, false, learning_rate);
-        tconv3.outputHeight = 28;
-        tconv3.outputWidth = 28;
+        assert tconv3.outputHeight == 28;
+        assert tconv3.outputWidth == 28;
         // (i + 4 - 1) + 3 - 2*0 = i + 6
         this.tanh = new TanhLayer();
 
 
         noises = new double[batchSize][dense.inputSize];
-        denseOutputs = new double[batchSize][];
-        denseOutputsUnflattened = new double[batchSize][][][];
-        leakyReLU1Outputs = new double[batchSize][][][];
-        tconv1Outputs = new double[batchSize][][][];
-        leakyReLU2Outputs = new double[batchSize][][][];
-        tconv2Outputs = new double[batchSize][][][];
-        leakyReLU3Outputs = new double[batchSize][][][];
-        tconv3Outputs = new double[batchSize][][][];
-        tanhOutputs = new double[batchSize][][][];
+        denseOutputs = new double[batchSize][dense.outputSize];
+        denseOutputsUnflattened = new double[batchSize][tconv1.inputDepth][tconv1.inputHeight][tconv1.inputWidth];
+        leakyReLU1Outputs = new double[batchSize][tconv1.inputDepth][tconv1.inputHeight][tconv1.inputWidth];
+
+        tconv1Outputs = new double[batchSize][tconv1.outputDepth][tconv1.outputHeight][tconv1.outputWidth];
+        leakyReLU2Outputs = new double[batchSize][tconv1.outputDepth][tconv1.outputHeight][tconv1.outputWidth];
+
+        tconv2Outputs = new double[batchSize][tconv2.outputDepth][tconv2.outputHeight][tconv2.outputWidth];
+        leakyReLU3Outputs = new double[batchSize][tconv2.outputDepth][tconv2.outputHeight][tconv2.outputWidth];
+
+        tconv3Outputs = new double[batchSize][tconv3.outputDepth][tconv3.outputHeight][tconv3.outputWidth];
+        tanhOutputs = new double[batchSize][tconv3.outputDepth][tconv3.outputHeight][tconv3.outputWidth];
     }
 
     public double[][][] generateImage() {
@@ -82,26 +85,26 @@ public class Generator_Implementation_Without_Batchnorm {
         for (int j = 0; j < noise_length; j++)
             noise[j] /= mag; // to set the magnitude of the noise vector to 1
 
-    double[] gen_dense_output = this.dense.forward(noise);
-    double[][][] gen_dense_output_unflattened = MiscUtils.unflatten(gen_dense_output, tconv1.inputDepth, tconv1.inputHeight, tconv1.inputWidth);
-    double[][][] gen_leakyrelu_output1 = this.leakyReLU1.forward(gen_dense_output_unflattened);
+        double[] gen_dense_output = this.dense.forward(noise);
+        double[][][] gen_dense_output_unflattened = MiscUtils.unflatten(gen_dense_output, tconv1.inputDepth, tconv1.inputHeight, tconv1.inputWidth);
+        double[][][] gen_leakyrelu_output1 = this.leakyReLU1.forward(gen_dense_output_unflattened);
 
 //        saveImage(getBufferedImage(gen_leakyrelu_output1), "gen_leakyrelu_output1.png");
 
-    double[][][] outputTconv1 = this.tconv1.forward(gen_leakyrelu_output1);
-    double[][][] gen_leakyrelu_output2 = this.leakyReLU2.forward(outputTconv1);
+        double[][][] outputTconv1 = this.tconv1.forward(gen_leakyrelu_output1);
+        double[][][] gen_leakyrelu_output2 = this.leakyReLU2.forward(outputTconv1);
 
 //        saveImage(getBufferedImage(gen_leakyrelu_output2), "gen_leakyrelu_output2.png");
 
-    double[][][] outputTconv2 = this.tconv2.forward(gen_leakyrelu_output2);
-    double[][][] gen_leakyrelu_output3 = this.leakyReLU3.forward(outputTconv2);
+        double[][][] outputTconv2 = this.tconv2.forward(gen_leakyrelu_output2);
+        double[][][] gen_leakyrelu_output3 = this.leakyReLU3.forward(outputTconv2);
 
 //        saveImage(getBufferedImage(gen_leakyrelu_output3), "gen_leakyrelu_output3.png");
 
-    double[][][] gen_tconv3_output = this.tconv3.forward(gen_leakyrelu_output3);
-    double[][][] fakeImage = this.tanh.forward(gen_tconv3_output);
+        double[][][] gen_tconv3_output = this.tconv3.forward(gen_leakyrelu_output3);
+        double[][][] fakeImage = this.tanh.forward(gen_tconv3_output);
         return fakeImage;
-}
+    }
 
     double[][] noises;
     double[][] denseOutputs;
@@ -131,15 +134,15 @@ public class Generator_Implementation_Without_Batchnorm {
 
             leakyReLU1Outputs[i] = leakyReLU1.forward(denseOutputsUnflattened[i]);
 
-            tconv1Outputs[i] = tconv1.forward(leakyReLU1Outputs[i]);
+            tconv1.forward(tconv1Outputs[i], leakyReLU1Outputs[i]); // do forward pass and store the result in tconv1Outputs[i]
 
             leakyReLU2Outputs[i] = leakyReLU2.forward(tconv1Outputs[i]);
 
-            tconv2Outputs[i] = tconv2.forward(leakyReLU2Outputs[i]);
+            tconv2.forward(tconv2Outputs[i], leakyReLU2Outputs[i]); // do forward pass and store the result in tconv2Outputs[i]
 
             leakyReLU3Outputs[i] = leakyReLU3.forward(tconv2Outputs[i]);
 
-            tconv3Outputs[i] = tconv3.forward(leakyReLU3Outputs[i]);
+            tconv3.forward(tconv3Outputs[i], leakyReLU3Outputs[i]); // do forward pass and store the result in tconv3Outputs[i]
 
             tanhOutputs[i] = tanh.forward(tconv3Outputs[i]);
         }
@@ -154,60 +157,30 @@ public class Generator_Implementation_Without_Batchnorm {
         return tanhOutputs;
     }
 
-    public void updateParameters(double[][][] gen_output_gradient) {
-
-        double[][][] tanh_in_gradient_t3_outgrad = this.tanh.backward(gen_output_gradient);
-        double[][][] tconv3_in_gradient_l3_outgrad = this.tconv3.backward(tanh_in_gradient_t3_outgrad);
-        double[][][] leakyrelu3_in_gradient_t2_outgrad = this.leakyReLU3.backward(tconv3_in_gradient_l3_outgrad);
-
-        double[][][] tconv2_in_gradient_l2_outgrad = this.tconv2.backward(leakyrelu3_in_gradient_t2_outgrad);
-        double[][][] leakyrelu2_in_gradient_t1_outgrad = this.leakyReLU2.backward(tconv2_in_gradient_l2_outgrad);
-
-        double[][][] tconv1_in_gradient_l1_outgrad = this.tconv1.backward(leakyrelu2_in_gradient_t1_outgrad);
-        double[][][] leakyrelu_in_gradient_d_outgrad = this.leakyReLU1.backward(tconv1_in_gradient_l1_outgrad);
-
-        double[] leakyrelu_in_gradient_d_outgrad_flattened = MiscUtils.flatten(leakyrelu_in_gradient_d_outgrad);
-
-        double[] dense_in_gradient = this.dense.backward(leakyrelu_in_gradient_d_outgrad_flattened);
-
-        this.tconv1.updateParameters(leakyrelu2_in_gradient_t1_outgrad);
-        this.tconv2.updateParameters(leakyrelu3_in_gradient_t2_outgrad);
-        this.tconv3.updateParameters(tanh_in_gradient_t3_outgrad);
-        this.dense.updateParameters(leakyrelu_in_gradient_d_outgrad_flattened);
-
-        if (verbose) {
-            // print out the sum of each gradient by flattening it and summing it up using stream().sum()
-            System.out.println("Sum of each gradient in generator: ");
-
-            System.out.println("tanh_in_gradient: " + Arrays.stream(MiscUtils.flatten(tanh_in_gradient_t3_outgrad)).sum());
-            System.out.println("leakyrelu3_in_gradient: " + Arrays.stream(MiscUtils.flatten(leakyrelu3_in_gradient_t2_outgrad)).sum());
-            System.out.println("tconv2_in_gradient: " + Arrays.stream(MiscUtils.flatten(tconv2_in_gradient_l2_outgrad)).sum());
-            System.out.println("leakyrelu2_in_gradient: " + Arrays.stream(MiscUtils.flatten(leakyrelu2_in_gradient_t1_outgrad)).sum());
-            System.out.println("tconv1_in_gradient: " + Arrays.stream(MiscUtils.flatten(tconv1_in_gradient_l1_outgrad)).sum());
-            System.out.println("leakyrelu_in_gradient: " + Arrays.stream(MiscUtils.flatten(leakyrelu_in_gradient_d_outgrad)).sum());
-            System.out.println("leakyrelu_in_gradient_flattened: " + Arrays.stream(leakyrelu_in_gradient_d_outgrad_flattened).sum());
-            System.out.println("dense_in_gradient: " + Arrays.stream(dense_in_gradient).sum());
-        }
-    }
-
     public void updateParametersBatch(double[][][][] outputGradients) {
-        double[][][][] tanh_in_gradient_t3_outgrad = new double[batchSize][][][];
-        double[][][][] tconv3_in_gradient_l3_outgrad = new double[batchSize][][][];
-        double[][][][] leakyrelu3_in_gradient_t2_outgrad = new double[batchSize][][][];
-        double[][][][] tconv2_in_gradient_l2_outgrad = new double[batchSize][][][];
-        double[][][][] leakyrelu2_in_gradient_t1_outgrad = new double[batchSize][][][];
-        double[][][][] tconv1_in_gradient_l1_outgrad = new double[batchSize][][][];
+        // in_gradient means the gradient of the loss function with respect to the input of this layer
+        // outgrad means the gradient of the loss function with respect to the output of this layer
+
+        double[][][][] tconv1_in_gradient_l1_outgrad = new double[batchSize][tconv1.inputDepth][tconv1.inputHeight][tconv1.inputWidth];
+        double[][][][] tconv2_in_gradient_l2_outgrad = new double[batchSize][tconv2.inputDepth][tconv2.inputHeight][tconv2.inputWidth];
+        double[][][][] tconv3_in_gradient_l3_outgrad = new double[batchSize][tconv3.inputDepth][tconv3.inputHeight][tconv3.inputWidth];
+
         double[][] leakyrelu_in_gradient_d_outgrad_flattened = new double[batchSize][];
+        double[][][][] leakyrelu2_in_gradient_t1_outgrad = new double[batchSize][][][];
+        double[][][][] leakyrelu3_in_gradient_t2_outgrad = new double[batchSize][][][];
+
+        double[][][][] tanh_in_gradient_t3_outgrad = new double[batchSize][][][];
+
 
         for (int i = 0; i < batchSize; i++, System.out.print(verbose ? " " + i : "")) {
             tanh_in_gradient_t3_outgrad[i] = this.tanh.backward(outputGradients[i], tanhOutputs[i]);
-            tconv3_in_gradient_l3_outgrad[i] = this.tconv3.backward(tanh_in_gradient_t3_outgrad[i]);
+            this.tconv3.backward(tconv3_in_gradient_l3_outgrad[i], tanh_in_gradient_t3_outgrad[i]); // do backward and store the input gradient in the first array
             leakyrelu3_in_gradient_t2_outgrad[i] = this.leakyReLU3.backward(tconv3_in_gradient_l3_outgrad[i], leakyReLU3Outputs[i]);
 
-            tconv2_in_gradient_l2_outgrad[i] = this.tconv2.backward(leakyrelu3_in_gradient_t2_outgrad[i]);
+            this.tconv2.backward(tconv2_in_gradient_l2_outgrad[i], leakyrelu3_in_gradient_t2_outgrad[i]); // do backward and store the input gradient in the first array
             leakyrelu2_in_gradient_t1_outgrad[i] = this.leakyReLU2.backward(tconv2_in_gradient_l2_outgrad[i], leakyReLU2Outputs[i]);
 
-            tconv1_in_gradient_l1_outgrad[i] = this.tconv1.backward(leakyrelu2_in_gradient_t1_outgrad[i]);
+            this.tconv1.backward(tconv1_in_gradient_l1_outgrad[i], leakyrelu2_in_gradient_t1_outgrad[i]); // do backward and store the input gradient in the first array
             double[][][] leakyrelu_in_gradient_d_outgrad = this.leakyReLU1.backward(tconv1_in_gradient_l1_outgrad[i], leakyReLU1Outputs[i]);
 
             leakyrelu_in_gradient_d_outgrad_flattened[i] = MiscUtils.flatten(leakyrelu_in_gradient_d_outgrad);
@@ -239,7 +212,8 @@ public class Generator_Implementation_Without_Batchnorm {
     }
 
     public static void main(String[] args) {
-        Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(1, 0.001);
+        // 2:15 min per epoch
+        Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(8, 0.001);
 
         System.out.println("tconv1 output shape : " + generator.tconv1.outputDepth + " " + generator.tconv1.outputHeight + " " + generator.tconv1.outputWidth);
         System.out.println("tconv2 output shape : " + generator.tconv2.outputDepth + " " + generator.tconv2.outputHeight + " " + generator.tconv2.outputWidth);

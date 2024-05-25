@@ -302,10 +302,14 @@ public class MiscUtils {
 
     public static double[][] rotate180(double[][] array) {
         double[][] rotated = new double[array.length][array[0].length];
-        for (int i = 0; i < array.length; i++)
-            for (int j = 0; j < array[0].length; j++)
-                rotated[i][j] = array[array.length - i - 1][array[0].length - j - 1];
+        rotate180(rotated, array);
         return rotated;
+    }
+
+    public static void rotate180(double[][] destination_array, double[][] src_array) {
+        for (int i = 0; i < src_array.length; i++)
+            for (int j = 0; j < src_array[0].length; j++)
+                destination_array[i][j] = src_array[src_array.length - i - 1][src_array[0].length - j - 1];
     }
 
     public static double[][] rotate90(double[][] array) {
@@ -372,6 +376,10 @@ public class MiscUtils {
 
 //        UTIL.prettyprint(output);
 
+        return addZeroesInBetween(output, input, dz, hz, wz);
+    }
+
+    public static double[][][] addZeroesInBetween(double[][][] output, double[][][] input, int dz, int hz, int wz) {
         for (int i = 0; i < input.length; i++) {
             for (int j = 0; j < input[0].length; j++) {
                 for (int k = 0; k < input[0][0].length; k++) {
@@ -383,8 +391,38 @@ public class MiscUtils {
         }
 
         return output;
-
     }
+
+    public static void copyArray(double[][][][] src, double[][][][] dest) {
+        for (int i = 0; i < src.length; i++) {
+            for (int j = 0; j < src[0].length; j++) {
+                for (int k = 0; k < src[0][0].length; k++) {
+                    for (int l = 0; l < src[0][0][0].length; l++) {
+                        dest[i][j][k][l] = src[i][j][k][l];
+                    }
+                }
+            }
+        }
+    }
+
+    public static void copyArray(double[][][] src, double[][][] dest) {
+        for (int i = 0; i < src.length; i++) {
+            for (int j = 0; j < src[0].length; j++) {
+                for (int k = 0; k < src[0][0].length; k++) {
+                    dest[i][j][k] = src[i][j][k];
+                }
+            }
+        }
+    }
+
+    public static void copyArray(double[][] src, double[][] dest) {
+        for (int i = 0; i < src.length; i++) {
+            for (int j = 0; j < src[0].length; j++) {
+                dest[i][j] = src[i][j];
+            }
+        }
+    }
+
 
     public static double[][] scaleMinMax(double[][] array) {
         double min = findMin(array);
@@ -496,5 +534,26 @@ public class MiscUtils {
                 for (int k = 0; k < array[0][0].length; k++)
                     for (int l = 0; l < array[0][0][0].length; l++)
                         array[i][j][k][l] = clamp(array[i][j][k][l], minClip, maxClip);
+    }
+
+    public static void fillZeroes(double[][] array) {
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                array[i][j] = 0;
+    }
+
+    public static void fillZeroes(double[][][] array) {
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                for (int k = 0; k < array[0][0].length; k++)
+                    array[i][j][k] = 0;
+    }
+
+    public static void fillZeroes(double[][][][] array) {
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                for (int k = 0; k < array[0][0].length; k++)
+                    for (int l = 0; l < array[0][0][0].length; l++)
+                        array[i][j][k][l] = 0;
     }
 }
