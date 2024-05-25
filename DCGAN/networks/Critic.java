@@ -8,6 +8,8 @@ import DCGAN.util.MiscUtils;
 
 import java.util.Arrays;
 
+import static DCGAN.util.MiscUtils.clamp;
+
 public class Critic {
     Convolution conv1;
     //    BatchNormalization batch1;
@@ -19,6 +21,8 @@ public class Critic {
 
     public boolean verbose = false;
     int batchSize;
+    private double min_clip;
+    private double max_clip;
 
     public Critic() {
         this(1, 1e-3);
@@ -44,6 +48,11 @@ public class Critic {
         outputs_leakyRELU2 = new double[batchSize][][][];
         outputs_leakyRELU2_flattened = new double[batchSize][];
         outputs_dense = new double[batchSize][];
+    }
+
+    public void setClip(double min_clip, double max_clip) {
+        this.min_clip = min_clip;
+        this.max_clip = max_clip;
     }
 
     public double[] getOutput(double[][] black_and_white_image) {
@@ -129,5 +138,17 @@ public class Critic {
         conv2.updateParametersBatch(disc_in_gradients_leakyrelu2_conv2_out_grad, outputs_leakyRELU1);
         conv1.updateParametersBatch(disc_in_gradients_leakyrelu1_conv1_out_grad, inputs);
 
+        // clip the weights
+        MiscUtils.clipInPlace(dense.weights, min_clip, max_clip);
+        MiscUtils.clipInPlace(conv2.filters, min_clip, max_clip);
+        MiscUtils.clipInPlace(conv1.filters, min_clip, max_clip);
+
+        if(verbose){
+            // mean of gradients of each layer
+            System.out.println("Mean of output gradients of each layer of critic");
+            System.out.println("dense layer: " + MiscUtils.mean(MiscUtils.flatten(outputGradients)));
+            System.out.println("conv2: " + MiscUtils.mean(MiscUtils.flatten(disc_in_gradients_leakyrelu2_conv2_out_grad[0])));
+            System.out.println("conv1: " + MiscUtils.mean(MiscUtils.flatten(disc_in_gradients_leakyrelu1_conv1_out_grad[0])));
+        }
     }
 }

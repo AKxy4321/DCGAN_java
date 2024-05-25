@@ -37,7 +37,7 @@ public class Generator_Implementation_Without_Batchnorm {
         this.leakyReLU1 = new LeakyReLULayer(0.1);
 
         // this.stride * (inputHeight - 1) + filterSize - 2 * padding;
-        this.tconv1 = new TransposeConvolutionalLayer(3, 128, 2,
+        this.tconv1 = new TransposeConvolutionalLayer(3, 64, 2,
                 tconv1_input_width, tconv1_input_height, tconv1_input_depth,
                 1, 0, 0, 1, false, learning_rate);
         tconv1.outputHeight = 7;

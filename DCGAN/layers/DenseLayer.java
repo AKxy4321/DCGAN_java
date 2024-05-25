@@ -5,7 +5,7 @@ import DCGAN.util.MiscUtils;
 import DCGAN.util.XavierInitializer;
 
 public class DenseLayer {
-    private double[][] weights;
+    public double[][] weights;
     private double[] biases;
     double[] input;
 

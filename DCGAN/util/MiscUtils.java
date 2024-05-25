@@ -100,7 +100,6 @@ public class MiscUtils {
     }
 
 
-
     public static double[][] mean_1st_layer(double[][][] array) {
         //computes the average of the first layer
         double[][] sum = new double[array[0].length][array[0][0].length];
@@ -268,8 +267,6 @@ public class MiscUtils {
             new_array[i] = array[i] * -1;
         return new_array;
     }
-
-
 
 
     public static void saveImage(BufferedImage image, String name) {
@@ -484,5 +481,20 @@ public class MiscUtils {
 //            System.out.println();
 //        }
 
+    }
+
+    public static void clipInPlace(double[][] array, double minClip, double maxClip) {
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++) {
+                array[i][j] = clamp(array[i][j], minClip, maxClip);
+            }
+    }
+
+    public static void clipInPlace(double[][][][] array, double minClip, double maxClip) {
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                for (int k = 0; k < array[0][0].length; k++)
+                    for (int l = 0; l < array[0][0][0].length; l++)
+                        array[i][j][k][l] = clamp(array[i][j][k][l], minClip, maxClip);
     }
 }

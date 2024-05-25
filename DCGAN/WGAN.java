@@ -17,17 +17,20 @@ public class WGAN {
     int train_size = 1000;
     int test_size = 10;
     int label = 9;
-    double learning_rate_gen = 0.0003;
-    double learning_rate_disc = 0.0001;
+    double learning_rate_gen = 0.001;
+    double learning_rate_disc = 0.0005;
+
+    private int n_critics = 2;
+
+    private double min_clip_critic = -0.1;
+    private double max_clip_critic = 0.1;
+
     int batch_size = 8; // 1 for sgd
 
     private double disc_loss, gen_loss;
 
     Critic critic = new Critic(batch_size, learning_rate_disc);
     Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(batch_size, learning_rate_gen);
-
-    double[] expected_real_output_disc = {1};
-    double[] expected_fake_output_disc = {0};
 
     public static void main(String[] args) {
         WGAN wgan = new WGAN();
@@ -37,6 +40,7 @@ public class WGAN {
     public void train() {
         generator.verbose = true;
         critic.verbose = true;
+        critic.setClip(min_clip_critic,max_clip_critic);
 
         // minibatch gradient descent
         for (int epochs = 0; epochs < 1000000; epochs++) {
@@ -52,12 +56,14 @@ public class WGAN {
                                     0)
                     };
 
-                // train the critic
-                double[][] disc_fake_outputs = critic.forwardBatch(fakeImages);
-                train_critic_fake(disc_fake_outputs);
+                for (int i = 0; i < n_critics; i++) {
+                    // train the critic
+                    double[][] disc_fake_outputs = critic.forwardBatch(fakeImages);
+                    train_critic_fake(disc_fake_outputs);
 
-                double[][] disc_real_outputs = critic.forwardBatch(realImages);
-                train_critic_real(disc_real_outputs);
+                    double[][] disc_real_outputs = critic.forwardBatch(realImages);
+                    train_critic_real(disc_real_outputs);
+                }
 
                 // train generator
                 train_generator(critic.forwardBatch(fakeImages));
@@ -147,6 +153,6 @@ public class WGAN {
 
     public static double generatorLoss(double[] fake_outputs) {
         double avg_fake_output = MiscUtils.mean(fake_outputs);
-        return -avg_fake_output/fake_outputs.length;
+        return -avg_fake_output / fake_outputs.length;
     }
 }
