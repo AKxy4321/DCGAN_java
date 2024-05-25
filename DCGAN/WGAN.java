@@ -14,18 +14,18 @@ import static DCGAN.util.MiscUtils.*;
 public class WGAN {
     final private static Logger logger = Logger.getLogger(WGAN.class.getName());
 
-    int train_size = 1000;
-    int test_size = 10;
-    int label = 9;
-    double learning_rate_gen = 0.001;
+    int train_size = 1;
+    int test_size = 1;
+    int label = 3;
+    double learning_rate_gen = 0.0005;
     double learning_rate_disc = 0.0005;
 
-    private int n_critics = 2;
+    private int n_critics = 5;
 
-    private double min_clip_critic = -0.1;
-    private double max_clip_critic = 0.1;
+    private double min_clip_critic = -0.01;
+    private double max_clip_critic = 0.01;
 
-    int batch_size = 8; // 1 for sgd
+    int batch_size = 1; // 1 for sgd
 
     private double disc_loss, gen_loss;
 
@@ -130,6 +130,7 @@ public class WGAN {
 
         // for debugging
         MiscUtils.saveImage(getBufferedImage(scaleMinMax(disc_input_gradients_gen_output_gradients[0][0])), "critic_in_gradient_wrt_input.png");
+        MiscUtils.prettyprint(disc_input_gradients_gen_output_gradients[0][0]);
     }
 
     private void calculateModelMetrics() {
