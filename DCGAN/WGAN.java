@@ -79,7 +79,7 @@ public class WGAN {
     }
 
     private void train_critic(double[][][][] realImages, double[][][][] fakeImages) {
-        double[][][][] allImages = new double[batch_size * 3][][][];
+        double[][][][] allImages = new double[batch_size * 2][][][];
         for (int img_idx = 0; img_idx < batch_size; img_idx++) {
             allImages[img_idx] = realImages[img_idx];
             allImages[img_idx + batch_size] = fakeImages[img_idx];
@@ -87,7 +87,7 @@ public class WGAN {
 
         double[][] outputs = critic.forwardBatch(allImages);
         // here, the first half are outputs for real images, the second half are outputs for fake images
-        double[][] disc_output_gradients = new double[batch_size * 3][1];
+        double[][] disc_output_gradients = new double[batch_size * 2][1];
         for (int img_idx = 0; img_idx < batch_size; img_idx++)
             disc_output_gradients[img_idx][0] = +1.0 / batch_size; // gradient for output of real images
         for (int img_idx = batch_size; img_idx < 2 * batch_size; img_idx++)
