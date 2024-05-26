@@ -3,10 +3,7 @@ package DCGAN.networks;
 import DCGAN.layers.Convolution;
 import DCGAN.layers.DenseLayer;
 import DCGAN.layers.LeakyReLULayer;
-import DCGAN.layers.SigmoidLayer;
 import DCGAN.util.MiscUtils;
-
-import java.util.Arrays;
 
 import static DCGAN.util.MiscUtils.clamp;
 
@@ -21,8 +18,8 @@ public class Critic {
 
     public boolean verbose = false;
     int batchSize;
-    private double min_clip;
-    private double max_clip;
+    private double min_clip_conv;
+    private double max_clip_conv;
 
     public Critic() {
         this(1, 1e-3);
@@ -33,11 +30,11 @@ public class Critic {
         int inputWidth = 28, inputHeight = 28;
         this.conv1 = new Convolution(4, 64, 2,
                 inputWidth, inputHeight, 1,
-                2, 2, 0, learning_rate);
+                3, 3, 0, learning_rate);
         this.leakyReLULayer1 = new LeakyReLULayer(0.2);
         this.conv2 = new Convolution(4, 128, 2,
                 conv1.outputWidth, conv1.outputHeight, conv1.outputDepth,
-                2, 2, 0, learning_rate);
+                3, 3, 0, learning_rate);
         this.leakyReLULayer2 = new LeakyReLULayer(0.2);
         this.dense = new DenseLayer(conv2.outputDepth * conv2.outputWidth * conv2.outputHeight, 1, learning_rate);
 
@@ -50,9 +47,9 @@ public class Critic {
         outputs_dense = new double[batchSize][];
     }
 
-    public void setClip(double min_clip, double max_clip) {
-        this.min_clip = min_clip;
-        this.max_clip = max_clip;
+    public void setClipConv(double min_clip, double max_clip) {
+        this.min_clip_conv = min_clip;
+        this.max_clip_conv = max_clip;
     }
 
     public double[] getOutput(double[][] black_and_white_image) {
@@ -100,9 +97,9 @@ public class Critic {
     }
 
     public double[][][][] backwardBatch(double[][] outputGradients) {
-        double[][][][] disc_in_gradients_conv1 = new double[batchSize][][][];
+        double[][][][] disc_in_gradients_conv1 = new double[outputGradients.length][][][];
 
-        for (int i = 0; i < batchSize; i++, System.out.print(verbose ? " " + i : "")) {
+        for (int i = 0; i < outputGradients.length; i++, System.out.print(verbose ? " " + i : "")) {
             double[] disc_in_gradient_dense = this.dense.backward(outputGradients[i]);
 
             double[][][] disc_in_gradient_dense_unflattened = MiscUtils.unflatten(disc_in_gradient_dense, leakyReLULayer2.output.length, leakyReLULayer2.output[0].length, leakyReLULayer2.output[0][0].length);
@@ -139,9 +136,9 @@ public class Critic {
         conv1.updateParametersBatch(disc_in_gradients_leakyrelu1_conv1_out_grad, inputs);
 
         // clip the weights
-        MiscUtils.clipInPlace(dense.weights, min_clip, max_clip);
-        MiscUtils.clipInPlace(conv2.filters, min_clip, max_clip);
-        MiscUtils.clipInPlace(conv1.filters, min_clip, max_clip);
+//        MiscUtils.clipInPlace(dense.weights, min_clip_conv, max_clip_conv); // Apparently clipping should be done for only convolution layers
+        MiscUtils.clipInPlace(conv2.filters, min_clip_conv, max_clip_conv);
+        MiscUtils.clipInPlace(conv1.filters, min_clip_conv, max_clip_conv);
 
         if(verbose){
             // mean of gradients of each layer

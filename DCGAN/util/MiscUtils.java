@@ -536,6 +536,16 @@ public class MiscUtils {
                         array[i][j][k][l] = clamp(array[i][j][k][l], minClip, maxClip);
     }
 
+    public static void addScaledArrays(double[][][] dest, double[][][] array1, double scale1, double[][][] array2, double scale2){
+        /**
+         * scale1 * array1 + scale2 * array2 = dest
+         * */
+        for(int i = 0; i < dest.length; i++)
+            for(int j = 0; j < dest[0].length; j++)
+                for(int k = 0; k < dest[0][0].length; k++)
+                    dest[i][j][k] = array1[i][j][k] * scale1 + array2[i][j][k] * scale2;
+    }
+
     public static void fillZeroes(double[][] array) {
         for (int i = 0; i < array.length; i++)
             for (int j = 0; j < array[0].length; j++)
@@ -556,4 +566,6 @@ public class MiscUtils {
                     for (int l = 0; l < array[0][0][0].length; l++)
                         array[i][j][k][l] = 0;
     }
+
+
 }
