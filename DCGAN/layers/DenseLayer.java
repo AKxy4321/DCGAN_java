@@ -2,7 +2,7 @@ package DCGAN.layers;
 
 import DCGAN.optimizers.AdamOptimizer;
 import DCGAN.util.MiscUtils;
-import DCGAN.util.XavierInitializer;
+import DCGAN.util.ArrayInitializer;
 
 public class DenseLayer {
     public double[][] weights;
@@ -21,8 +21,8 @@ public class DenseLayer {
         this.outputSize = outputSize;
         this.inputSize = inputSize;
 
-        this.weights = XavierInitializer.xavierInit2D(inputSize, outputSize);
-        this.biases = XavierInitializer.xavierInit1D(outputSize);
+        this.weights = ArrayInitializer.xavierInit2D(inputSize, outputSize);
+        this.biases = ArrayInitializer.xavierInit1D(outputSize);
 
         weightsOptimizer = new AdamOptimizer(inputSize * outputSize, initial_learning_rate, 0.9, 0.999, 1e-8);
         biasesOptimizer = new AdamOptimizer(outputSize, initial_learning_rate, 0.5, 0.999, 1e-8);
