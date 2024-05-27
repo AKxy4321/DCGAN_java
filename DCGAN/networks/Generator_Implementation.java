@@ -1,7 +1,7 @@
 package DCGAN.networks;
 
 import DCGAN.util.MiscUtils;
-import DCGAN.util.XavierInitializer;
+import DCGAN.util.ArrayInitializer;
 import DCGAN.layers.*;
 
 import java.awt.image.BufferedImage;
@@ -109,7 +109,7 @@ public class Generator_Implementation {
     }
 
     public double[][][] generateImage() {
-        double[] noise = XavierInitializer.xavierInit1D(noise_length); // generate noise input that we want to pass to the generator
+        double[] noise = ArrayInitializer.xavierInit1D(noise_length); // generate noise input that we want to pass to the generator
 
         double[] gen_dense_output = this.dense.forward(noise);
         double[] gen_batch1_output = this.batch1.getOutput(gen_dense_output);
@@ -149,7 +149,7 @@ public class Generator_Implementation {
         // reset Arrays
 
         for (int i = 0; i < batchSize; i++) {
-            noises[i] = XavierInitializer.xavierInit1D(100); // generate noise input that we want to pass to the generator
+            noises[i] = ArrayInitializer.xavierInit1D(100); // generate noise input that we want to pass to the generator
             gen_dense_outputs[i] = this.dense.forward(noises[i]);
         }
 

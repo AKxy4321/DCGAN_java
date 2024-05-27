@@ -1,7 +1,7 @@
 package DCGAN.networks;
 
 import DCGAN.util.MiscUtils;
-import DCGAN.util.XavierInitializer;
+import DCGAN.util.ArrayInitializer;
 import DCGAN.layers.*;
 
 import java.awt.image.BufferedImage;
@@ -31,13 +31,13 @@ public class Generator_Implementation_Without_Batchnorm {
     public Generator_Implementation_Without_Batchnorm(int batchSize, double learning_rate) {
         this.batchSize = batchSize;
 
-        int tconv1_input_width = 4, tconv1_input_height = 4, tconv1_input_depth = 64;
+        int tconv1_input_width = 4, tconv1_input_height = 4, tconv1_input_depth = 256;
         this.dense_output_size = tconv1_input_width * tconv1_input_height * tconv1_input_depth;
         this.dense = new DenseLayer(noise_length, this.dense_output_size, learning_rate);
         this.leakyReLU1 = new LeakyReLULayer(0.1);
 
         // this.stride * (inputHeight - 1) + filterSize - 2 * padding;
-        this.tconv1 = new TransposeConvolutionalLayer(3, 64, 2,
+        this.tconv1 = new TransposeConvolutionalLayer(3, 128, 2,
                 tconv1_input_width, tconv1_input_height, tconv1_input_depth,
                 1, 0, 0, 1, false, learning_rate);
         assert tconv1.outputHeight == 7;
@@ -77,7 +77,7 @@ public class Generator_Implementation_Without_Batchnorm {
 
     public double[][][] generateImage() {
         // using a spherical Z
-        double[] noise = XavierInitializer.xavierInit1D(noise_length);
+        double[] noise = ArrayInitializer.xavierInit1D(noise_length);
         double mag = 0;
         for (int j = 0; j < noise_length; j++)
             mag += Math.pow(noise[j], 2);
@@ -118,7 +118,7 @@ public class Generator_Implementation_Without_Batchnorm {
     double[][][][] tanhOutputs;
 
     public double[][][][] forwardBatch() {
-        noises = XavierInitializer.xavierInit2D(batchSize, noise_length);
+        noises = ArrayInitializer.xavierInit2D(batchSize, noise_length);
         for (int sample_idx = 0; sample_idx < batchSize; sample_idx++) {
             double mag = 0;
             for (int j = 0; j < noise_length; j++)
@@ -213,7 +213,7 @@ public class Generator_Implementation_Without_Batchnorm {
 
     public static void main(String[] args) {
         // 2:15 min per epoch
-        Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(8, 0.001);
+        Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(1, 0.001);
 
         System.out.println("tconv1 output shape : " + generator.tconv1.outputDepth + " " + generator.tconv1.outputHeight + " " + generator.tconv1.outputWidth);
         System.out.println("tconv2 output shape : " + generator.tconv2.outputDepth + " " + generator.tconv2.outputHeight + " " + generator.tconv2.outputWidth);

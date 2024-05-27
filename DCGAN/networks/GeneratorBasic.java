@@ -1,7 +1,7 @@
 package DCGAN.networks;
 
 import DCGAN.util.MiscUtils;
-import DCGAN.util.XavierInitializer;
+import DCGAN.util.ArrayInitializer;
 import DCGAN.layers.*;
 
 import java.util.Arrays;
@@ -86,7 +86,7 @@ public class GeneratorBasic {
 
         System.out.println(targetOutput.length + " " + targetOutput[0].length + " " + targetOutput[0][0].length);
         for (int epoch = 0; epoch < 100000; epoch++) {
-            double[][][] output = generator.forward(XavierInitializer.xavierInit1D(generator.dense1.inputSize));
+            double[][][] output = generator.forward(ArrayInitializer.xavierInit1D(generator.dense1.inputSize));
             System.out.println("output shape : " + output.length + " " + output[0].length + " " + output[0][0].length);
             System.out.println("targetOutput shape : " + targetOutput.length + " " + targetOutput[0].length + " " + targetOutput[0][0].length);
             double[][][] gradOutput = gradientRMSE(output, targetOutput);
@@ -101,6 +101,6 @@ public class GeneratorBasic {
     }
 
     public double[][][] generateImage() {
-        return forward(XavierInitializer.xavierInit1D(dense1.inputSize));
+        return forward(ArrayInitializer.xavierInit1D(dense1.inputSize));
     }
 }

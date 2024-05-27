@@ -79,6 +79,40 @@ public class MiscUtils {
         }
     }
 
+    public static double l2Norm(double[][][][] array) {
+        double l2_norm = 0;
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                for (int k = 0; k < array[0][0].length; k++)
+                    for (int l = 0; l < array[0][0][0].length; l++)
+                        l2_norm += array[i][j][k][l] * array[i][j][k][l];
+
+        l2_norm = Math.sqrt(l2_norm);
+        return l2_norm;
+    }
+
+    public static double l2Norm(double[][][] array) {
+        double l2_norm = 0;
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                for (int k = 0; k < array[0][0].length; k++)
+                    l2_norm += array[i][j][k] * array[i][j][k];
+
+        l2_norm = Math.sqrt(l2_norm);
+        return l2_norm;
+    }
+
+    public static double l2Norm(double[] array) {
+        double l2_norm = 0;
+
+        for (int i = 0; i < array.length; i++)
+            l2_norm += array[i] * array[i];
+
+        l2_norm = Math.sqrt(l2_norm);
+        return l2_norm;
+    }
+
+
     public static double mean(double[] array) {
         double sum = 0;
         for (double genLoss : array) {
@@ -366,6 +400,52 @@ public class MiscUtils {
         return new_array;
     }
 
+    public static double[][][] multiplyScalarInPlace(double[][][] array, double scalar) {
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                for (int k = 0; k < array[0][0].length; k++)
+                    array[i][j][k] *= scalar;
+        return array;
+    }
+
+    public static double[][][][] multiplyScalarInPlace(double[][][][] array, double scalar) {
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                for (int k = 0; k < array[0][0].length; k++)
+                    for (int l = 0; l < array[0][0][0].length; l++)
+                        array[i][j][k][l] *= scalar;
+        return array;
+    }
+
+    public static double[] multiplyScalarInPlace(double[] array, double scalar){
+        for (int i = 0; i < array.length; i++)
+            array[i] *= scalar;
+        return array;
+    }
+
+    public static double[][] multiplyScalarInPlace(double[][] array, double scalar) {
+        for (int i = 0; i < array.length; i++)
+            for (int j = 0; j < array[0].length; j++)
+                array[i][j] *= scalar;
+        return array;
+    }
+
+    public static double dotProduct(double[] array1, double[] array2) {
+        double dotProduct = 0;
+        for (int i = 0; i < array1.length; i++)
+            dotProduct += array1[i] * array2[i];
+        return dotProduct;
+    }
+
+    public static double dotProduct(double[][][] array1, double[][][] array2) {
+        double dotProduct = 0;
+        for (int i = 0; i < array1.length; i++)
+            for (int j = 0; j < array1[0].length; j++)
+                for (int k = 0; k < array1[0][0].length; k++)
+                    dotProduct += array1[i][j][k] * array2[i][j][k];
+        return dotProduct;
+    }
+
 
     public static double[][][] addZeroesInBetween(double[][][] input, int dz, int hz, int wz) {
 
@@ -536,13 +616,13 @@ public class MiscUtils {
                         array[i][j][k][l] = clamp(array[i][j][k][l], minClip, maxClip);
     }
 
-    public static void addScaledArrays(double[][][] dest, double[][][] array1, double scale1, double[][][] array2, double scale2){
+    public static void addScaledArrays(double[][][] dest, double[][][] array1, double scale1, double[][][] array2, double scale2) {
         /**
          * scale1 * array1 + scale2 * array2 = dest
          * */
-        for(int i = 0; i < dest.length; i++)
-            for(int j = 0; j < dest[0].length; j++)
-                for(int k = 0; k < dest[0][0].length; k++)
+        for (int i = 0; i < dest.length; i++)
+            for (int j = 0; j < dest[0].length; j++)
+                for (int k = 0; k < dest[0][0].length; k++)
                     dest[i][j][k] = array1[i][j][k] * scale1 + array2[i][j][k] * scale2;
     }
 

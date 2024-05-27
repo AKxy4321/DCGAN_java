@@ -12,19 +12,18 @@ import static DCGAN.util.MiscUtils.*;
 public class WGAN {
     final private static Logger logger = Logger.getLogger(WGAN.class.getName());
 
-    int train_size = 1;
-    int test_size = 1;
-    int label = 9;
+    int train_size = 1000;
+    int test_size = 5;
+    int label = 3;
     double learning_rate_gen = 0.00005;
     double learning_rate_disc = 0.00005;
 
     private int n_critics = 5;
 
-    double lambda = 10;
-    private double min_clip_critic_conv = -Double.MAX_VALUE;
-    private double max_clip_critic_conv = +Double.MAX_VALUE;
+    private double min_clip_critic_conv = -0.01; // Double.MAX_VALUE;
+    private double max_clip_critic_conv = +0.01; // Double.MAX_VALUE;
 
-    int batch_size = 1; // 1 for sgd
+    int batch_size = 32; // 1 for sgd
 
     private double disc_loss, gen_loss;
 

@@ -2,7 +2,7 @@ package DCGAN.layers;
 
 import DCGAN.optimizers.AdamOptimizer;
 import DCGAN.util.MiscUtils;
-import DCGAN.util.XavierInitializer;
+import DCGAN.util.ArrayInitializer;
 
 import java.util.Random;
 
@@ -82,7 +82,7 @@ public class TransposeConvolutionalLayer {
         filters = new double[numFilters][filterDepth][filterSize][filterSize]; // XavierInitializer.xavierInit4D(numFilters, filterDepth, filterSize);
         Random random = new Random();
         for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
-            filters[filter_idx] = XavierInitializer.xavierInit3D(filterDepth, filterSize, filterSize);
+            filters[filter_idx] = ArrayInitializer.xavierInit3D(filterDepth, filterSize, filterSize);
 //            for(int fd = 0; fd < filterDepth; fd++) {
 //                for(int i=0;i<filterSize;i++){
 //                    for(int j=0;j<filterSize;j++){

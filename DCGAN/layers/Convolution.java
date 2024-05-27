@@ -2,7 +2,7 @@ package DCGAN.layers;
 
 import DCGAN.optimizers.AdamOptimizer;
 import DCGAN.util.MiscUtils;
-import DCGAN.util.XavierInitializer;
+import DCGAN.util.ArrayInitializer;
 
 import java.util.Random;
 import java.util.logging.Logger;
@@ -65,10 +65,10 @@ public class Convolution {
 //                    }
 //                }
 //            }
-            filters[filter_idx] = XavierInitializer.xavierInit3D(filter_depth, filterSize, filterSize);
+            filters[filter_idx] = ArrayInitializer.xavierInit3D(filter_depth, filterSize, filterSize);
         }
 
-        this.biases = XavierInitializer.xavierInit1D(numFilters);
+        this.biases = ArrayInitializer.xavierInit1D(numFilters);
 
         this.inputPaddingX = inputPaddingX;
         this.inputPaddingY = inputPaddingY;
