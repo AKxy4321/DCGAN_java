@@ -150,11 +150,11 @@ public class Critic_Spectral_Norm {
     }
 
     public static void applySpectralNorm(Convolution conv) {
-        multiplyScalarInPlace(conv.filters, getSpectralNorm(conv));
+        multiplyScalarInPlace(conv.filters, 1.0/getSpectralNorm(conv));
     }
 
     public static void applySpectralNorm(DenseLayer layer) {
-        multiplyScalarInPlace(layer.weights, getSpectralNorm(layer));
+        multiplyScalarInPlace(layer.weights, 1.0/getSpectralNorm(layer));
     }
 
     public static double getSpectralNorm(DenseLayer layer) {
