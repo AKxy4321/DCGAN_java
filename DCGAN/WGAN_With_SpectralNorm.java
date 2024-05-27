@@ -1,6 +1,5 @@
 package DCGAN;
 
-import DCGAN.networks.Critic;
 import DCGAN.networks.Critic_Spectral_Norm;
 import DCGAN.networks.Generator_Implementation_Without_Batchnorm;
 import DCGAN.util.MiscUtils;
@@ -16,8 +15,8 @@ public class WGAN_With_SpectralNorm {
     int train_size = 1000;
     int test_size = 5;
     int label = 3;
-    double learning_rate_gen = 0.00005;
-    double learning_rate_disc = 0.00005;
+    double learning_rate_gen = 0.0005;
+    double learning_rate_critic = 0.0005;
 
     private int n_critics = 5;
 
@@ -26,7 +25,7 @@ public class WGAN_With_SpectralNorm {
     private double disc_loss, gen_loss;
 
     Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(batch_size, learning_rate_gen);
-    Critic_Spectral_Norm critic = new Critic_Spectral_Norm(generator.batchSize * 2, learning_rate_disc);
+    Critic_Spectral_Norm critic = new Critic_Spectral_Norm(batch_size, learning_rate_critic);
 
     public static void main(String[] args) {
         WGAN_With_SpectralNorm wgan = new WGAN_With_SpectralNorm();
@@ -48,7 +47,7 @@ public class WGAN_With_SpectralNorm {
                     realImages[real_idx] = new double[][][]{
                             addNoise(
                                     zeroToOneToMinusOneToOne(img_to_mat(mnist_load_index(label, index++))),
-                                    0.5)
+                                    0)
                     };
 
                 for (int i = 0; i < n_critics; i++) {
@@ -74,26 +73,59 @@ public class WGAN_With_SpectralNorm {
         }
     }
 
+
+    public static double criticLoss(double[] real_outputs, double[] fake_outputs) {
+        double avg_real_output = MiscUtils.mean(real_outputs), avg_fake_output = MiscUtils.mean(fake_outputs);
+        return -(avg_real_output - avg_fake_output); // we want to minimize this
+    }
+
+
+    public static double generatorLoss(double[] fake_outputs) {
+        double avg_fake_output = MiscUtils.mean(fake_outputs);
+        return -avg_fake_output / fake_outputs.length;
+    }
+
     private void train_critic(double[][][][] realImages, double[][][][] fakeImages) {
-        double[][][][] allImages = new double[batch_size * 2][][][];
-        for (int img_idx = 0; img_idx < batch_size; img_idx++) {
-            allImages[img_idx] = realImages[img_idx];
-            allImages[img_idx + batch_size] = fakeImages[img_idx];
-        }
-
-        double[][] outputs = critic.forwardBatch(allImages);
-        // here, the first half are outputs for real images, the second half are outputs for fake images
-        double[][] disc_output_gradients = new double[batch_size * 2][1];
+        // train on real
+        double[][] real_outputs = critic.forwardBatch(realImages).clone();
+        double[][] disc_real_output_gradients = new double[batch_size][1];
         for (int img_idx = 0; img_idx < batch_size; img_idx++)
-            disc_output_gradients[img_idx][0] = +1.0 / batch_size; // gradient for output of real images
-        for (int img_idx = batch_size; img_idx < 2 * batch_size; img_idx++)
-            disc_output_gradients[img_idx][0] = -1.0 / batch_size; // gradient for output of fake images
+            disc_real_output_gradients[img_idx][0] = -1.0 / batch_size; // gradient for output of real images
+        critic.updateParametersBatch(disc_real_output_gradients);
 
-
-        critic.updateParametersBatch(disc_output_gradients);
+        // train on fake
+        double[][] fake_outputs = critic.forwardBatch(fakeImages).clone();
+        double[][] disc_fake_output_gradients = new double[batch_size][1];
+        for (int img_idx = 0; img_idx < batch_size; img_idx++)
+            disc_fake_output_gradients[img_idx][0] = +1.0 / batch_size; // gradient for output of fake images
+        critic.updateParametersBatch(disc_fake_output_gradients);
 
         // for debugging
-        System.err.printf("Critic output for real : %f, fake : %f\n", outputs[0][0], outputs[batch_size][0]);
+        System.err.printf("Critic output for real : %f, fake : %f\n", real_outputs[0][0], fake_outputs[0][0]);
+
+        // reshaping our outputs array
+        double[] fake_outputs_1d = new double[fake_outputs.length];
+        double[] real_outputs_1d = new double[fake_outputs.length];
+        for (int i = 0; i < fake_outputs_1d.length; i++) {
+            fake_outputs_1d[i] = fake_outputs[i][0];
+            real_outputs_1d[i] = real_outputs[i][0];
+        }
+        System.err.printf("Training loss for critic : %f", criticLoss(real_outputs_1d, fake_outputs_1d));
+    }
+
+    public void train_generator(double[][] disc_fake_outputs) {
+        double[][] disc_fake_output_gradients = new double[disc_fake_outputs.length][1];
+        for (int sample_idx = 0; sample_idx < disc_fake_outputs.length; sample_idx++)
+            disc_fake_output_gradients[sample_idx][0] = -1.0 / disc_fake_outputs.length;
+
+        double[][][][] disc_input_gradients_gen_output_gradients = critic.backwardBatch(disc_fake_output_gradients);
+
+        // input to the discriminator is the output of the generator
+        generator.updateParametersBatch(disc_input_gradients_gen_output_gradients);
+
+        // for debugging
+        MiscUtils.saveImage(getBufferedImage(scaleMinMax(disc_input_gradients_gen_output_gradients[0][0])), "critic_in_gradient_wrt_input.png");
+        MiscUtils.prettyprint(disc_input_gradients_gen_output_gradients[0][0]);
     }
 
     private double[][] addNoise(double[][] image_array, double scale) {
@@ -104,22 +136,6 @@ public class WGAN_With_SpectralNorm {
             }
         }
         return image_array;
-    }
-
-
-    public void train_generator(double[][] disc_fake_outputs) {
-        double[][] disc_fake_output_gradients = new double[disc_fake_outputs.length][1];
-        for (int sample_idx = 0; sample_idx < disc_fake_outputs.length; sample_idx++)
-            disc_fake_output_gradients[sample_idx][0] = +1.0 / disc_fake_outputs.length;
-
-        double[][][][] disc_input_gradients_gen_output_gradients = critic.backwardBatch(disc_fake_output_gradients);
-
-        // input to the discriminator is the output of the generator
-        generator.updateParametersBatch(disc_input_gradients_gen_output_gradients);
-
-        // for debugging
-        MiscUtils.saveImage(getBufferedImage(scaleMinMax(disc_input_gradients_gen_output_gradients[0][0])), "critic_in_gradient_wrt_input.png");
-        MiscUtils.prettyprint(disc_input_gradients_gen_output_gradients[0][0]);
     }
 
     private void calculateModelMetrics() {
@@ -133,16 +149,5 @@ public class WGAN_With_SpectralNorm {
 
         disc_loss = criticLoss(real_outputs, fake_outputs);
         gen_loss = generatorLoss(fake_outputs);
-    }
-
-    public static double criticLoss(double[] real_outputs, double[] fake_outputs) {
-        double avg_real_output = MiscUtils.mean(real_outputs), avg_fake_output = MiscUtils.mean(fake_outputs);
-        return -(avg_real_output - avg_fake_output); // we want to minimize this
-    }
-
-
-    public static double generatorLoss(double[] fake_outputs) {
-        double avg_fake_output = MiscUtils.mean(fake_outputs);
-        return -avg_fake_output / fake_outputs.length;
     }
 }
