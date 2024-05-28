@@ -2,20 +2,24 @@ package DCGAN;
 
 import DCGAN.networks.Critic;
 import DCGAN.networks.Generator_Implementation_Without_Batchnorm;
+import DCGAN.optimizers.AdamHyperparameters;
 import DCGAN.util.MiscUtils;
 
+import java.io.Serializable;
 import java.util.logging.Logger;
 
+import static DCGAN.util.MathUtils.mean;
 import static DCGAN.util.MiscUtils.*;
 
 
-public class WGAN {
+public class WGAN implements Serializable {
+    private static final long serialVersionUID = 1L;
     final private static Logger logger = Logger.getLogger(WGAN.class.getName());
 
     int train_size = 1000;
     int test_size = 5;
     int label = 3;
-    double learning_rate_gen = 0.00005;
+    double learning_rate_gen = 0.0005;
     double learning_rate_disc = 0.00005;
 
     private int n_critics = 5;
@@ -27,8 +31,8 @@ public class WGAN {
 
     private double disc_loss, gen_loss;
 
-    Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(batch_size, learning_rate_gen);
-    Critic critic = new Critic(generator.batchSize * 2, learning_rate_disc);
+    Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(batch_size, new AdamHyperparameters(learning_rate_gen, 0.5, 0.999, 1e-8));
+    Critic critic = new Critic(generator.batchSize * 2, new AdamHyperparameters(learning_rate_disc, 0.5, 0.999, 1e-8));
 
     public static void main(String[] args) {
         WGAN wgan = new WGAN();
@@ -139,13 +143,13 @@ public class WGAN {
     }
 
     public static double criticLoss(double[] real_outputs, double[] fake_outputs) {
-        double avg_real_output = MiscUtils.mean(real_outputs), avg_fake_output = MiscUtils.mean(fake_outputs);
+        double avg_real_output = mean(real_outputs), avg_fake_output = mean(fake_outputs);
         return -(avg_real_output - avg_fake_output); // we want to minimize this
     }
 
 
     public static double generatorLoss(double[] fake_outputs) {
-        double avg_fake_output = MiscUtils.mean(fake_outputs);
+        double avg_fake_output = mean(fake_outputs);
         return -avg_fake_output / fake_outputs.length;
     }
 }

@@ -1,31 +1,35 @@
 package DCGAN;
 
 import DCGAN.networks.Critic_Spectral_Norm;
-import DCGAN.networks.Generator_Implementation_Without_Batchnorm;
+import DCGAN.networks.Generator_Implementation;
+import DCGAN.optimizers.AdamHyperparameters;
 import DCGAN.util.MiscUtils;
 
+import java.io.Serializable;
 import java.util.logging.Logger;
 
+import static DCGAN.util.MathUtils.mean;
 import static DCGAN.util.MiscUtils.*;
 
 
-public class WGAN_With_SpectralNorm {
+public class WGAN_With_SpectralNorm implements Serializable {
+    private static final long serialVersionUID = 1L;
     final private static Logger logger = Logger.getLogger(WGAN_With_SpectralNorm.class.getName());
 
-    int train_size = 1000;
+    int train_size = 1;
     int test_size = 5;
     int label = 3;
-    double learning_rate_gen = 0.0005;
-    double learning_rate_critic = 0.0005;
+    double learning_rate_gen = 0.0001;
+    double learning_rate_critic = 0.00005;
 
-    private int n_critics = 5;
+    private int n_critics = 1;
 
-    int batch_size = 32; // 1 for sgd
+    int batch_size = 1; // 1 for sgd
 
     private double disc_loss, gen_loss;
 
-    Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(batch_size, learning_rate_gen);
-    Critic_Spectral_Norm critic = new Critic_Spectral_Norm(batch_size, learning_rate_critic);
+    Generator_Implementation generator = new Generator_Implementation(batch_size, new AdamHyperparameters(learning_rate_gen, 0.5, 0.999, 1e-8));
+    Critic_Spectral_Norm critic = new Critic_Spectral_Norm(batch_size, new AdamHyperparameters(learning_rate_critic, 0.5, 0.999, 1e-8));
 
     public static void main(String[] args) {
         WGAN_With_SpectralNorm wgan = new WGAN_With_SpectralNorm();
@@ -47,7 +51,7 @@ public class WGAN_With_SpectralNorm {
                     realImages[real_idx] = new double[][][]{
                             addNoise(
                                     zeroToOneToMinusOneToOne(img_to_mat(mnist_load_index(label, index++))),
-                                    0)
+                                    0.5)
                     };
 
                 for (int i = 0; i < n_critics; i++) {
@@ -75,13 +79,13 @@ public class WGAN_With_SpectralNorm {
 
 
     public static double criticLoss(double[] real_outputs, double[] fake_outputs) {
-        double avg_real_output = MiscUtils.mean(real_outputs), avg_fake_output = MiscUtils.mean(fake_outputs);
+        double avg_real_output = mean(real_outputs), avg_fake_output = mean(fake_outputs);
         return -(avg_real_output - avg_fake_output); // we want to minimize this
     }
 
 
     public static double generatorLoss(double[] fake_outputs) {
-        double avg_fake_output = MiscUtils.mean(fake_outputs);
+        double avg_fake_output = mean(fake_outputs);
         return -avg_fake_output / fake_outputs.length;
     }
 

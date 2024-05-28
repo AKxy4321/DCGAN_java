@@ -1,8 +1,13 @@
 package DCGAN.layers;
 
 import DCGAN.optimizers.AdamOptimizer;
+import DCGAN.optimizers.Optimizer;
+import DCGAN.optimizers.OptimizerHyperparameters;
 
-public class BatchNormalization {
+import java.io.Serializable;
+
+public class BatchNormalization implements Serializable {
+    private static final long serialVersionUID = 1L;
     private final double epsilon = 1e-5;
     private double[] runningMean;
     private double[] runningVar;
@@ -20,13 +25,9 @@ public class BatchNormalization {
     double[] dMean;
     double[] dVar;
 
-    AdamOptimizer gammaOptimizer, betaOptimizer;
+    Optimizer gammaOptimizer, betaOptimizer;
 
-
-    public BatchNormalization(int inputDim) {
-        this(inputDim, 1e-3);
-    }
-    public BatchNormalization(int inputDim, double learning_rate) {
+    public BatchNormalization(int inputDim, OptimizerHyperparameters optimizerHyperparameters) {
         gamma = new double[inputDim];
         beta = new double[inputDim];
         runningMean = new double[inputDim];
@@ -37,8 +38,8 @@ public class BatchNormalization {
             beta[i] = 0.0;
         }
 
-        gammaOptimizer = new AdamOptimizer(inputDim, learning_rate, 0.9, 0.999, 1e-8);
-        betaOptimizer = new AdamOptimizer(inputDim, learning_rate, 0.9, 0.999, 1e-8);
+        gammaOptimizer = Optimizer.createOptimizer(inputDim, optimizerHyperparameters);
+        betaOptimizer = Optimizer.createOptimizer(inputDim, optimizerHyperparameters);
     }
 
     public double[][] forwardBatch(double[][] x) {
@@ -166,5 +167,4 @@ public class BatchNormalization {
         }
         return xNormalized;
     }
-
 }

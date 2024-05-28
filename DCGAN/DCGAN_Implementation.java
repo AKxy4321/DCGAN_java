@@ -1,12 +1,11 @@
 package DCGAN;
 
 import DCGAN.networks.Discriminator_Implementation;
-import DCGAN.networks.Generator_Implementation;
 import DCGAN.networks.Generator_Implementation_Without_Batchnorm;
+import DCGAN.optimizers.AdamHyperparameters;
 import DCGAN.util.MiscUtils;
-import DCGAN.util.TrainingUtils;
 
-import java.awt.image.BufferedImage;
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.logging.Logger;
 
@@ -15,7 +14,8 @@ import static DCGAN.util.TrainingUtils.gradientBinaryCrossEntropy;
 import static DCGAN.util.TrainingUtils.lossBinaryCrossEntropy;
 
 
-public class DCGAN_Implementation {
+public class DCGAN_Implementation implements Serializable {
+    private static final long serialVersionUID = 1L;
     final private static Logger logger = Logger.getLogger(DCGAN_Implementation.class.getName());
 
     int train_size = 1000;
@@ -27,8 +27,8 @@ public class DCGAN_Implementation {
 
     private double disc_loss, gen_loss, accuracy;
 
-    Discriminator_Implementation discriminator = new Discriminator_Implementation(batch_size, learning_rate_disc);
-    Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(batch_size, learning_rate_gen);
+    Discriminator_Implementation discriminator = new Discriminator_Implementation(batch_size, new AdamHyperparameters(learning_rate_disc,0.5,0.999,1e-8));
+    Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(batch_size, new AdamHyperparameters(learning_rate_gen,0.5,0.999,1e-8));
 
     double[] expected_real_output_disc = {1};
     double[] expected_fake_output_disc = {0};

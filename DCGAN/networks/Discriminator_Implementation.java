@@ -1,14 +1,17 @@
 package DCGAN.networks;
 
+import DCGAN.optimizers.OptimizerHyperparameters;
 import DCGAN.util.MiscUtils;
 import DCGAN.layers.Convolution;
 import DCGAN.layers.DenseLayer;
 import DCGAN.layers.LeakyReLULayer;
 import DCGAN.layers.SigmoidLayer;
 
+import java.io.Serializable;
 import java.util.Arrays;
 
-public class Discriminator_Implementation {
+public class Discriminator_Implementation implements Serializable {
+    private static final long serialVersionUID = 1L;
     Convolution conv1;
     //    BatchNormalization batch1;
     LeakyReLULayer leakyReLULayer1;
@@ -21,22 +24,19 @@ public class Discriminator_Implementation {
     public boolean verbose = false;
     int batchSize;
 
-    public Discriminator_Implementation() {
-        this(1, 1e-3);
-    }
 
-    public Discriminator_Implementation(int batchSize, double learning_rate) {
+    public Discriminator_Implementation(int batchSize, OptimizerHyperparameters optimizerHyperparameters) {
         this.batchSize = batchSize;
         int inputWidth = 28, inputHeight = 28;
         this.conv1 = new Convolution(4, 64, 2,
                 inputWidth, inputHeight, 1,
-                2, 2, 0, learning_rate);
+                2, 2, 0, optimizerHyperparameters);
         this.leakyReLULayer1 = new LeakyReLULayer(0.2);
         this.conv2 = new Convolution(4, 128, 2,
                 conv1.outputWidth, conv1.outputHeight, conv1.outputDepth,
-                2, 2, 0, learning_rate);
+                2, 2, 0, optimizerHyperparameters);
         this.leakyReLULayer2 = new LeakyReLULayer(0.2);
-        this.dense = new DenseLayer(conv2.outputDepth * conv2.outputWidth * conv2.outputHeight, 1, learning_rate);
+        this.dense = new DenseLayer(conv2.outputDepth * conv2.outputWidth * conv2.outputHeight, 1, optimizerHyperparameters);
         this.sigmoidLayer = new SigmoidLayer();
 
 

@@ -1,13 +1,17 @@
 package DCGAN.layers;
 
 import DCGAN.optimizers.AdamOptimizer;
+import DCGAN.optimizers.Optimizer;
+import DCGAN.optimizers.OptimizerHyperparameters;
 import DCGAN.util.MiscUtils;
 import DCGAN.util.ArrayInitializer;
 
+import java.io.Serializable;
 import java.util.Random;
 import java.util.logging.Logger;
 
-public class Convolution {
+public class Convolution implements Serializable {
+    private static final long serialVersionUID = 1L;
     public int numFilters;
     public int filterSize;
     public int stride;
@@ -21,20 +25,13 @@ public class Convolution {
     public int inputPaddingX, inputPaddingY;
     public int padding = 0;
 
-    AdamOptimizer filtersOptimizer, biasesOptimizer;
+    Optimizer filtersOptimizer, biasesOptimizer;
     public boolean use_bias = false;
 
     private static Logger logger = Logger.getLogger(Convolution.class.getName());
 
-    public Convolution(int filterSize, int numFilters, int stride, int input_width, int input_height, int input_depth) {
-        this(filterSize, numFilters, stride, input_width, input_height, input_depth, 0, 0, 0);
-    }
 
-    public Convolution(int filterSize, int numFilters, int stride, int input_width, int input_height, int input_depth, int inputPaddingX, int inputPaddingY, int inputPaddingZ) {
-        this(filterSize, numFilters, stride, input_width, input_height, input_depth, inputPaddingX, inputPaddingY, inputPaddingZ, 0.001);
-    }
-
-    public Convolution(int filterSize, int numFilters, int stride, int input_width, int input_height, int input_depth, int inputPaddingX, int inputPaddingY, int inputPaddingZ, double learning_rate) {
+    public Convolution(int filterSize, int numFilters, int stride, int input_width, int input_height, int input_depth, int inputPaddingX, int inputPaddingY, int inputPaddingZ, OptimizerHyperparameters optimizerHyperparameters) {
         this.numFilters = numFilters;
         this.filterSize = filterSize;
         this.stride = stride;
@@ -73,8 +70,8 @@ public class Convolution {
         this.inputPaddingX = inputPaddingX;
         this.inputPaddingY = inputPaddingY;
 
-        filtersOptimizer = new AdamOptimizer(numFilters * filter_depth * filterSize * filterSize, learning_rate, 0.5, 0.999, 1e-8);
-        biasesOptimizer = new AdamOptimizer(numFilters, learning_rate, 0.5, 0.999, 1e-8);
+        filtersOptimizer = Optimizer.createOptimizer(numFilters * filter_depth * filterSize * filterSize, optimizerHyperparameters);
+        biasesOptimizer = Optimizer.createOptimizer(numFilters, optimizerHyperparameters);
     }
 
 

@@ -1,31 +1,32 @@
 package DCGAN.layers;
 
-import DCGAN.optimizers.AdamOptimizer;
+import DCGAN.optimizers.Optimizer;
+import DCGAN.optimizers.OptimizerHyperparameters;
 import DCGAN.util.MiscUtils;
 import DCGAN.util.ArrayInitializer;
 
-public class DenseLayer {
+import java.io.Serializable;
+
+public class DenseLayer implements Serializable {
+    private static final long serialVersionUID = 1L;
+
     public double[][] weights;
     private double[] biases;
     double[] input;
 
     public int outputSize, inputSize;
-    AdamOptimizer weightsOptimizer, biasesOptimizer;
+    Optimizer weightsOptimizer, biasesOptimizer;
 
 
-    public DenseLayer(int inputSize, int outputSize) {
-        this(inputSize, outputSize, 0.001);
-    }
-
-    public DenseLayer(int inputSize, int outputSize, double initial_learning_rate) {
+    public DenseLayer(int inputSize, int outputSize, OptimizerHyperparameters optimizerHyperparameters) {
         this.outputSize = outputSize;
         this.inputSize = inputSize;
 
         this.weights = ArrayInitializer.xavierInit2D(inputSize, outputSize);
         this.biases = ArrayInitializer.xavierInit1D(outputSize);
 
-        weightsOptimizer = new AdamOptimizer(inputSize * outputSize, initial_learning_rate, 0.9, 0.999, 1e-8);
-        biasesOptimizer = new AdamOptimizer(outputSize, initial_learning_rate, 0.5, 0.999, 1e-8);
+        weightsOptimizer = Optimizer.createOptimizer(inputSize * outputSize, optimizerHyperparameters);
+        biasesOptimizer = Optimizer.createOptimizer(outputSize, optimizerHyperparameters);
     }
 
     public double[] forward(double[] input) {

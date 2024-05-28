@@ -1,6 +1,9 @@
 package DCGAN.layers;
 
-public class LeakyReLULayer {
+import java.io.Serializable;
+
+public class LeakyReLULayer implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     public double[][][] input;
     public double[][][] output;

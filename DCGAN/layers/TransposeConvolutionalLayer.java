@@ -1,9 +1,13 @@
 package DCGAN.layers;
 
 import DCGAN.optimizers.AdamOptimizer;
+import DCGAN.optimizers.Optimizer;
+import DCGAN.optimizers.OptimizerHyperparameters;
+import DCGAN.optimizers.SGDHyperparameters;
 import DCGAN.util.MiscUtils;
 import DCGAN.util.ArrayInitializer;
 
+import java.io.Serializable;
 import java.util.Random;
 
 import static DCGAN.layers.Convolution.pad3d;
@@ -11,7 +15,8 @@ import static DCGAN.util.MiscUtils.*;
 import static DCGAN.util.TrainingUtils.calculateGradientRMSE;
 import static DCGAN.util.TrainingUtils.lossMSE;
 
-public class TransposeConvolutionalLayer {
+public class TransposeConvolutionalLayer implements Serializable {
+    private static final long serialVersionUID = 1L;
     public double[][][][] filters;
     //    double[] biases;
     private final int stride;
@@ -28,7 +33,7 @@ public class TransposeConvolutionalLayer {
 
     boolean useBias = false;
 
-    AdamOptimizer filtersOptimizer;
+    Optimizer filtersOptimizer;
 
     double[][][][] filtersGradient;
     double[][][] inputGradient;
@@ -42,24 +47,27 @@ public class TransposeConvolutionalLayer {
     double[][][] inputGradientSlice;
 
 
-    public TransposeConvolutionalLayer(int inputDepth, int filterSize, int numFilters, int stride) {
-        this(filterSize, numFilters, stride, 28, 28, inputDepth, 0, 0, 0, true);
-    }
-
-    public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride, int inputWidth, int inputHeight, int inputDepth, int padding) {
-        this(filterSize, numFilters, stride, inputWidth, inputHeight, inputDepth, padding, 0, 0, true);
-    }
 
     public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride, int inputWidth, int inputHeight, int inputDepth, int padding, boolean useBias) {
-        this(filterSize, numFilters, stride, inputWidth, inputHeight, inputDepth, padding, 0, 0, useBias);
+        this(filterSize, numFilters, stride,
+                inputWidth, inputHeight, inputDepth,
+                padding, 0, 0,0,
+                useBias, new SGDHyperparameters(0.001));
     }
 
-    public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride, int inputWidth, int inputHeight, int inputDepth, int padding, int output_padding, int right_bottom_padding, boolean useBias) {
-        this(filterSize, numFilters, stride, inputWidth, inputHeight, inputDepth, padding, output_padding, right_bottom_padding, 0, useBias, 0.001);
+    public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride, int inputWidth, int inputHeight, int inputDepth, int padding, boolean useBias,OptimizerHyperparameters optimizerHyperparameters) {
+        this(filterSize, numFilters, stride,
+                inputWidth, inputHeight, inputDepth,
+                padding, 0, 0,0,
+                useBias, optimizerHyperparameters);
     }
 
 
-    public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride, int inputWidth, int inputHeight, int inputDepth, int padding, int output_padding, int right_bottom_padding, int outputGradientPadding, boolean useBias, double learning_rate) {
+
+    public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride,
+                                       int inputWidth, int inputHeight, int inputDepth,
+                                       int padding, int output_padding, int right_bottom_padding, int outputGradientPadding,
+                                       boolean useBias, OptimizerHyperparameters optimizerHyperparameters) {
         this.useBias = useBias;
 
         this.numFilters = numFilters;
@@ -92,7 +100,7 @@ public class TransposeConvolutionalLayer {
 //            }
         }
 
-        filtersOptimizer = new AdamOptimizer(numFilters * filterDepth * filterSize * filterSize, learning_rate, 0.5, 0.999, 1e-8);
+        filtersOptimizer = Optimizer.createOptimizer(numFilters * filterDepth * filterSize * filterSize, optimizerHyperparameters);
 
         /**
          * Ok, so a major reason why the network training is slow is because we keep making too many new arrays in the forward and backward passes.

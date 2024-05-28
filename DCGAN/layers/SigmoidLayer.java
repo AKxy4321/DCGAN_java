@@ -1,6 +1,9 @@
 package DCGAN.layers;
 
-public class SigmoidLayer {
+import java.io.Serializable;
+
+public class SigmoidLayer implements Serializable {
+    private static final long serialVersionUID = 1L;
     public double[] input1D;
     public double[] output1D;
 

@@ -1,18 +1,24 @@
 package DCGAN.networks;
 
+import DCGAN.optimizers.AdamHyperparameters;
+import DCGAN.optimizers.OptimizerHyperparameters;
 import DCGAN.util.MiscUtils;
 import DCGAN.util.ArrayInitializer;
 import DCGAN.layers.*;
 
 import java.awt.image.BufferedImage;
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Random;
 
+import static DCGAN.util.MathUtils.mean;
 import static DCGAN.util.MiscUtils.*;
+import static DCGAN.util.SerializationUtils.loadObject;
+import static DCGAN.util.SerializationUtils.saveObject;
 import static DCGAN.util.TrainingUtils.calculateGradientRMSE;
 import static DCGAN.util.TrainingUtils.lossRMSE;
 
-public class Generator_Implementation_Without_Batchnorm {
+public class Generator_Implementation_Without_Batchnorm implements Serializable {
     int dense_output_size;
     DenseLayer dense;
     LeakyReLULayer leakyReLU1;
@@ -28,32 +34,32 @@ public class Generator_Implementation_Without_Batchnorm {
     int noise_length = 100;
     Random random = new Random(1);
 
-    public Generator_Implementation_Without_Batchnorm(int batchSize, double learning_rate) {
+    public Generator_Implementation_Without_Batchnorm(int batchSize, OptimizerHyperparameters optimizerHyperparameters) {
         this.batchSize = batchSize;
 
         int tconv1_input_width = 4, tconv1_input_height = 4, tconv1_input_depth = 256;
         this.dense_output_size = tconv1_input_width * tconv1_input_height * tconv1_input_depth;
-        this.dense = new DenseLayer(noise_length, this.dense_output_size, learning_rate);
+        this.dense = new DenseLayer(noise_length, this.dense_output_size, optimizerHyperparameters);
         this.leakyReLU1 = new LeakyReLULayer(0.1);
 
         // this.stride * (inputHeight - 1) + filterSize - 2 * padding;
         this.tconv1 = new TransposeConvolutionalLayer(3, 128, 2,
                 tconv1_input_width, tconv1_input_height, tconv1_input_depth,
-                1, 0, 0, 1, false, learning_rate);
+                1, 0, 0, 1, false, optimizerHyperparameters);
         assert tconv1.outputHeight == 7;
         assert tconv1.outputWidth == 7;
         this.leakyReLU2 = new LeakyReLULayer(0.1);
 
         this.tconv2 = new TransposeConvolutionalLayer(4, 64, 2,
                 tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth,
-                2, 0, 0, 1, false, learning_rate);
+                2, 0, 0, 1, false, optimizerHyperparameters);
         assert tconv2.outputHeight == 14;
         assert tconv2.outputWidth == 14;
         this.leakyReLU3 = new LeakyReLULayer(0.1);
 
         this.tconv3 = new TransposeConvolutionalLayer(4, 1, 2,
                 tconv2.outputWidth, tconv2.outputHeight, tconv2.outputDepth,
-                2, 0, 0, 1, false, learning_rate);
+                2, 0, 0, 1, false, optimizerHyperparameters);
         assert tconv3.outputHeight == 28;
         assert tconv3.outputWidth == 28;
         // (i + 4 - 1) + 3 - 2*0 = i + 6
@@ -212,8 +218,11 @@ public class Generator_Implementation_Without_Batchnorm {
     }
 
     public static void main(String[] args) {
-        // 2:15 min per epoch
-        Generator_Implementation_Without_Batchnorm generator = new Generator_Implementation_Without_Batchnorm(1, 0.001);
+        // 2:15 min per epoch for batch size 8
+        Generator_Implementation_Without_Batchnorm generator = (Generator_Implementation_Without_Batchnorm) loadObject("models/gen_no_batchnorm.ser");
+
+        if (generator == null)
+            generator = new Generator_Implementation_Without_Batchnorm(1, new AdamHyperparameters(0.001, 0.9, 0.999, 0.00000001));
 
         System.out.println("tconv1 output shape : " + generator.tconv1.outputDepth + " " + generator.tconv1.outputHeight + " " + generator.tconv1.outputWidth);
         System.out.println("tconv2 output shape : " + generator.tconv2.outputDepth + " " + generator.tconv2.outputHeight + " " + generator.tconv2.outputWidth);
@@ -233,7 +242,7 @@ public class Generator_Implementation_Without_Batchnorm {
 
         for (int epoch = 0, max_epochs = 20000000; epoch < max_epochs && loss > 0.00001; epoch++, prev_loss = loss) {
             double[][][][] outputs = generator.forwardBatch();
-            saveImage(getBufferedImage(outputs[0]), "gen_no_batchnorm_current.png");
+            saveImage(getBufferedImage(outputs[0]), "outputs/gen_no_batchnorm_current.png");
 
             double[] losses = new double[generator.batchSize];
             for (int i = 0; i < generator.batchSize; i++)
@@ -246,6 +255,10 @@ public class Generator_Implementation_Without_Batchnorm {
                 calculateGradientRMSE(outputGradients[i], outputs[i], targetOutput);
 
             generator.updateParametersBatch(outputGradients);
+
+            if (epoch % 5 == 0) {
+                saveObject(generator, "models/gen_no_batchnorm.ser");
+            }
         }
     }
 }

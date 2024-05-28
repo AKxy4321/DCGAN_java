@@ -1,5 +1,6 @@
 package DCGAN.networks;
 
+import DCGAN.optimizers.SGDHyperparameters;
 import DCGAN.util.MiscUtils;
 import DCGAN.util.ArrayInitializer;
 import DCGAN.layers.*;
@@ -11,12 +12,14 @@ import static DCGAN.util.TrainingUtils.gradientRMSE;
 import static DCGAN.util.TrainingUtils.lossRMSE;
 
 public class GeneratorBasic {
-    DenseLayer dense1 = new DenseLayer(100, 256);
+
+    SGDHyperparameters optimizerHyperparameters = new SGDHyperparameters(0.001);
+    DenseLayer dense1 = new DenseLayer(100, 256, optimizerHyperparameters);
     SigmoidLayer sigmoid1 = new SigmoidLayer();
-    DenseLayer dense2 = new DenseLayer(dense1.outputSize, 7*7*29);
-    TransposeConvolutionalLayer transposeConv1 = new TransposeConvolutionalLayer(3, 17, 1, 7, 7, 29, 0, false);
+    DenseLayer dense2 = new DenseLayer(dense1.outputSize, 7*7*29, optimizerHyperparameters);
+    TransposeConvolutionalLayer transposeConv1 = new TransposeConvolutionalLayer(3, 17, 1, 7, 7, 29, 0, false, optimizerHyperparameters);
     // output_shape = (input_shape - 1) * stride - 2 * padding + kernel_size + output_padding
-    TransposeConvolutionalLayer tconv2 = new TransposeConvolutionalLayer(1, 1, 1, transposeConv1.outputWidth, transposeConv1.outputHeight, transposeConv1.outputDepth, 0, false);
+    TransposeConvolutionalLayer tconv2 = new TransposeConvolutionalLayer(1, 1, 1, transposeConv1.outputWidth, transposeConv1.outputHeight, transposeConv1.outputDepth, 0, false, optimizerHyperparameters);
     TanhLayer tanh = new TanhLayer();
 
     public double[][][] forward(double[] input) {

@@ -3,13 +3,17 @@ package DCGAN.networks;
 import DCGAN.layers.Convolution;
 import DCGAN.layers.DenseLayer;
 import DCGAN.layers.LeakyReLULayer;
+import DCGAN.optimizers.OptimizerHyperparameters;
 import DCGAN.util.MiscUtils;
 
+import java.io.Serializable;
+
 import static DCGAN.util.ArrayInitializer.*;
-import static DCGAN.util.MiscUtils.dotProduct;
+import static DCGAN.util.MathUtils.*;
 import static DCGAN.util.MiscUtils.multiplyScalarInPlace;
 
-public class Critic_Spectral_Norm {
+public class Critic_Spectral_Norm implements Serializable {
+    private static final long serialVersionUID = 1L;
     Convolution conv1;
     //    BatchNormalization batch1;
     LeakyReLULayer leakyReLULayer1;
@@ -21,22 +25,19 @@ public class Critic_Spectral_Norm {
     public boolean verbose = false;
     int batchSize;
 
-    public Critic_Spectral_Norm() {
-        this(1, 1e-3);
-    }
 
-    public Critic_Spectral_Norm(int batchSize, double learning_rate) {
+    public Critic_Spectral_Norm(int batchSize, OptimizerHyperparameters optimizerHyperparameters) {
         this.batchSize = batchSize;
         int inputWidth = 28, inputHeight = 28;
         this.conv1 = new Convolution(4, 64, 2,
                 inputWidth, inputHeight, 1,
-                3, 3, 0, learning_rate);
+                3, 3, 0, optimizerHyperparameters);
         this.leakyReLULayer1 = new LeakyReLULayer(0.2);
         this.conv2 = new Convolution(4, 128, 2,
                 conv1.outputWidth, conv1.outputHeight, conv1.outputDepth,
-                3, 3, 0, learning_rate);
+                3, 3, 0, optimizerHyperparameters);
         this.leakyReLULayer2 = new LeakyReLULayer(0.2);
-        this.dense = new DenseLayer(conv2.outputDepth * conv2.outputWidth * conv2.outputHeight, 1, learning_rate);
+        this.dense = new DenseLayer(conv2.outputDepth * conv2.outputWidth * conv2.outputHeight, 1, optimizerHyperparameters);
 
 
         outputs_conv1 = new double[batchSize][][][];
@@ -127,10 +128,6 @@ public class Critic_Spectral_Norm {
 //            double[][][] disc_in_gradient_conv1 = this.conv1.backprop(disc_in_gradients_leakyrelu1[i]);
         }
 
-        dense.updateParametersBatch(outputGradients, outputs_leakyRELU2_flattened);
-        conv2.updateParametersBatch(disc_in_gradients_leakyrelu2_conv2_out_grad, outputs_leakyRELU1);
-        conv1.updateParametersBatch(disc_in_gradients_leakyrelu1_conv1_out_grad, inputs);
-
         // Applying spectral normalization
         spectral_norm:
         {
@@ -139,13 +136,17 @@ public class Critic_Spectral_Norm {
             applySpectralNorm(dense);
         }
 
+        dense.updateParametersBatch(outputGradients, outputs_leakyRELU2_flattened);
+        conv2.updateParametersBatch(disc_in_gradients_leakyrelu2_conv2_out_grad, outputs_leakyRELU1);
+        conv1.updateParametersBatch(disc_in_gradients_leakyrelu1_conv1_out_grad, inputs);
+
 
         if (verbose) {
             // mean of gradients of each layer
             System.out.println("Mean of output gradients of each layer of critic");
-            System.out.println("dense layer: " + MiscUtils.mean(MiscUtils.flatten(outputGradients)));
-            System.out.println("conv2: " + MiscUtils.mean(MiscUtils.flatten(disc_in_gradients_leakyrelu2_conv2_out_grad[0])));
-            System.out.println("conv1: " + MiscUtils.mean(MiscUtils.flatten(disc_in_gradients_leakyrelu1_conv1_out_grad[0])));
+            System.out.println("dense layer: " + mean(MiscUtils.flatten(outputGradients)));
+            System.out.println("conv2: " + mean(MiscUtils.flatten(disc_in_gradients_leakyrelu2_conv2_out_grad[0])));
+            System.out.println("conv1: " + mean(MiscUtils.flatten(disc_in_gradients_leakyrelu1_conv1_out_grad[0])));
         }
     }
 
@@ -165,10 +166,10 @@ public class Critic_Spectral_Norm {
         double[] v_tilde = null;
         for (int i = 0; i < n_power_iterations; i++) {
             double[] backwardResult = layer.backward(u_tilde);
-            v_tilde = MiscUtils.multiplyScalarInPlace(backwardResult, 1.0 / MiscUtils.l2Norm(backwardResult));
+            v_tilde = MiscUtils.multiplyScalarInPlace(backwardResult, 1.0 / l2Norm(backwardResult));
 
             double[] forwardResult = layer.forward(v_tilde);
-            u_tilde = MiscUtils.multiplyScalarInPlace(forwardResult, 1.0 / MiscUtils.l2Norm(forwardResult));
+            u_tilde = MiscUtils.multiplyScalarInPlace(forwardResult, 1.0 / l2Norm(forwardResult));
         }
 
         double spectral_norm = dotProduct(u_tilde, layer.forward(v_tilde));
@@ -183,10 +184,10 @@ public class Critic_Spectral_Norm {
         double[][][] v_tilde = null;
         for (int i = 0; i < n_power_iterations; i++) {
             double[][][] backwardResult = conv.backward(u_tilde);
-            v_tilde = MiscUtils.multiplyScalarInPlace(backwardResult, 1.0 / MiscUtils.l2Norm(backwardResult));
+            v_tilde = MiscUtils.multiplyScalarInPlace(backwardResult, 1.0 / l2Norm(backwardResult));
 
             double[][][] forwardResult = conv.forward(v_tilde);
-            u_tilde = MiscUtils.multiplyScalarInPlace(forwardResult, 1.0 / MiscUtils.l2Norm(forwardResult));
+            u_tilde = MiscUtils.multiplyScalarInPlace(forwardResult, 1.0 / l2Norm(forwardResult));
         }
 
         double spectral_norm = dotProduct(u_tilde, conv.forward(v_tilde));
