@@ -209,20 +209,20 @@ public class Generator_Implementation_Without_Batchnorm implements Serializable 
                 System.out.println("leakyrelu_in_gradient: " + Arrays.stream(MiscUtils.flatten(leakyrelu_in_gradient_d_outgrad_flattened)).sum());
                 System.out.println("leakyrelu_in_gradient_flattened: " + Arrays.stream(leakyrelu_in_gradient_d_outgrad_flattened[i]).sum());
 
-                MiscUtils.saveImage(getBufferedImage(scaleMinMax(tanh_in_gradient_t3_outgrad[0][0])), "tanh_in_gradient_t3_outgrad[0][0].png");
-                MiscUtils.saveImage(getBufferedImage(scaleMinMax(tconv3_in_gradient_l3_outgrad[0][0])), "tconv3_in_gradient_l3_outgrad[0][0].png");
-                MiscUtils.saveImage(getBufferedImage(scaleMinMax(tconv2_in_gradient_l2_outgrad[0][0])), "tconv2_in_gradient_l2_outgrad[0][0].png");
-                MiscUtils.saveImage(getBufferedImage(scaleMinMax(tconv1_in_gradient_l1_outgrad[0][0])), "tconv1_in_gradient_l1_outgrad[0][0].png");
+                MiscUtils.saveImage(getBufferedImage(scaleMinMax(tanh_in_gradient_t3_outgrad[0][0])), "outputs/tanh_in_gradient_t3_outgrad[0][0].png");
+                MiscUtils.saveImage(getBufferedImage(scaleMinMax(tconv3_in_gradient_l3_outgrad[0][0])), "outputs/tconv3_in_gradient_l3_outgrad[0][0].png");
+                MiscUtils.saveImage(getBufferedImage(scaleMinMax(tconv2_in_gradient_l2_outgrad[0][0])), "outputs/tconv2_in_gradient_l2_outgrad[0][0].png");
+                MiscUtils.saveImage(getBufferedImage(scaleMinMax(tconv1_in_gradient_l1_outgrad[0][0])), "outputs/tconv1_in_gradient_l1_outgrad[0][0].png");
             }
         }
     }
 
     public static void main(String[] args) {
         // 2:15 min per epoch for batch size 8
-        Generator_Implementation_Without_Batchnorm generator = (Generator_Implementation_Without_Batchnorm) loadObject("models/gen_no_batchnorm.ser");
+        Generator_Implementation_Without_Batchnorm generator = null; // (Generator_Implementation_Without_Batchnorm) loadObject("models/gen_no_batchnorm.ser");
 
         if (generator == null)
-            generator = new Generator_Implementation_Without_Batchnorm(1, new AdamHyperparameters(0.001, 0.9, 0.999, 0.00000001));
+            generator = new Generator_Implementation_Without_Batchnorm(8, new AdamHyperparameters(0.001, 0.9, 0.999, 0.00000001));
 
         System.out.println("tconv1 output shape : " + generator.tconv1.outputDepth + " " + generator.tconv1.outputHeight + " " + generator.tconv1.outputWidth);
         System.out.println("tconv2 output shape : " + generator.tconv2.outputDepth + " " + generator.tconv2.outputHeight + " " + generator.tconv2.outputWidth);

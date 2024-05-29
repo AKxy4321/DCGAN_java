@@ -219,6 +219,31 @@ public class Convolution implements Serializable {
     }
 
 
+    public static double[][] pad2d(double[][] input, int topPadding, int bottomPadding, int rightPadding, int leftPadding) {
+        int input_width = input[0].length;
+        int input_height = input.length;
+
+        int paddedInputHeight = input_height + topPadding + bottomPadding;
+        int paddedInputWidth = input_width + rightPadding + leftPadding;
+
+        // Pad the input with zeros
+        double[][] paddedInput = new double[paddedInputHeight][paddedInputWidth];
+        pad2d(paddedInput, input, topPadding, bottomPadding, rightPadding, leftPadding);
+
+        return paddedInput;
+    }
+
+    public static void pad2d(double[][] destination, double[][] input, int topPadding, int bottomPadding, int rightPadding, int leftPadding) {
+        int input_width = input[0].length;
+        int input_height = input.length;
+
+        for (int h = 0; h < input_height; h++) {
+            for (int w = 0; w < input_width; w++) {
+                destination[h + topPadding][w + leftPadding] = input[h][w];
+            }
+        }
+    }
+
     public static double[][] pad2d(double[][] input, int heightPadding, int widthPadding) {
         int input_width = input[0].length;
         int input_height = input.length;
@@ -273,7 +298,7 @@ public class Convolution implements Serializable {
         return pad3d(paddedInput, array, front, back, up, bottom, left, right);
     }
 
-    public static double[][][] pad3d(double[][][] paddedInput, double[][][] array, int front, int back, int up, int bottom, int left, int right){
+    public static double[][][] pad3d(double[][][] paddedInput, double[][][] array, int front, int back, int up, int bottom, int left, int right) {
         int input_depth = array.length;
         int input_height = array[0].length;
         int input_width = array[0][0].length;
@@ -385,6 +410,42 @@ public class Convolution implements Serializable {
         return convolve2d(input, filter, stride, inputPadding, inputPadding);
     }
 
+    public static void convolve2d(double[][] output, double[][] input, double[][] filter, int stride) {
+        int input_width = input[0].length;
+        int input_height = input.length;
+
+        int filterSize = filter[0].length;
+
+        // output_shape = ((input_height - kernel_size + 2 * padding) / stride) + 1
+        // padding is already applied, so we can omit it in the below formula
+//        int output_width = (int) Math.floor((double) (input_width - filterSize) / stride + 1);
+//        int output_height = (int) Math.floor((double) (input_height - filterSize) / stride + 1);
+
+        int output_width = output[0].length;
+        int output_height = output.length;
+
+        int y = 0;
+        for (int output_y = 0; output_y < output_height; y += stride, output_y++) {  // xy_stride
+            int x = 0;
+            for (int output_x = 0; output_x < output_width; x += stride, output_x++) {  // xy_stride
+
+                // convolve centered at this particular location
+                double a = 0.0;
+                for (int fy = 0; fy < filterSize; fy++) {
+                    int input_y = y + fy; // coordinates in the original input array coordinates
+                    for (int fx = 0; fx < filterSize; fx++) {
+                        int input_x = x + fx;
+                        if (input_y >= 0 && input_y < input_height && input_x >= 0 && input_x < input_width) {
+                            a += filter[fy][fx] * input[input_y][input_x];
+                        }
+                    }
+                }
+                output[output_y][output_x] = a;
+            }
+        }
+    }
+
+
     public static double[][] convolve2d(double[][] input, double[][] filter, int stride, int heightPadding, int widthPadding) {
 //        System.out.println("Input before padding:");
 //        UTIL.prettyprint(input);
@@ -406,26 +467,7 @@ public class Convolution implements Serializable {
         int output_height = (int) Math.floor((double) (input_height - filterSize) / stride + 1);
         double[][] output = new double[output_height][output_width];
 
-
-        int y = 0;
-        for (int output_y = 0; output_y < output_height; y += stride, output_y++) {  // xy_stride
-            int x = 0;
-            for (int output_x = 0; output_x < output_width; x += stride, output_x++) {  // xy_stride
-
-                // convolve centered at this particular location
-                double a = 0.0;
-                for (int fy = 0; fy < filterSize; fy++) {
-                    int input_y = y + fy; // coordinates in the original input array coordinates
-                    for (int fx = 0; fx < filterSize; fx++) {
-                        int input_x = x + fx;
-                        if (input_y >= 0 && input_y < input_height && input_x >= 0 && input_x < input_width) {
-                            a += filter[fy][fx] * input[input_y][input_x];
-                        }
-                    }
-                }
-                output[output_y][output_x] = a;
-            }
-        }
+        convolve2d(output, input, filter, stride);
 
         return output;
     }

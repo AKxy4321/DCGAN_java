@@ -336,6 +336,15 @@ public class MiscUtils {
                     resultArray[i][j][k] += array[i][j][k];
     }
 
+    public static void incrementArrayByArray(double[][] resultArray, double[][] array) {
+        /**
+         * Adds the values of array to resultArray. No new array is made for this
+         * */
+        for (int i = 0; i < resultArray.length; i++)
+            for (int j = 0; j < resultArray[0].length; j++)
+                resultArray[i][j] += array[i][j];
+    }
+
 
     public static double[][][] multiplyScalar(double[][][] array, double scalar) {
         double[][][] new_array = new double[array.length][array[0].length][array[0][0].length];

@@ -10,7 +10,7 @@ import DCGAN.util.ArrayInitializer;
 import java.io.Serializable;
 import java.util.Random;
 
-import static DCGAN.layers.Convolution.pad3d;
+import static DCGAN.layers.Convolution.*;
 import static DCGAN.util.MiscUtils.*;
 import static DCGAN.util.TrainingUtils.calculateGradientRMSE;
 import static DCGAN.util.TrainingUtils.lossMSE;
@@ -43,25 +43,23 @@ public class TransposeConvolutionalLayer implements Serializable {
     double[][][] output;
     double[][][] output_slice;
     double[][][][] rotated_filters;
-    double[][][] paddedOutputGradientSlice;
-    double[][][] inputGradientSlice;
-
+    double[][] paddedOutputGradientSlice;
+    double[][] inputGradientSlice;
 
 
     public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride, int inputWidth, int inputHeight, int inputDepth, int padding, boolean useBias) {
         this(filterSize, numFilters, stride,
                 inputWidth, inputHeight, inputDepth,
-                padding, 0, 0,0,
+                padding, 0, 0, 0,
                 useBias, new SGDHyperparameters(0.001));
     }
 
-    public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride, int inputWidth, int inputHeight, int inputDepth, int padding, boolean useBias,OptimizerHyperparameters optimizerHyperparameters) {
+    public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride, int inputWidth, int inputHeight, int inputDepth, int padding, boolean useBias, OptimizerHyperparameters optimizerHyperparameters) {
         this(filterSize, numFilters, stride,
                 inputWidth, inputHeight, inputDepth,
-                padding, 0, 0,0,
+                padding, 0, 0, 0,
                 useBias, optimizerHyperparameters);
     }
-
 
 
     public TransposeConvolutionalLayer(int filterSize, int numFilters, int stride,
@@ -125,8 +123,8 @@ public class TransposeConvolutionalLayer implements Serializable {
         this.outputHeight = (int) Math.floor((double) (paddedInputHeight - filterSize) / 1 + 1);
         this.outputDepth = numFilters;
 
-        paddedOutputGradientSlice = new double[1 + 2 * (filterDepth - 1)][outputHeight + 2 * outputGradientPadding][outputWidth + 2 * outputGradientPadding];
-        inputGradientSlice = new double[inputDepth][inputHeight][inputWidth];
+        paddedOutputGradientSlice = new double[outputHeight + 2 * outputGradientPadding][outputWidth + 2 * outputGradientPadding];
+        inputGradientSlice = new double[inputHeight][inputWidth];
     }
 
     public double[][][] forward(double[][][] input) {
@@ -193,29 +191,18 @@ public class TransposeConvolutionalLayer implements Serializable {
         fillZeroes(inputGradient);
 
         for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
-            fillZeroes(inputGradientSlice); // reset our inputGradientSlice array
-            fillZeroes(paddedOutputGradientSlice); // reset our paddedOutputGradientSlice array
-
-            pad3d(paddedOutputGradientSlice, // this is where the result of padding the array will be stored
-                    new double[][][]{outputGradient[filter_idx]}, // this is what we want to pad
-                    filterDepth - 1, filterDepth - 1,
+            pad2d(
+                    paddedOutputGradientSlice, // destination array
+                    outputGradient[filter_idx],
                     outputGradientPadding, outputGradientPadding,
-                    outputGradientPadding, outputGradientPadding);
+                    outputGradientPadding, outputGradientPadding
+            );
 
-            Convolution.convolve3d(
-                    inputGradientSlice, // this is where the result of convolution will be stored
-                    paddedOutputGradientSlice, // this is the input array which we are convolving the filters with
-                    filters[filter_idx],
-                    1, stride, stride);
-
-            // now we have to store the inputGradientSlice in the inputGradient array
-            // but we have to reverse it along the depth dimension.
-            for (int c = 0; c < inputDepth; c++) {
-                for (int i = 0; i < inputHeight; i++) {
-                    for (int j = 0; j < inputWidth; j++) {
-                        inputGradient[inputDepth - 1 - c][i][j] += inputGradientSlice[c][i][j];
-                    }
-                }
+            for (int fd = 0; fd < filterDepth; fd++) {
+//                fillZeroes(inputGradientSlice); // reset our inputGradientSlice array
+                convolve2d(inputGradientSlice, // our destination array where the convolution result will be stored
+                        paddedOutputGradientSlice, filters[filter_idx][fd], stride);
+                incrementArrayByArray(inputGradient[fd], inputGradientSlice);
             }
         }
     }
@@ -232,32 +219,20 @@ public class TransposeConvolutionalLayer implements Serializable {
         // reset the filtersGradient and stretched_input array
         fillZeroes(filtersGradient);
         fillZeroes(stretched_input);
-//        double[][][][] filtersGradient = new double[numFilters][filterDepth][filterSize][filterSize];
-//        double[][][] stretched_input = MiscUtils.addZeroesInBetween(input, 0, stride - 1, stride - 1);
 
         MiscUtils.addZeroesInBetween(stretched_input, input, 0, stride - 1, stride - 1);
 
         for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
-            double[][][] result = Convolution.convolve3d(
-                    pad3d(new double[][][]{outputGradient[filter_idx]},
-                            filterDepth - 1, filterDepth - 1,
-                            outputGradientPadding, outputGradientPadding,
-                            outputGradientPadding, outputGradientPadding
-                    ),
-                    stretched_input,
-                    1, 1, 1);
-
-            double[][][] reversed_along_depth = new double[result.length][result[0].length][result[0][0].length];
-            for (int d = 0; d < result.length; d++) {
-                for (int i = 0; i < result[0].length; i++) {
-                    for (int j = 0; j < result[0][0].length; j++) {
-                        reversed_along_depth[result.length - 1 - d][i][j] = result[d][i][j];
-                    }
-                }
+            for (int id = 0; id < inputDepth; id++) {
+                copyArray(Convolution.convolve2d(
+                                pad2d(outputGradient[filter_idx],
+                                        outputGradientPadding, outputGradientPadding,
+                                        outputGradientPadding, outputGradientPadding
+                                ),
+                                stretched_input[id],
+                                1, 0, 0),
+                        filtersGradient[filter_idx][id]);
             }
-            result = reversed_along_depth;
-
-            filtersGradient[filter_idx] = result;
         }
 
         if (filtersGradient[0].length != filterDepth || filtersGradient[0][0].length != filterSize || filtersGradient[0][0][0].length != filterSize) {
@@ -275,7 +250,7 @@ public class TransposeConvolutionalLayer implements Serializable {
         /** from a batch of inputs, for a batch of output gradients, we want to update based on the mean of the weights gradients and the mean of the biases gradients*/
         double[][][][][] filtersGradients = new double[outputGradients.length][numFilters][filterDepth][filterSize][filterSize];
 
-        for (int sample_idx = 0; sample_idx < outputGradients.length; sample_idx++)
+        for (int sample_idx = 0; sample_idx < outputGradients.length; sample_idx++, System.out.print(sample_idx + " "))
             copyArray(getFilterGradient(outputGradients[sample_idx], inputs[sample_idx]), filtersGradients[sample_idx]);
 
         filtersOptimizer.updateParameters(filters, MiscUtils.mean_1st_layer(filtersGradients));
