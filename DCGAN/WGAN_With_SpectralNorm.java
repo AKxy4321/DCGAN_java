@@ -7,9 +7,12 @@ import DCGAN.util.MiscUtils;
 
 import java.io.Serializable;
 import java.util.logging.Logger;
+import java.time.LocalDateTime;
 
 import static DCGAN.util.MathUtils.mean;
 import static DCGAN.util.MiscUtils.*;
+import static DCGAN.util.SerializationUtils.loadObject;
+import static DCGAN.util.SerializationUtils.saveObject;
 
 
 public class WGAN_With_SpectralNorm implements Serializable {
@@ -28,18 +31,29 @@ public class WGAN_With_SpectralNorm implements Serializable {
 
     private double disc_loss, gen_loss;
 
-    Generator_Implementation generator = new Generator_Implementation(batch_size, new AdamHyperparameters(learning_rate_gen, 0.5, 0.999, 1e-8));
-    Critic_Spectral_Norm critic = new Critic_Spectral_Norm(batch_size, new AdamHyperparameters(learning_rate_critic, 0.5, 0.999, 1e-8));
+    Generator_Implementation generator;
+    Critic_Spectral_Norm critic;
 
     public static void main(String[] args) {
         WGAN_With_SpectralNorm wgan = new WGAN_With_SpectralNorm();
         wgan.train();
     }
 
-    public void train() {
+    public WGAN_With_SpectralNorm() {
+        generator = (Generator_Implementation) loadObject("models/generator_wgan_sn.ser");
+        critic = (Critic_Spectral_Norm) loadObject("models/critic_wgan_sn.ser");
+
+        if (generator == null)
+            generator = new Generator_Implementation(batch_size, new AdamHyperparameters(learning_rate_gen, 0.5, 0.999, 1e-8));
+        if (critic == null)
+            critic = new Critic_Spectral_Norm(batch_size, new AdamHyperparameters(learning_rate_critic, 0.5, 0.999, 1e-8));
+
         generator.verbose = true;
         critic.verbose = true;
+    }
 
+    public void train() {
+        LocalDateTime startTime = LocalDateTime.now();
         // minibatch gradient descent
         for (int epochs = 0; epochs < 1000000; epochs++) {
             int index = 0;// reset our index to 0
@@ -63,7 +77,7 @@ public class WGAN_With_SpectralNorm implements Serializable {
 
                 // generate image
                 double[][][] gen_img = generator.generateImage();
-                saveImage(getBufferedImage(gen_img), "generated_image_wgan.png");
+                saveImage(getBufferedImage(gen_img), "outputs/generated_image_wgan.png");
 
                 // calculating and displaying our model metrics
                 calculateModelMetrics();
@@ -71,8 +85,13 @@ public class WGAN_With_SpectralNorm implements Serializable {
                 logger.info("Gen_Loss : " + gen_loss);
                 logger.info("Disc_Loss : " + disc_loss);
 
-                MiscUtils.saveImage(getBufferedImage(realImages[0]), "real_image_wgan_with_noise.png");
-
+                MiscUtils.saveImage(getBufferedImage(realImages[0]), "outputs/real_image_wgan_with_noise.png");
+                LocalDateTime currentTime = LocalDateTime.now();
+                if(currentTime.getMinute() - startTime.getMinute() > 5) {
+                    startTime = currentTime;
+                    saveObject(generator, "models/generator_wgan_sn.ser");
+                    saveObject(critic, "models/critic_wgan_sn.ser");
+                }
             }
         }
     }
