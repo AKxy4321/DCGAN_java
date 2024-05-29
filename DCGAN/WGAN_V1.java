@@ -1,11 +1,12 @@
 package DCGAN;
 
-import DCGAN.networks.Critic_Spectral_Norm;
-import DCGAN.networks.Generator_Implementation;
+import DCGAN.networks.Critic;
+import DCGAN.networks.Generator_Implementation_Without_Batchnorm;
 import DCGAN.optimizers.AdamHyperparameters;
 import DCGAN.util.MiscUtils;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.logging.Logger;
 import java.time.LocalDateTime;
 
@@ -15,38 +16,44 @@ import static DCGAN.util.SerializationUtils.loadObject;
 import static DCGAN.util.SerializationUtils.saveObject;
 
 
-public class WGAN_With_SpectralNorm implements Serializable {
+public class WGAN_V1 implements Serializable {
     private static final long serialVersionUID = 1L;
-    final private static Logger logger = Logger.getLogger(WGAN_With_SpectralNorm.class.getName());
+    final private static Logger logger = Logger.getLogger(WGAN_V1.class.getName());
 
-    int train_size = 1;
+    int train_size = 1500;
     int test_size = 5;
-    int label = 3;
+    int label = 9;
     double learning_rate_gen = 0.0001;
-    double learning_rate_critic = 0.00005;
+    double learning_rate_critic = 0.0001;
 
-    private int n_critics = 1;
+    private int n_critics = 5;
 
-    int batch_size = 1; // 1 for sgd
+    int batch_size = 32; // 1 for sgd
 
     private double disc_loss, gen_loss;
 
-    Generator_Implementation generator;
-    Critic_Spectral_Norm critic;
+    Generator_Implementation_Without_Batchnorm generator;
+    Critic critic;
+
+    AdamHyperparameters generator_adam = new AdamHyperparameters(learning_rate_gen, 0.2, 0.999, 1e-8);
+    AdamHyperparameters critic_adam = new AdamHyperparameters(learning_rate_critic, 0.1, 0.999, 1e-8);
 
     public static void main(String[] args) {
-        WGAN_With_SpectralNorm wgan = new WGAN_With_SpectralNorm();
+        WGAN_V1 wgan = new WGAN_V1();
         wgan.train();
     }
 
-    public WGAN_With_SpectralNorm() {
-        generator = (Generator_Implementation) loadObject("models/generator_wgan_sn.ser");
-        critic = (Critic_Spectral_Norm) loadObject("models/critic_wgan_sn.ser");
+    public WGAN_V1() {
+        generator = (Generator_Implementation_Without_Batchnorm) loadObject("models/generator_wgan_no_batchnorm.ser");
+        critic = (Critic) loadObject("models/critic_wgan.ser");
 
         if (generator == null)
-            generator = new Generator_Implementation(batch_size, new AdamHyperparameters(learning_rate_gen, 0.5, 0.999, 1e-8));
+            generator = new Generator_Implementation_Without_Batchnorm(batch_size, generator_adam);
         if (critic == null)
-            critic = new Critic_Spectral_Norm(batch_size, new AdamHyperparameters(learning_rate_critic, 0.5, 0.999, 1e-8));
+            critic = new Critic(batch_size, critic_adam);
+
+
+        critic.setClip(-0.01, 0.01);
 
         generator.verbose = true;
         critic.verbose = true;
@@ -55,8 +62,12 @@ public class WGAN_With_SpectralNorm implements Serializable {
     public void train() {
         LocalDateTime startTime = LocalDateTime.now();
         // minibatch gradient descent
-        for (int epochs = 0; epochs < 1000000; epochs++) {
+        for (int epoch = 0; epoch < 1000000; epoch++) {
             int index = 0;// reset our index to 0
+            if(epoch < 3)
+                generator_adam.setLearningRate(0.0001);
+            else
+                generator_adam.setLearningRate(learning_rate_gen);
             for (int batch_idx = 0; batch_idx < train_size / batch_size; batch_idx++) {
                 // Load images
                 double[][][][] fakeImages = generator.forwardBatch();
@@ -81,16 +92,16 @@ public class WGAN_With_SpectralNorm implements Serializable {
 
                 // calculating and displaying our model metrics
                 calculateModelMetrics();
-                logger.info("Epoch : " + epochs + " batch:" + batch_idx);
+                logger.info("Epoch : " + epoch + " batch:" + batch_idx);
                 logger.info("Gen_Loss : " + gen_loss);
                 logger.info("Disc_Loss : " + disc_loss);
 
                 MiscUtils.saveImage(getBufferedImage(realImages[0]), "outputs/real_image_wgan_with_noise.png");
                 LocalDateTime currentTime = LocalDateTime.now();
-                if(currentTime.getMinute() - startTime.getMinute() > 5) {
+                if(Duration.between(startTime, currentTime).toMinutes() > 5) {
                     startTime = currentTime;
-                    saveObject(generator, "models/generator_wgan_sn.ser");
-                    saveObject(critic, "models/critic_wgan_sn.ser");
+                    saveObject(generator, "models/generator_wgan_no_batchnorm.ser");
+                    saveObject(critic, "models/critic_wgan.ser");
                 }
             }
         }

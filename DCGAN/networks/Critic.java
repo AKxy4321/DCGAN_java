@@ -23,8 +23,8 @@ public class Critic implements Serializable {
 
     public boolean verbose = false;
     int batchSize;
-    private double min_clip_conv;
-    private double max_clip_conv;
+    private double min_clip;
+    private double max_clip;
 
 
     public Critic(int batchSize, OptimizerHyperparameters optimizerHyperparameters) {
@@ -49,9 +49,9 @@ public class Critic implements Serializable {
         outputs_dense = new double[batchSize][];
     }
 
-    public void setClipConv(double min_clip, double max_clip) {
-        this.min_clip_conv = min_clip;
-        this.max_clip_conv = max_clip;
+    public void setClip(double min_clip, double max_clip) {
+        this.min_clip = min_clip;
+        this.max_clip = max_clip;
     }
 
     public double[] getOutput(double[][] black_and_white_image) {
@@ -138,9 +138,9 @@ public class Critic implements Serializable {
         conv1.updateParametersBatch(disc_in_gradients_leakyrelu1_conv1_out_grad, inputs);
 
         // clip the weights
-//        MiscUtils.clipInPlace(dense.weights, min_clip_conv, max_clip_conv); // Apparently clipping should be done for only convolution layers
-        MiscUtils.clipInPlace(conv2.filters, min_clip_conv, max_clip_conv);
-        MiscUtils.clipInPlace(conv1.filters, min_clip_conv, max_clip_conv);
+        MiscUtils.clipInPlace(dense.weights, min_clip, max_clip); // Apparently clipping should be done for only convolution layers
+        MiscUtils.clipInPlace(conv2.filters, min_clip, max_clip);
+        MiscUtils.clipInPlace(conv1.filters, min_clip, max_clip);
 
         if(verbose){
             // mean of gradients of each layer

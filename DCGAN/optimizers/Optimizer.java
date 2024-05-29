@@ -9,6 +9,7 @@ public abstract class Optimizer implements Serializable {
         return switch (hyperparameters.getOptimizerType()) {
             case ADAM -> new AdamOptimizer(numParams, (AdamHyperparameters) hyperparameters);
             case SGD -> new SGDOptimizer(numParams, (SGDHyperparameters) hyperparameters);
+            case RMSPROP -> new RMSProp(numParams, (RMSPropHyperparameters) hyperparameters);
             default ->
                     throw new IllegalArgumentException("Unsupported optimizer type: " + hyperparameters.getOptimizerType());
         };

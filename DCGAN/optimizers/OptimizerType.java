@@ -4,7 +4,8 @@ public enum OptimizerType {
 
 
     ADAM("Adam"),
-    SGD("SGD");
+    SGD("SGD"),
+    RMSPROP("RMSProp");
 
     private final String optimizerType;
 
