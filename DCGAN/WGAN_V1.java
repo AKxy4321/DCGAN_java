@@ -27,7 +27,7 @@ public class WGAN_V1 implements Serializable {
     double learning_rate_gen = 2e-4;
     double learning_rate_critic = 1e-4;
 
-    private int n_critics = 1;
+    private int n_critics = 3;
 
     int batch_size = 32; // 1 for sgd
 
@@ -36,7 +36,7 @@ public class WGAN_V1 implements Serializable {
     Generator_Implementation_Without_Batchnorm generator;
     Critic critic;
 
-    OptimizerHyperparameters generator_opt = new AdamHyperparameters(learning_rate_gen, 0.5, 0.9, 1e-4);
+    OptimizerHyperparameters generator_opt = new AdamHyperparameters(learning_rate_gen, 0, 0.9, 1e-4);
     OptimizerHyperparameters critic_opt = new AdamHyperparameters(learning_rate_critic, 0, 0.9, 1e-4);
 
     public static void main(String[] args) {
@@ -45,8 +45,8 @@ public class WGAN_V1 implements Serializable {
     }
 
     public WGAN_V1() {
-        generator = (Generator_Implementation_Without_Batchnorm) loadObject("models/generator_wgan_no_batchnorm_intermediate.ser");
-        critic = (Critic) loadObject("models/critic_wgan_intermediate.ser");
+//        generator = (Generator_Implementation_Without_Batchnorm) loadObject("models/generator_wgan_no_batchnorm_intermediate.ser");
+//        critic = (Critic) loadObject("models/critic_wgan_intermediate.ser");
 
         if (generator == null)
             generator = new Generator_Implementation_Without_Batchnorm(batch_size, generator_opt);

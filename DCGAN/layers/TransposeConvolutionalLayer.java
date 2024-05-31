@@ -1,6 +1,5 @@
 package DCGAN.layers;
 
-import DCGAN.optimizers.AdamOptimizer;
 import DCGAN.optimizers.Optimizer;
 import DCGAN.optimizers.OptimizerHyperparameters;
 import DCGAN.optimizers.SGDHyperparameters;
@@ -125,6 +124,10 @@ public class TransposeConvolutionalLayer implements Serializable {
 
         paddedOutputGradientSlice = new double[outputHeight + 2 * outputGradientPadding][outputWidth + 2 * outputGradientPadding];
         inputGradientSlice = new double[inputHeight][inputWidth];
+    }
+
+    public void setOptimizerHyperparameters(OptimizerHyperparameters optimizerHyperparameters) {
+        filtersOptimizer = Optimizer.createOptimizer(numFilters * filterDepth * filterSize * filterSize, optimizerHyperparameters);
     }
 
     public double[][][] forward(double[][][] input) {

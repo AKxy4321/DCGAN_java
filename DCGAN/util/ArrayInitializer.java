@@ -56,13 +56,13 @@ public class ArrayInitializer {
         return filters;
     }
 
-    public static double[][][][] initRandom4D(int x,int y, int z, int w) {
+    public static double[][][][] initRandom4D(int x, int y, int z, int w) {
         double[][][][] array = new double[x][y][z][w];
         initRandom4D(array);
         return array;
     }
 
-    public static void initRandom4D(double[][][][] dest){
+    public static void initRandom4D(double[][][][] dest) {
         Random rand = new Random();
         for (int i = 0; i < dest.length; i++) {
             for (int j = 0; j < dest[i].length; j++) {
@@ -75,13 +75,13 @@ public class ArrayInitializer {
         }
     }
 
-    public static double[][][] initRandom3D(int x,int y, int z) {
+    public static double[][][] initRandom3D(int x, int y, int z) {
         double[][][] array = new double[x][y][z];
         initRandom3D(array);
         return array;
     }
 
-    public static void initRandom3D(double[][][] dest){
+    public static void initRandom3D(double[][][] dest) {
         Random rand = new Random();
         for (int i = 0; i < dest.length; i++) {
             for (int j = 0; j < dest[i].length; j++) {
@@ -92,16 +92,38 @@ public class ArrayInitializer {
         }
     }
 
-    public static double[] initRandom1D(int x) {
+    public static double[] initGaussian1D(int x) {
         double[] array = new double[x];
-        initRandom1D(array);
+        initGaussian1D(array);
         return array;
     }
 
-    public static void initRandom1D(double[] dest){
+    public static void initGaussian1D(double[] dest) {
         Random rand = new Random();
         for (int i = 0; i < dest.length; i++) {
             dest[i] = rand.nextGaussian();
         }
+    }
+
+    public static double[] sphericalNoiseVector(int noise_len, double radius) {
+        double[] noise = new double[noise_len];
+        sphericalNoiseVector(noise, radius);
+        return noise;
+    }
+
+    public static void sphericalNoiseVector(double[] noise, double radius) {
+        initGaussian1D(noise);
+        double mag = Math.max(mag(noise), 0.0001);
+        for (int i = 0; i < noise.length; i++) {
+            noise[i] *= radius / mag;
+        }
+    }
+
+    public static double mag(double[] vec) {
+        double sum = 0;
+        for (int i = 0; i < vec.length; i++) {
+            sum += vec[i] * vec[i];
+        }
+        return Math.sqrt(sum);
     }
 }

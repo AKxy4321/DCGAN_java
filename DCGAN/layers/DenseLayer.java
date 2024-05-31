@@ -114,4 +114,8 @@ public class DenseLayer implements Serializable {
         updateParameters(outputGradient, this.input);
     }
 
+    public double[][][] backward2_and_update(double[][][] grad_wrt_input, double[][] grad_wrt_output, double[][] inputs) {
+        // TODO: implement
+        return new double[0][][];
+    }
 }

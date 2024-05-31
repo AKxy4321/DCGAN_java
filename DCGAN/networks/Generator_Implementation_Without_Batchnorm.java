@@ -99,30 +99,18 @@ public class Generator_Implementation_Without_Batchnorm implements Serializable 
 
     public double[][][] generateImage() {
         // using a spherical Z
-        double[] noise = ArrayInitializer.xavierInit1D(noise_length);
-        double mag = 0;
-        for (int j = 0; j < noise_length; j++)
-            mag += Math.pow(noise[j], 2);
-        mag = Math.max(Math.sqrt(mag), 0.0000001);
-        for (int j = 0; j < noise_length; j++)
-            noise[j] /= mag; // to set the magnitude of the noise vector to 1
+        double[] noise = ArrayInitializer.initGaussian1D(noise_length);
 
         double[] gen_dense_output = this.dense.forward(noise);
         double[][][] gen_dense_output_unflattened = MiscUtils.unflatten(gen_dense_output, tconv1.inputDepth, tconv1.inputHeight, tconv1.inputWidth);
         double[][][] gen_leakyrelu_output1 = this.leakyReLU1.forward(gen_dense_output_unflattened);
-
 //        saveImage(getBufferedImage(gen_leakyrelu_output1), "gen_leakyrelu_output1.png");
-
         double[][][] outputTconv1 = this.tconv1.forward(gen_leakyrelu_output1);
         double[][][] gen_leakyrelu_output2 = this.leakyReLU2.forward(outputTconv1);
-
 //        saveImage(getBufferedImage(gen_leakyrelu_output2), "gen_leakyrelu_output2.png");
-
         double[][][] outputTconv2 = this.tconv2.forward(gen_leakyrelu_output2);
         double[][][] gen_leakyrelu_output3 = this.leakyReLU3.forward(outputTconv2);
-
 //        saveImage(getBufferedImage(gen_leakyrelu_output3), "gen_leakyrelu_output3.png");
-
         double[][][] gen_tconv3_output = this.tconv3.forward(gen_leakyrelu_output3);
         double[][][] fakeImage = this.tanh.forward(gen_tconv3_output);
         return fakeImage;
@@ -140,16 +128,8 @@ public class Generator_Implementation_Without_Batchnorm implements Serializable 
     double[][][][] tanhOutputs;
 
     public double[][][][] forwardBatch() {
-        noises = ArrayInitializer.xavierInit2D(batchSize, noise_length);
-        for (int sample_idx = 0; sample_idx < batchSize; sample_idx++) {
-            double mag = 0;
-            for (int j = 0; j < noise_length; j++)
-                mag += Math.pow(noises[sample_idx][j], 2);
-            mag = Math.max(Math.sqrt(mag), 0.0000001);
-            for (int j = 0; j < noise_length; j++)
-                noises[sample_idx][j] /= mag; // to set the magnitude of the noise vector to 1
-        }
         for (int i = 0; i < batchSize; i++, System.out.print(verbose ? " " + i : "")) {
+            ArrayInitializer.initGaussian1D(noises[i]);
             denseOutputs[i] = dense.forward(noises[i]);
 
             denseOutputsUnflattened[i] = MiscUtils.unflatten(denseOutputs[i], tconv1.inputDepth, tconv1.inputHeight, tconv1.inputWidth);
