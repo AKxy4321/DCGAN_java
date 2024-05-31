@@ -13,7 +13,6 @@ import java.util.Random;
 
 import static DCGAN.util.MathUtils.mean;
 import static DCGAN.util.MiscUtils.*;
-import static DCGAN.util.SerializationUtils.loadObject;
 import static DCGAN.util.SerializationUtils.saveObject;
 import static DCGAN.util.TrainingUtils.calculateGradientRMSE;
 import static DCGAN.util.TrainingUtils.lossRMSE;
@@ -34,7 +33,11 @@ public class Generator_Implementation_Without_Batchnorm implements Serializable 
     int noise_length = 100;
     Random random = new Random(1);
 
+    OptimizerHyperparameters optimizerHyperparameters;
+
     public Generator_Implementation_Without_Batchnorm(int batchSize, OptimizerHyperparameters optimizerHyperparameters) {
+        this.optimizerHyperparameters = optimizerHyperparameters;
+
         this.batchSize = batchSize;
 
         int tconv1_input_width = 4, tconv1_input_height = 4, tconv1_input_depth = 256;
@@ -79,6 +82,19 @@ public class Generator_Implementation_Without_Batchnorm implements Serializable 
 
         tconv3Outputs = new double[batchSize][tconv3.outputDepth][tconv3.outputHeight][tconv3.outputWidth];
         tanhOutputs = new double[batchSize][tconv3.outputDepth][tconv3.outputHeight][tconv3.outputWidth];
+    }
+
+
+    public OptimizerHyperparameters getOptimizerHyperparameters() {
+        return optimizerHyperparameters;
+    }
+
+    public void setOptimizerHyperparameters(OptimizerHyperparameters optimizerHyperparameters) {
+        this.optimizerHyperparameters = optimizerHyperparameters;
+        this.dense.setOptimizerHyperparameters(optimizerHyperparameters);
+        this.tconv1.setOptimizerHyperparameters(optimizerHyperparameters);
+        this.tconv2.setOptimizerHyperparameters(optimizerHyperparameters);
+        this.tconv3.setOptimizerHyperparameters(optimizerHyperparameters);
     }
 
     public double[][][] generateImage() {

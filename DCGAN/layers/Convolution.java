@@ -47,21 +47,11 @@ public class Convolution implements Serializable {
 
         // since filterDepth isn't mentioned, its convention to assume that the filter depth is equal to the input depth,
         // although it makes sense to make its depth 1, that goes against convention,
-        // but usually we want 3d output, although if you put filter_depth to something smaller, you will get a 4d output which we don't really wanna work with
+        // but usually we want for each filter we want the result of the convolution with the input to result in a 2d activation map. This can be achieved by setting filterDepth to inputDepth
         this.filter_depth = input_depth;
 
-//        this.filters = new double[numFilters][filter_depth][][];
-//        filters = XavierInitializer.xavierInit4D(numFilters, filter_depth, filterSize);
         filters = new double[numFilters][filter_depth][filterSize][filterSize]; // XavierInitializer.xavierInit4D(numFilters, filterDepth, filterSize);
-        Random random = new Random();
         for (int filter_idx = 0; filter_idx < numFilters; filter_idx++) {
-//            for (int fd = 0; fd < filter_depth; fd++) {
-//                for(int i = 0; i < filterSize; i++) {
-//                    for(int j = 0; j < filterSize; j++) {
-//                        filters[filter_idx][fd][i][j] = random.nextGaussian(0,0.02);
-//                    }
-//                }
-//            }
             filters[filter_idx] = ArrayInitializer.xavierInit3D(filter_depth, filterSize, filterSize);
         }
 
@@ -70,6 +60,11 @@ public class Convolution implements Serializable {
         this.inputPaddingX = inputPaddingX;
         this.inputPaddingY = inputPaddingY;
 
+        filtersOptimizer = Optimizer.createOptimizer(numFilters * filter_depth * filterSize * filterSize, optimizerHyperparameters);
+        biasesOptimizer = Optimizer.createOptimizer(numFilters, optimizerHyperparameters);
+    }
+
+    public void setOptimizerHyperparameters(OptimizerHyperparameters optimizerHyperparameters) {
         filtersOptimizer = Optimizer.createOptimizer(numFilters * filter_depth * filterSize * filterSize, optimizerHyperparameters);
         biasesOptimizer = Optimizer.createOptimizer(numFilters, optimizerHyperparameters);
     }

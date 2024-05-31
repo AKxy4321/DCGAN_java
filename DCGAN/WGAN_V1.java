@@ -3,6 +3,7 @@ package DCGAN;
 import DCGAN.networks.Critic;
 import DCGAN.networks.Generator_Implementation_Without_Batchnorm;
 import DCGAN.optimizers.AdamHyperparameters;
+import DCGAN.optimizers.OptimizerHyperparameters;
 import DCGAN.util.MiscUtils;
 
 import java.io.Serializable;
@@ -23,10 +24,10 @@ public class WGAN_V1 implements Serializable {
     int train_size = 1500;
     int test_size = 5;
     int label = 9;
-    double learning_rate_gen = 0.0001;
-    double learning_rate_critic = 0.0001;
+    double learning_rate_gen = 2e-4;
+    double learning_rate_critic = 1e-4;
 
-    private int n_critics = 5;
+    private int n_critics = 1;
 
     int batch_size = 32; // 1 for sgd
 
@@ -35,8 +36,8 @@ public class WGAN_V1 implements Serializable {
     Generator_Implementation_Without_Batchnorm generator;
     Critic critic;
 
-    AdamHyperparameters generator_adam = new AdamHyperparameters(learning_rate_gen, 0.2, 0.999, 1e-8);
-    AdamHyperparameters critic_adam = new AdamHyperparameters(learning_rate_critic, 0.1, 0.999, 1e-8);
+    OptimizerHyperparameters generator_opt = new AdamHyperparameters(learning_rate_gen, 0.5, 0.9, 1e-4);
+    OptimizerHyperparameters critic_opt = new AdamHyperparameters(learning_rate_critic, 0, 0.9, 1e-4);
 
     public static void main(String[] args) {
         WGAN_V1 wgan = new WGAN_V1();
@@ -44,14 +45,18 @@ public class WGAN_V1 implements Serializable {
     }
 
     public WGAN_V1() {
-        generator = (Generator_Implementation_Without_Batchnorm) loadObject("models/generator_wgan_no_batchnorm.ser");
-        critic = (Critic) loadObject("models/critic_wgan.ser");
+        generator = (Generator_Implementation_Without_Batchnorm) loadObject("models/generator_wgan_no_batchnorm_intermediate.ser");
+        critic = (Critic) loadObject("models/critic_wgan_intermediate.ser");
 
         if (generator == null)
-            generator = new Generator_Implementation_Without_Batchnorm(batch_size, generator_adam);
+            generator = new Generator_Implementation_Without_Batchnorm(batch_size, generator_opt);
         if (critic == null)
-            critic = new Critic(batch_size, critic_adam);
+            critic = new Critic(batch_size, critic_opt);
 
+        if (generator.getOptimizerHyperparameters() != generator_opt)
+            generator.setOptimizerHyperparameters(generator_opt);
+        if (critic.getOptimizerHyperparameters() != critic_opt)
+            critic.setOptimizerHyperparameters(critic_opt);
 
         critic.setClip(-0.01, 0.01);
 
@@ -64,19 +69,13 @@ public class WGAN_V1 implements Serializable {
         // minibatch gradient descent
         for (int epoch = 0; epoch < 1000000; epoch++) {
             int index = 0;// reset our index to 0
-            if(epoch < 3)
-                generator_adam.setLearningRate(0.0001);
-            else
-                generator_adam.setLearningRate(learning_rate_gen);
             for (int batch_idx = 0; batch_idx < train_size / batch_size; batch_idx++) {
                 // Load images
                 double[][][][] fakeImages = generator.forwardBatch();
                 double[][][][] realImages = new double[batch_size][1][28][28];
                 for (int real_idx = 0; real_idx < batch_size; real_idx++)
                     realImages[real_idx] = new double[][][]{
-                            addNoise(
-                                    zeroToOneToMinusOneToOne(img_to_mat(mnist_load_index(label, index++))),
-                                    0.5)
+                            zeroToOneToMinusOneToOne(img_to_mat(mnist_load_index(label, index++))),
                     };
 
                 for (int i = 0; i < n_critics; i++) {
@@ -96,9 +95,9 @@ public class WGAN_V1 implements Serializable {
                 logger.info("Gen_Loss : " + gen_loss);
                 logger.info("Disc_Loss : " + disc_loss);
 
-                MiscUtils.saveImage(getBufferedImage(realImages[0]), "outputs/real_image_wgan_with_noise.png");
+                MiscUtils.saveImage(getBufferedImage(realImages[0]), "outputs/real_image_wgan.png");
                 LocalDateTime currentTime = LocalDateTime.now();
-                if(Duration.between(startTime, currentTime).toMinutes() > 5) {
+                if (Duration.between(startTime, currentTime).toMinutes() > 5) {
                     startTime = currentTime;
                     saveObject(generator, "models/generator_wgan_no_batchnorm.ser");
                     saveObject(critic, "models/critic_wgan.ser");

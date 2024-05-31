@@ -29,6 +29,19 @@ public class DenseLayer implements Serializable {
         biasesOptimizer = Optimizer.createOptimizer(outputSize, optimizerHyperparameters);
     }
 
+    public void setOptimizerHyperparameters(OptimizerHyperparameters optimizerHyperparameters) {
+        setWeightsOptimizerHyperparameters(optimizerHyperparameters);
+        setBiasesOptimizerHyperparameters(optimizerHyperparameters);
+    }
+
+    public void setWeightsOptimizerHyperparameters(OptimizerHyperparameters optimizerHyperparameters) {
+        weightsOptimizer = Optimizer.createOptimizer(inputSize * outputSize, optimizerHyperparameters);
+    }
+
+    public void setBiasesOptimizerHyperparameters(OptimizerHyperparameters optimizerHyperparameters) {
+        biasesOptimizer = Optimizer.createOptimizer(outputSize, optimizerHyperparameters);
+    }
+
     public double[] forward(double[] input) {
         this.input = input;
         double[] output = new double[weights[0].length];

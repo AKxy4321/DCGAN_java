@@ -26,8 +26,11 @@ public class Critic implements Serializable {
     private double min_clip;
     private double max_clip;
 
+    OptimizerHyperparameters optimizerHyperparameters;
+
 
     public Critic(int batchSize, OptimizerHyperparameters optimizerHyperparameters) {
+        this.optimizerHyperparameters = optimizerHyperparameters;
         this.batchSize = batchSize;
         int inputWidth = 28, inputHeight = 28;
         this.conv1 = new Convolution(4, 64, 2,
@@ -47,6 +50,17 @@ public class Critic implements Serializable {
         outputs_leakyRELU2 = new double[batchSize][][][];
         outputs_leakyRELU2_flattened = new double[batchSize][];
         outputs_dense = new double[batchSize][];
+    }
+
+    public OptimizerHyperparameters getOptimizerHyperparameters() {
+        return optimizerHyperparameters;
+    }
+
+    public void setOptimizerHyperparameters(OptimizerHyperparameters optimizerHyperparameters) {
+        this.optimizerHyperparameters = optimizerHyperparameters;
+        conv1.setOptimizerHyperparameters(optimizerHyperparameters);
+        conv2.setOptimizerHyperparameters(optimizerHyperparameters);
+        dense.setOptimizerHyperparameters(optimizerHyperparameters);
     }
 
     public void setClip(double min_clip, double max_clip) {
