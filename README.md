@@ -1,3 +1,8 @@
+### setup :
+unzip mnist_png.zip and place it in the same folder it was originally in.
+
+
+### note :
 Generator_Implementation_Without_Batchnorm.java is the current generator network being used. The one with Batch Normalization is having a vanishing gradient problem that has to be fixed.
 
 Generator_Implementation_Without_Batchnorm.java has a main function which shows an example of training the network separately(without a discriminator) to output a single handdrawn digit by simply using RMSE against the single target image.
