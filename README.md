@@ -1,6 +1,8 @@
 ### setup :
 unzip mnist_png.zip and place it in the same folder it was originally in.
+The folder structure should be DCGAN/data/mnist_png/mnist_png/
 
+The working implementation is in the file called "WGAN_No_Conv.java"
 
 ### note :
 Generator_Implementation_Without_Batchnorm.java is the current generator network being used. The one with Batch Normalization is having a vanishing gradient problem that has to be fixed.
