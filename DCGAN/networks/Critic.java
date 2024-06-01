@@ -9,10 +9,10 @@ import DCGAN.util.MiscUtils;
 import java.io.Serializable;
 
 import static DCGAN.util.MathUtils.mean;
-import static DCGAN.util.MiscUtils.clamp;
 
 public class Critic implements Serializable {
     private static final long serialVersionUID = 1L;
+    public boolean verbose = false;
     Convolution conv1;
     //    BatchNormalization batch1;
     LeakyReLULayer leakyReLULayer1;
@@ -20,15 +20,17 @@ public class Critic implements Serializable {
     //    BatchNormalization batch2;
     LeakyReLULayer leakyReLULayer2;
     DenseLayer dense;
-
-    public boolean verbose = false;
     int batchSize;
+    OptimizerHyperparameters optimizerHyperparameters;
+    double[][][][] inputs;
+    double[][][][] outputs_conv1;
+    double[][][][] outputs_leakyRELU1;
+    double[][][][] outputs_conv2;
+    double[][][][] outputs_leakyRELU2;
+    double[][] outputs_leakyRELU2_flattened;
+    double[][] outputs_dense;
     private double min_clip;
     private double max_clip;
-
-    OptimizerHyperparameters optimizerHyperparameters;
-
-
     public Critic(int batchSize, OptimizerHyperparameters optimizerHyperparameters) {
         this.optimizerHyperparameters = optimizerHyperparameters;
         this.batchSize = batchSize;
@@ -75,7 +77,6 @@ public class Critic implements Serializable {
         return getOutput(input);
     }
 
-
     public double[] getOutput(double[][][] input) {
         double[][][] output_conv1 = this.conv1.forward(input);
         double[][][] output_leakyRELU1 = this.leakyReLULayer1.forward(output_conv1);
@@ -86,14 +87,6 @@ public class Critic implements Serializable {
         double[] output_dense = this.dense.forward(MiscUtils.flatten(output_leakyRELU2));
         return output_dense;
     }
-
-    double[][][][] inputs;
-    double[][][][] outputs_conv1;
-    double[][][][] outputs_leakyRELU1;
-    double[][][][] outputs_conv2;
-    double[][][][] outputs_leakyRELU2;
-    double[][] outputs_leakyRELU2_flattened;
-    double[][] outputs_dense;
 
     public double[][] forwardBatch(double[][][][] inputs) {
         this.inputs = inputs;
@@ -153,10 +146,11 @@ public class Critic implements Serializable {
 
         // clip the weights
         MiscUtils.clipInPlace(dense.weights, min_clip, max_clip); // Apparently clipping should be done for only convolution layers
+        MiscUtils.clipInPlace(dense.biases, min_clip, max_clip);
         MiscUtils.clipInPlace(conv2.filters, min_clip, max_clip);
         MiscUtils.clipInPlace(conv1.filters, min_clip, max_clip);
 
-        if(verbose){
+        if (verbose) {
             // mean of gradients of each layer
             System.out.println("Mean of output gradients of each layer of critic");
             System.out.println("dense layer: " + mean(MiscUtils.flatten(outputGradients)));

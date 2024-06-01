@@ -1,10 +1,10 @@
 package DCGAN;
 
 import DCGAN.networks.Critic;
+import DCGAN.networks.Critic_noConv;
 import DCGAN.networks.Generator_Implementation_Without_Batchnorm;
 import DCGAN.optimizers.AdamHyperparameters;
 import DCGAN.optimizers.OptimizerHyperparameters;
-import DCGAN.optimizers.RMSPropHyperparameters;
 import DCGAN.util.MiscUtils;
 
 import java.io.Serializable;
@@ -14,35 +14,34 @@ import java.util.logging.Logger;
 
 import static DCGAN.util.MathUtils.mean;
 import static DCGAN.util.MiscUtils.*;
-import static DCGAN.util.SerializationUtils.loadObject;
 import static DCGAN.util.SerializationUtils.saveObject;
 
 
-public class WGAN_V1 implements Serializable {
+public class WGAN_No_Conv implements Serializable {
     private static final long serialVersionUID = 1L;
-    final private static Logger logger = Logger.getLogger(WGAN_V1.class.getName());
+    final private static Logger logger = Logger.getLogger(WGAN_No_Conv.class.getName());
 
     int train_size = 500;
     int test_size = 1;
     int label = 8;
-    double learning_rate_gen = 0.0001;
-    double learning_rate_critic = 0.0001;
+    double learning_rate_gen = 0.0002;
+    double learning_rate_critic = 0.00001;
     int batch_size = 32; // 1 for sgd
     Generator_Implementation_Without_Batchnorm generator;
-    Critic critic;
+    Critic_noConv critic;
     OptimizerHyperparameters generator_opt = new AdamHyperparameters(learning_rate_gen, 0, 0.9, 1e-6);
     OptimizerHyperparameters critic_opt = new AdamHyperparameters(learning_rate_critic, 0, 0.9, 1e-6);
     private int n_critics = 2;
     private double disc_loss, gen_loss;
 
-    public WGAN_V1() {
+    public WGAN_No_Conv() {
 //        generator = (Generator_Implementation_Without_Batchnorm) loadObject("models/generator_wgan_no_batchnorm.ser");
 //        critic = (Critic) loadObject("models/critic_wgan_intermediate.ser");
 
         if (generator == null)
             generator = new Generator_Implementation_Without_Batchnorm(batch_size, generator_opt);
         if (critic == null)
-            critic = new Critic(batch_size, critic_opt);
+            critic = new Critic_noConv(batch_size, critic_opt);
 
         if (generator.getOptimizerHyperparameters() != generator_opt)
             generator.setOptimizerHyperparameters(generator_opt);
@@ -56,7 +55,7 @@ public class WGAN_V1 implements Serializable {
     }
 
     public static void main(String[] args) {
-        WGAN_V1 wgan = new WGAN_V1();
+        WGAN_No_Conv wgan = new WGAN_No_Conv();
         wgan.train();
     }
 
@@ -89,11 +88,11 @@ public class WGAN_V1 implements Serializable {
                 }
 
                 // train generator
-                train_generator(critic.forwardBatch(fakeImages));
+                train_generator(critic.forwardBatch(fakeImages).clone());
 
                 // generate image
                 double[][][] gen_img = generator.generateImage();
-                saveImage(getBufferedImage(gen_img), "outputs/generated_image_wgan.png");
+                saveImage(getBufferedImage(gen_img), "outputs/generated_image_wgan_no_conv.png");
 
                 // calculating and displaying our model metrics
                 calculateModelMetrics();
@@ -101,12 +100,12 @@ public class WGAN_V1 implements Serializable {
                 logger.info("Gen_Loss : " + gen_loss);
                 logger.info("Disc_Loss : " + disc_loss);
 
-                MiscUtils.saveImage(getBufferedImage(realImages[0]), "outputs/real_image_wgan.png");
+                MiscUtils.saveImage(getBufferedImage(realImages[0]), "outputs/real_image_wgan_no_conv.png");
                 LocalDateTime currentTime = LocalDateTime.now();
                 if (Duration.between(startTime, currentTime).toMinutes() > 5) {
                     startTime = currentTime;
-                    saveObject(generator, "models/generator_wgan_no_batchnorm.ser");
-                    saveObject(critic, "models/critic_wgan.ser");
+                    saveObject(generator, "models/generator_wgan_no_batchnorm_no_conv.ser");
+                    saveObject(critic, "models/critic_wgan_no_conv.ser");
                 }
             }
         }
@@ -151,7 +150,7 @@ public class WGAN_V1 implements Serializable {
         generator.updateParametersBatch(disc_input_gradients_gen_output_gradients);
 
         // for debugging
-        MiscUtils.saveImage(getBufferedImage(scaleMinMax(disc_input_gradients_gen_output_gradients[0][0])), "critic_in_gradient_wrt_input.png");
+        MiscUtils.saveImage(getBufferedImage(scaleMinMax(disc_input_gradients_gen_output_gradients[0][0])), "outputs/critic_no_conv_in_gradient_wrt_input.png");
         MiscUtils.prettyprint(disc_input_gradients_gen_output_gradients[0][0]);
     }
 

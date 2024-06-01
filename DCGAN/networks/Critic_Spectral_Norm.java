@@ -162,7 +162,7 @@ public class Critic_Spectral_Norm implements Serializable {
 
         // through power iteration method
         int n_power_iterations = 5;
-        double[] u_tilde = initRandom1D(layer.outputSize);
+        double[] u_tilde = initGaussian1D(layer.outputSize);
         double[] v_tilde = null;
         for (int i = 0; i < n_power_iterations; i++) {
             double[] backwardResult = layer.backward(u_tilde);

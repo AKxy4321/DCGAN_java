@@ -113,7 +113,7 @@ public class LeakyReLULayer implements Serializable {
         return d_L_d_input;
     }
 
-    public double[] backward(double[] outputGradient) {
+    public double[] backward(double[] outputGradient, double[] output1D) {
         double[] d_L_d_input = new double[outputGradient.length];
         int height = outputGradient.length;
 

@@ -42,7 +42,7 @@ public class WGAN implements Serializable {
     public void train() {
         generator.verbose = true;
         critic.verbose = true;
-        critic.setClipConv(min_clip_critic_conv, max_clip_critic_conv);
+//        critic.setClipConv(min_clip_critic_conv, max_clip_critic_conv);
 
         // minibatch gradient descent
         for (int epochs = 0; epochs < 1000000; epochs++) {

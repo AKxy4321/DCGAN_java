@@ -11,7 +11,7 @@ public class DenseLayer implements Serializable {
     private static final long serialVersionUID = 1L;
 
     public double[][] weights;
-    private double[] biases;
+    public double[] biases;
     double[] input;
 
     public int outputSize, inputSize;

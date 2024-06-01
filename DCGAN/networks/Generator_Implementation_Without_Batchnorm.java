@@ -43,7 +43,7 @@ public class Generator_Implementation_Without_Batchnorm implements Serializable 
         int tconv1_input_width = 4, tconv1_input_height = 4, tconv1_input_depth = 256;
         this.dense_output_size = tconv1_input_width * tconv1_input_height * tconv1_input_depth;
         this.dense = new DenseLayer(noise_length, this.dense_output_size, optimizerHyperparameters);
-        this.leakyReLU1 = new LeakyReLULayer(0.1);
+        this.leakyReLU1 = new LeakyReLULayer(0.01);
 
         // this.stride * (inputHeight - 1) + filterSize - 2 * padding;
         this.tconv1 = new TransposeConvolutionalLayer(3, 128, 2,
@@ -51,14 +51,14 @@ public class Generator_Implementation_Without_Batchnorm implements Serializable 
                 1, 0, 0, 1, false, optimizerHyperparameters);
         assert tconv1.outputHeight == 7;
         assert tconv1.outputWidth == 7;
-        this.leakyReLU2 = new LeakyReLULayer(0.1);
+        this.leakyReLU2 = new LeakyReLULayer(0.01);
 
         this.tconv2 = new TransposeConvolutionalLayer(4, 64, 2,
                 tconv1.outputWidth, tconv1.outputHeight, tconv1.outputDepth,
                 2, 0, 0, 1, false, optimizerHyperparameters);
         assert tconv2.outputHeight == 14;
         assert tconv2.outputWidth == 14;
-        this.leakyReLU3 = new LeakyReLULayer(0.1);
+        this.leakyReLU3 = new LeakyReLULayer(0.01);
 
         this.tconv3 = new TransposeConvolutionalLayer(4, 1, 2,
                 tconv2.outputWidth, tconv2.outputHeight, tconv2.outputDepth,
@@ -99,7 +99,7 @@ public class Generator_Implementation_Without_Batchnorm implements Serializable 
 
     public double[][][] generateImage() {
         // using a spherical Z
-        double[] noise = ArrayInitializer.initGaussian1D(noise_length);
+        double[] noise = ArrayInitializer.sphericalNoiseVector(noise_length, 1);
 
         double[] gen_dense_output = this.dense.forward(noise);
         double[][][] gen_dense_output_unflattened = MiscUtils.unflatten(gen_dense_output, tconv1.inputDepth, tconv1.inputHeight, tconv1.inputWidth);
@@ -129,7 +129,7 @@ public class Generator_Implementation_Without_Batchnorm implements Serializable 
 
     public double[][][][] forwardBatch() {
         for (int i = 0; i < batchSize; i++, System.out.print(verbose ? " " + i : "")) {
-            ArrayInitializer.initGaussian1D(noises[i]);
+            ArrayInitializer.sphericalNoiseVector(noises[i],1);
             denseOutputs[i] = dense.forward(noises[i]);
 
             denseOutputsUnflattened[i] = MiscUtils.unflatten(denseOutputs[i], tconv1.inputDepth, tconv1.inputHeight, tconv1.inputWidth);

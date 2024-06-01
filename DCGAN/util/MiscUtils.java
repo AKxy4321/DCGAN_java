@@ -80,7 +80,6 @@ public class MiscUtils {
     }
 
 
-
     public static double[] mean_1st_layer(double[][] array) {
         double[] new_array = new double[array[0].length];
         for (int i = 0; i < array.length; i++)
@@ -325,7 +324,6 @@ public class MiscUtils {
     }
 
 
-
     public static void incrementArrayByArray(double[][][] resultArray, double[][][] array) {
         /**
          * Adds the values of array to resultArray. No new array is made for this
@@ -372,7 +370,7 @@ public class MiscUtils {
         return array;
     }
 
-    public static double[] multiplyScalarInPlace(double[] array, double scalar){
+    public static double[] multiplyScalarInPlace(double[] array, double scalar) {
         for (int i = 0; i < array.length; i++)
             array[i] *= scalar;
         return array;
@@ -384,8 +382,6 @@ public class MiscUtils {
                 array[i][j] *= scalar;
         return array;
     }
-
-
 
 
     public static double[][][] addZeroesInBetween(double[][][] input, int dz, int hz, int wz) {
@@ -540,6 +536,11 @@ public class MiscUtils {
 //            System.out.println();
 //        }
 
+    }
+
+    public static void clipInPlace(double[] array, double minClip, double maxClip) {
+        for (int i = 0; i < array.length; i++)
+            array[i] = clamp(array[i], minClip, maxClip);
     }
 
     public static void clipInPlace(double[][] array, double minClip, double maxClip) {
