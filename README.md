@@ -4,12 +4,15 @@ The folder structure should be DCGAN/data/mnist_png/mnist_png/
 
 The working implementation is in the file called "WGAN_No_Conv.java"
 
+### To run the trained model and see its outputs :
+run Generator_Usage.java . This will load the trained model and generate 8s;
+
 ### note :
-Generator_Implementation_Without_Batchnorm.java is the current generator network being used. The one with Batch Normalization is having a vanishing gradient problem that has to be fixed.
+Generator_Implementation_Without_Batchnorm.java is the current generator network being used. 
+The one with Batch Normalization is having a vanishing gradient problem that has to be fixed.
 
-Generator_Implementation_Without_Batchnorm.java has a main function which shows an example of training the network separately(without a discriminator) to output a single handdrawn digit by simply using RMSE against the single target image.
+Generator_Implementation_Without_Batchnorm.java has a main function which shows an example of training
+the network separately(without a discriminator) to output a single handdrawn digit by simply using RMSE against the single target image.
 
-DCGAN_Implementation.java has a simple training loop where the discriminator is no longer trained if its accuracy is too high.
-
-However, the problem now is that the generator does not train properly even though the discriminator is able to reach 100% accuracy. The generator is simply never able to fool the discriminator.
-There is likely something wrong with the way the discriminator is feeding its gradients to the generator during back propagation or there is something wrong with the loss function used.
+DCGAN_Implementation.java is the original DCGAN implementation that was used to train the model. 
+But it doesn't work because of over sensitivity to hyperparameters, and just the fact that it is a bad architecture to begin with.
