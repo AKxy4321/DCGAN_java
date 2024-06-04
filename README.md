@@ -5,7 +5,9 @@ The folder structure should be DCGAN/data/mnist_png/mnist_png/
 #### To use the trained model :
 Head on over to https://drive.google.com/drive/folders/1R-PC2zI3KVMCxVkxe4vMQAoPe9TwULZI?usp=sharing and 
 download generator_wgan_no_batchnorm_no_conv.ser and critic_wgan_no_conv.ser which are the currently working models,
-and place it in the /models directory.
+and place it in the /models directory. 
+
+The models were compiled on oracle open-jdk-21, so if it isn't working for you, switch to this jdk.
 
 The working implementation is in the file called "WGAN_No_Conv.java"
 
