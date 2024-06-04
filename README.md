@@ -2,6 +2,11 @@
 unzip mnist_png.zip and place it in the same folder it was originally in.
 The folder structure should be DCGAN/data/mnist_png/mnist_png/
 
+#### To use the trained model :
+Head on over to https://drive.google.com/drive/folders/1R-PC2zI3KVMCxVkxe4vMQAoPe9TwULZI?usp=sharing and 
+download generator_wgan_no_batchnorm_no_conv.ser and critic_wgan_no_conv.ser which are the currently working models,
+and place it in the /models directory.
+
 The working implementation is in the file called "WGAN_No_Conv.java"
 
 ### To run the trained model and see its outputs :

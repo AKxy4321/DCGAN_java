@@ -3,4 +3,4 @@
 /venv/
 /out/
 DCGAN/data/mnist_png/mnist_png/
-/models/
+/models/critic_wgan_no_conv.ser
