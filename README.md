@@ -23,3 +23,15 @@ the network separately(without a discriminator) to output a single handdrawn dig
 
 DCGAN_Implementation.java is the original DCGAN implementation that was used to train the model. 
 But it doesn't work because of over sensitivity to hyperparameters, and just the fact that it is a bad architecture to begin with.
+
+### To calculate the FID score : 
+First, install the pytorch-fid package by running:
+```bash
+pip install pytorch-fid --user
+```
+
+Then,
+from the project directory, run:
+```bash
+python -m pytorch_fid outputs/generator_outputs training_dataset
+```
